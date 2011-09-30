@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="multimaster" type="master_sync.py" name="master_sync" output="screen">
+    <rosparam command="load" file="$(find multimaster)/config.yaml" />
+  </node>
+</launch>

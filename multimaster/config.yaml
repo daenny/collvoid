@@ -1,0 +1,3 @@
+foreign_master: "http://turtlebot4:11311"
+local_pubs: [wim]
+foreign_pubs: [wim]
