@@ -1,0 +1,14 @@
+<package>
+  <description brief="collvoid_turtlebot">
+
+     collvoid_turtlebot
+
+  </description>
+  <author>Daniel Claes</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/collvoid_turtlebot</url>
+
+</package>
+
+
