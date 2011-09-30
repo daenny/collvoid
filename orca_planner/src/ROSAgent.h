@@ -75,7 +75,8 @@ class ROSAgent{
 	//PositionStage cur;
 	
 	std::string myId;
-	
+	std::string tf_prefix;
+
 	State state_;
 	//bool commandStart;
 	//bool sendFinish;

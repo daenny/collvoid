@@ -51,9 +51,8 @@ ROSAgent::ROSAgent() :
   robots(),
   goal(),
   myId(),
+  tf_prefix(),
   state_(STOPPED),
-  //  commandStart(false),
-  //  sendFinish(false),
   useGroundTruth(false),
   scaleRadius(),
   nrInitialGuess(0),
@@ -120,7 +119,7 @@ double ROSAgent::calculateMaxTrackSpeedAngle(double T, double theta, double erro
 
 
 void ROSAgent::cbCommandsRobot(const std_msgs::String::ConstPtr& msg) {
-  //ROS_ERROR("I heard %s",msg->data.c_str());
+  ROS_INFO("I heard %s",msg->data.c_str());
   if (strcmp(msg->data.c_str(),"Start") ==0) {
     state_ = RUNNING;
     // commandStart = true;
@@ -184,6 +183,9 @@ void ROSAgent::cbGoal(const geometry_msgs::PoseStamped::ConstPtr& msg){
   goal.x = msg->pose.position.x;
   goal.y = msg->pose.position.y;
   goal.ang = tf::getYaw(msg->pose.orientation);
+
+  ROS_INFO("got new goal!");
+
   //sendFinish = false;
 } 
 
@@ -227,9 +229,9 @@ void ROSAgent::cbPositionGroundTruth(nav_msgs::OdometryPtr msg){
     //lookup tf from map to baselink
     try{
       tf::StampedTransform transform;
-      tfListener.waitForTransform("/map", myId+"/base_link",
+      tfListener.waitForTransform("/map", tf_prefix+"/base_link",
 				  msg->header.stamp, ros::Duration(0.5));
-      tfListener.lookupTransform("/map", myId+"/base_link",  
+      tfListener.lookupTransform("/map", tf_prefix+"/base_link",  
 				 msg->header.stamp, transform);
       geometry_msgs::Pose pose;
       tf::poseTFToMsg(transform, pose);
@@ -260,9 +262,9 @@ void ROSAgent::cbOdom(nav_msgs::OdometryPtr msg){
 	
   //lookup tf from map to baselink
   try{
-    tfListener.waitForTransform("/map", myId+"/base_link",
+    tfListener.waitForTransform("/map", tf_prefix+"/base_link",
 				msg->header.stamp, ros::Duration(0.5));
-    tfListener.lookupTransform("/map", myId+"/base_link",  
+    tfListener.lookupTransform("/map", tf_prefix+"/base_link",  
 			       msg->header.stamp, transform);
   }
   catch (tf::TransformException ex){
@@ -488,8 +490,8 @@ void ROSAgent::update(){
     cmd.angular.z = 0.0;
   if(std::abs(cmd.linear.x)<minSpeed_linear)
     cmd.linear.x = 0.0;
-  //ROS_INFO("%s calcVelo: x,y: (%6.4f, %6.4f) ",myId.c_str(),me.agent->velocity_.x(),me.agent->velocity_.y());
-  //  ROS_INFO("%s sendVelo: x,z: (%6.4f, %6.4f) ",myId.c_str(),cmd.linear.x,cmd.angular.z);
+  ROS_INFO("%s calcVelo: x,y: (%6.4f, %6.4f) ",myId.c_str(),me.agent->velocity_.x(),me.agent->velocity_.y());
+  ROS_INFO("%s sendVelo: x,z: (%6.4f, %6.4f) ",myId.c_str(),cmd.linear.x,cmd.angular.z);
 
   // publish new velocity
   pubTwist.publish(cmd);
@@ -505,7 +507,7 @@ void ROSAgent::update(){
   // Publish debug Msg
   orca_planner::OrcaDebug msg;
   msg.header.stamp = ros::Time::now();
-  msg.header.frame_id = myId + "/base_link";
+  msg.header.frame_id = tf_prefix + "/base_link";
   msg.run = debugMsgCounter;
   msg.odom = *odom;
   msg.cmd_vel = cmd;
@@ -526,7 +528,7 @@ void ROSAgent::publishLines(){
   //line_list.header.frame_id = myId + "/base_link";
   line_list.header.frame_id = "/map";
   line_list.header.stamp = ros::Time::now();
-  line_list.ns = myId;
+  line_list.ns = tf_prefix;
   line_list.action = visualization_msgs::Marker::ADD;
   line_list.pose.orientation.w = 1.0;
   line_list.type = visualization_msgs::Marker::LINE_LIST;
@@ -633,19 +635,25 @@ void ROSAgent::init() {
   private_nh.param("/scaleRadius",scaleRadius,true);
 
   try{
-    private_nh.getParam("wheel_base",WHEELBASE);
-    private_nh.getParam("maxSpeed_linear",maxSpeed_linear);
-    private_nh.getParam("maxSpeed_angular",maxSpeed_angular);
-    private_nh.getParam("minSpeed_linear",minSpeed_linear);
-    private_nh.getParam("minSpeed_angular",minSpeed_angular);
+    private_nh.getParam("/wheel_base",WHEELBASE);
+    private_nh.getParam("/maxSpeed_linear",maxSpeed_linear);
+    private_nh.getParam("/maxSpeed_angular",maxSpeed_angular);
+    private_nh.getParam("/minSpeed_linear",minSpeed_linear);
+    private_nh.getParam("/minSpeed_angular",minSpeed_angular);
   }
   catch (ros::InvalidNameException e){
     ROS_ERROR("%s",e.what());
+    exit(-1);
   }
+
+
  //TODO set radius better via message
   private_nh.param("radius",radius,0.5);
   private_nh.setParam("ROSAgent",true);
+
+  ROS_INFO("Params are wheel, lin(min,max), ang(min,max) %f, (%f,%f) (%f,%f)", WHEELBASE, minSpeed_linear,maxSpeed_linear,minSpeed_angular, maxSpeed_angular);
   //Init myself as RVO::Agent()
+
   
   me.agent = new RVO::Agent();
 	
@@ -723,7 +731,15 @@ void ROSAgent::init() {
 
   if (SIMULATION_MODE)
     subPositionGroundTruth = private_nh.subscribe("base_pose_ground_truth", 10, &ROSAgent::cbPositionGroundTruth,this);
+  
+
+  tf_prefix = ""; // TODO change to robot if single master, e.g. simulation
+
   myId = private_nh.getNamespace();
+  if (strcmp(myId.c_str(), "/") == 0)
+    myId = "fake"; // TODO change to hostname
+  ROS_INFO("My name is: %s",myId.c_str());
+
   lastTime = ros::Time::now();
 
   /* for(int i=0;i<=180;i++){
