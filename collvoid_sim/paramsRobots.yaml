@@ -9,6 +9,22 @@
 /thresholdLastSeen: 1.0
 /nrIntialGuess: 20.0
 /noiseStd: 0.0
+/maxSpeed_linear: 0.4
+/maxSpeed_angular: 0.5
+/minSpeed_linear: 0.1
+/minSpeed_angular: 0.1
+/radius: 0.4
+/wheel_base: 0.25
+turtle:
+    maxSpeed_linear: 0.4
+    maxSpeed_angular: 0.5
+    minSpeed_linear: 0.1
+    minSpeed_angular: 0.1
+    radius: 0.4
+    goal:
+        x: -4.500000
+        y: 2.000000
+        ang: 90.000000
 rosie:
     maxSpeed_linear: 0.4
     maxSpeed_angular: 0.5
