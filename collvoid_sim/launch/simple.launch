@@ -1,0 +1,3 @@
+<launch>
+  <node name="stage" pkg="stage" type="stageros" args="$(find collvoid_sim)/world/simple.world" output="screen"/>
+</launch>

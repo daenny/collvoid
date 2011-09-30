@@ -1,0 +1,15 @@
+<launch>
+  <node name="stage" pkg="stage" type="stageros" args="$(find collvoid_sim)/world/simple.world" output="screen"/>
+
+   <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_sim)/world/map.yaml" output="screen"/>
+
+  <include file="$(find collvoid_sim)/launch/amcl_diff.launch">
+    <arg name="robot" value="robot_0"/>
+  </include>   
+
+  <include file="$(find collvoid_sim)/launch/amcl_diff.launch">
+    <arg name="robot" value="robot_1"/>
+  </include>   
+
+
+</launch>

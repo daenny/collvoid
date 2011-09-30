@@ -1,0 +1,17 @@
+<launch>
+<node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_sim)/world/map.yaml"/>
+<rosparam command="load" file="$(find collvoid_sim)/params_baseline.yaml"/>
+<node pkg="controller" type="controller.py" name="controller" output="screen"/>
+<node pkg="stage" type="stageros" name="stageros" args="$(find collvoid_sim)/world/baseline.world" respawn="false" output="screen" />
+<include file="$(find collvoid_sim)/launch/amcl_diff.launch">
+<arg name="robot" value="robot_0"/>
+</include>
+<node pkg="orca_planner" type="ROSAgent" name="ROSAgent" ns="robot_0" output="screen"/>
+<rosparam command="load" file="$(find collvoid_sim)/orca_lines.yaml" ns="/robot_0"/>
+<include file="$(find collvoid_sim)/launch/amcl_diff.launch">
+<arg name="robot" value="robot_1"/>
+</include>
+<node pkg="orca_planner" type="ROSAgent" name="ROSAgent" ns="robot_1" output="screen"/>
+<rosparam command="load" file="$(find collvoid_sim)/orca_lines.yaml" ns="/robot_1"/>
+<node pkg="rosbag" type="record" name="rosbag" args="record /robot_0/debug -O $(find collvoid_sim)/collvoid-baseline.bag" output="screen"/>
+</launch>

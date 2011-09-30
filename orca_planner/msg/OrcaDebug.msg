@@ -1,0 +1,9 @@
+Header header
+int32 run
+geometry_msgs/Twist cmd_vel
+geometry_msgs/Vector3Stamped holo_vel
+nav_msgs/Odometry odom
+nav_msgs/Odometry ground_truth
+geometry_msgs/PoseStamped located_pose
+float32 loc_error
+float32 radius_uncertainty
