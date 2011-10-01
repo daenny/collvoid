@@ -1,4 +1,4 @@
-image: /u/dclaes/ros/collvoid/collvoid_turtlebot/map.pgm
+image: map.pgm
 resolution: 0.050000
 origin: [-13.800000, -17.000000, 0.000000]
 negate: 0
