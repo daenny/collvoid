@@ -729,16 +729,23 @@ void ROSAgent::init() {
   subAmclPose = private_nh.subscribe("amcl_pose", 10, &ROSAgent::cbAmclPose,this);
   state_srv = private_nh.advertiseService("state", &ROSAgent::cb_state_srv, this);
 
+
+  myId = private_nh.getNamespace();
+  if (strcmp(myId.c_str(), "/") == 0) {
+    char hostname[1024];
+    hostname[1023] = '\0';
+    gethostname(hostname,1023) ; // TODO change to hostname
+    myId = std::string(hostname);
+  }
+  ROS_INFO("My name is: %s",myId.c_str());
+
+
   if (SIMULATION_MODE)
     subPositionGroundTruth = private_nh.subscribe("base_pose_ground_truth", 10, &ROSAgent::cbPositionGroundTruth,this);
   
 
   tf_prefix = ""; // TODO change to robot if single master, e.g. simulation
 
-  myId = private_nh.getNamespace();
-  if (strcmp(myId.c_str(), "/") == 0)
-    myId = "fake"; // TODO change to hostname
-  ROS_INFO("My name is: %s",myId.c_str());
 
   lastTime = ros::Time::now();
 
