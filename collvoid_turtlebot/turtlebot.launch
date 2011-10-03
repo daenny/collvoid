@@ -1,5 +1,7 @@
 <launch>
 
+  <include file="$(find multimaster)/master.launch"/>
+
   <!--- Run Robot Pose EKF -->
   <include file="$(find turtlebot_bringup)/base.launch" />
 
@@ -7,18 +9,20 @@
 <!--  <include file="$(find turtlebot_bringup)/kinect.launch" /> -->
 
   <!-- Run the map server -->
+<!--
+
   <arg name="map_file" default="$(find turtlebot_navigation)/maps/willow-2010-02-18-0.10.yaml"/>
   <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
-
+-->
 
   <!-- Run the laser -->
   <include file="$(find collvoid_turtlebot)/hokuyo.launch" />
 
   <!--- Run AMCL -->
-  <include file="$(find turtlebot_navigation)/config/amcl_turtlebot.launch" />
+  <include file="$(find turtlebot_navigation)/config/amcl_turtlebot_map_from_topic.launch" />
 
-  <rosparam command="load" file="$(find collvoid_sim)/paramsRobots.yaml"/>
-  <rosparam command="load" file="$(find collvoid_sim)/orca_lines.yaml"/>
+  <rosparam command="load" file="$(find collvoid_turtlebot)/paramsRobots.yaml"/>
+  <rosparam command="load" file="$(find collvoid_turtlebot)/orca_lines.yaml"/>
 
   <!--- Run ORCA -->
   <node pkg="orca_planner" type="ROSAgent" name="ROSAgent" output="screen">
