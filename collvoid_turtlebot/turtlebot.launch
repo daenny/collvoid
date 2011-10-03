@@ -4,15 +4,19 @@
   <include file="$(find turtlebot_bringup)/base.launch" />
 
   <!--- Run the kinect -->
-  <include file="$(find turtlebot_bringup)/kinect.launch" />
+<!--  <include file="$(find turtlebot_bringup)/kinect.launch" /> -->
 
   <!-- Run the map server -->
   <arg name="map_file" default="$(find turtlebot_navigation)/maps/willow-2010-02-18-0.10.yaml"/>
   <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
 
+
+  <!-- Run the laser -->
+  <include file="$(find collvoid_turtlebot)/hokuyo.launch" />
+
   <!--- Run AMCL -->
   <include file="$(find turtlebot_navigation)/config/amcl_turtlebot.launch" />
-  
+
   <rosparam command="load" file="$(find collvoid_sim)/paramsRobots.yaml"/>
   <rosparam command="load" file="$(find collvoid_sim)/orca_lines.yaml"/>
 
@@ -20,5 +24,5 @@
   <node pkg="orca_planner" type="ROSAgent" name="ROSAgent" output="screen">
     <remap from="/cmd_vel" to="/turtlebot_node/cmd_vel"/>
   </node>
-  
+
 </launch>
