@@ -18,8 +18,8 @@
   <!--- Run AMCL -->
   <include file="$(find turtlebot_navigation)/config/amcl_turtlebot.launch" />
 
-  <rosparam command="load" file="$(find collvoid_sim)/paramsRobots.yaml"/>
-  <rosparam command="load" file="$(find collvoid_sim)/orca_lines.yaml"/>
+  <rosparam command="load" file="$(find collvoid_turtlebot)/paramsRobots.yaml"/>
+  <rosparam command="load" file="$(find collvoid_turtlebot)/orca_lines.yaml"/>
 
   <!--- Run ORCA -->
   <node pkg="orca_planner" type="ROSAgent" name="ROSAgent" output="screen">
