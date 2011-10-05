@@ -32,4 +32,6 @@
     <remap from="/cmd_vel" to="/turtlebot_node/cmd_vel"/>
   </node>
 
+  <node pkg="orca_planner" type="controllerWaypoints.py" name="controllerWaypoints" output="screen"/>
+
 </launch>
