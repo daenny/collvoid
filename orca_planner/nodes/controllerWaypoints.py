@@ -76,6 +76,13 @@ class controllerWaypoints():
             self.cur_goal_msg = self.return_cur_goal()
             self.pub_goal.publish(self.cur_goal_msg)
 
+        if msg.data == "Circle On":
+            THRESHOLD = 0.2
+            
+        if msg.data == "Circle Off":
+            THRESHOLD = 0.1
+            
+
 #-- circle between
 #-- add point
 
