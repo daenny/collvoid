@@ -32,7 +32,7 @@ class controllerWaypoints():
         self.hostname = gethostname()
 #        self.hostname = "turtlebot4"
         rospy.logerr("Hostname: %s",self.hostname)
-        self.goals = rospy.get_param("/%s/goals"%hostname)
+        self.goals = rospy.get_param("/%s/goals"%self.hostname)
         rospy.loginfo("goals: %s"%str(self.goals))
         self.cur_goal = 0
         self.num_goals = len(self.goals["x"])
