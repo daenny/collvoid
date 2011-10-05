@@ -45,7 +45,7 @@ class controllerWaypoints():
 
 
     def cb_common_positions(self,msg):
-        if stopped:
+        if self.stopped:
             return
         #       rospy.loginfo("%s"%rospy.get_master())
         if msg.id == self.hostname:
