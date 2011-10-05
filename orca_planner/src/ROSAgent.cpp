@@ -255,8 +255,8 @@ void ROSAgent::cbPositionGroundTruth(nav_msgs::OdometryPtr msg){
 
 void ROSAgent::cbOdom(nav_msgs::OdometryPtr msg){
   odom = msg;
-  if (state_ == STOPPED)
-    return;
+  //  if (state_ == STOPPED)
+  // return;
   
   tf::StampedTransform transform;
 	
@@ -269,6 +269,7 @@ void ROSAgent::cbOdom(nav_msgs::OdometryPtr msg){
   }
   catch (tf::TransformException ex){
     ROS_ERROR("%s",ex.what());
+    return;
   };
 
   orca_planner::PositionShare msgShare;

@@ -61,6 +61,7 @@
 #include "Agent.h"
 #include "Obstacle.h"
 
+#define LEFT_PREFERENCE 0.1f
 
 namespace RVO
 {
@@ -339,7 +340,7 @@ void Agent::computeNewVelocity()
         /* Project on legs. */
         const float leg = std::sqrt(distSq - combinedRadiusSq);
 
-        if (det(relativePosition, w) > 0.0f) {
+        if (det(relativePosition, w) > -LEFT_PREFERENCE) {
           /* Project on left leg. */
           line.direction = Vector2(relativePosition.x() * leg - relativePosition.y() * combinedRadius, relativePosition.x() * combinedRadius + relativePosition.y() * leg) / distSq;
         } else {
