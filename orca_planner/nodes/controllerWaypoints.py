@@ -28,7 +28,7 @@ class controllerWaypoints():
     def initialize(self):
         self.stopped = True
         self.pub_goal = rospy.Publisher("/goal", PoseStamped)
-
+        self.pub_commands_robot = rospy.Publisher("/commandsRobot", String)
         self.sub_common_position = rospy.Subscriber("/commonPositions", PositionShare, self.cb_common_positions)
         self.sub_commands_robot = rospy.Subscriber("/commandsRobot", String, self.cb_commands_robot)
         self.hostname = gethostname()
@@ -41,6 +41,7 @@ class controllerWaypoints():
         rospy.loginfo("num Goals %d"%self.num_goals)
 #        rospy.loginfo("Cur Goal %s"%str(self.return_cur_goal()))
         self.cur_goal_msg = self.return_cur_goal()
+        self.circle = False
 
 
     def cb_common_positions(self,msg):
@@ -56,7 +57,12 @@ class controllerWaypoints():
                     self.cur_goal = 0
                 self.cur_goal_msg = self.return_cur_goal()
                 self.pub_goal.publish(self.cur_goal_msg)
-            
+                if self.circle:
+                    str = "Start"
+                    self.pub_commands_robot.publish(String(str))
+
+
+
             return
         else:
             return
@@ -91,10 +97,10 @@ class controllerWaypoints():
             self.pub_goal.publish(self.cur_goal_msg)
 
         if msg.data == "all Circle On" or msg.data == "%s Circle on"%self.hostname:
-            THRESHOLD = 0.2
+            self.circle = True
             
         if msg.data == "all Circle Off" or msg.data == "%s Circle off"%self.hostname:
-            THRESHOLD = 0.1
+            self.circle = False
             
 
 #-- circle between
