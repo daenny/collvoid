@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import roslib; roslib.load_manifest('controller')
+import roslib; roslib.load_manifest('orca_planner')
 import rospy
 import commands
 import string
