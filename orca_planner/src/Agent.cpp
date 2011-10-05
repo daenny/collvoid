@@ -304,6 +304,15 @@ void Agent::computeNewVelocity()
       continue;
     }
   }
+  // add additional orca lines
+  for (size_t l = 0; l < additional_orca_lines_.size(); l++) {
+    Line line = additional_orca_lines_[l];
+    Vector2 point = Vector2(line.point.x() - this->position_.x(), line.point.y() - this->position_.y());
+    Line new_line = Line(line);
+    new_line.point = point;
+    orcaLines_.push_back(new_line);
+  }
+
 
   const size_t numObstLines = orcaLines_.size();
   const float invTimeHorizon = 1.0f / timeHorizon_;
@@ -370,15 +379,6 @@ void Agent::computeNewVelocity()
     ros::NodeHandle nh;
     //ROS_ERROR("%s = line: (%f,%f), dir (%f,%f)",nh.getNamespace().c_str(),line.point.x(),line.point.y(),line.direction.x(),line.direction.y());
     orcaLines_.push_back(line);
-  }
-
-  // add additional orca lines
-  for (size_t l = 0; l < additional_orca_lines_.size(); l++) {
-    Line line = additional_orca_lines_[l];
-    Vector2 point = Vector2(line.point.x() - this->position_.x(), line.point.y() - this->position_.y());
-    Line new_line = Line(line);
-    new_line.point = point;
-    orcaLines_.push_back(new_line);
   }
 
 

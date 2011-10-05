@@ -666,7 +666,7 @@ void ROSAgent::init() {
   me.agent->timeHorizon_ = timeHorizon;
   me.agent->timeHorizonObst_ = timeHorizonObst;
   me.agent->velocity_ = RVO::Vector2(0,0);
-  /*
+  
   // get orca lines
   std::vector<double> origin_x = load_param_list("orca_lines/origin/x");
   std::vector<double> origin_y = load_param_list("orca_lines/origin/y");
@@ -687,7 +687,7 @@ void ROSAgent::init() {
     //ROS_ERROR("%s added new RVO line: (%f,%f), dir (%f,%f)",private_nh.getNamespace().c_str(),line.point.x(),line.point.y(),line.direction.x(),line.direction.y());
   }
 
-  */	
+  	
   //TODO uncomment for obstacle test
   /* 	
   std::vector<RVO::Vector2> wall1, wall2, wall3, wall4;
