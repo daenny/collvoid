@@ -14,6 +14,7 @@ import tf
 
 THRESHOLD = 0.1
 
+
 def dist(a, b):
     return math.sqrt(math.pow(a.position.x - b.position.x, 2) + math.pow(a.position.y - b.position.y, 2))
 
@@ -25,6 +26,7 @@ class controllerWaypoints():
         
 
     def initialize(self):
+        self.stopped = True
         self.pub_goal = rospy.Publisher("/goal", PoseStamped)
 
         self.sub_common_position = rospy.Subscriber("/commonPositions", PositionShare, self.cb_common_positions)
@@ -42,6 +44,8 @@ class controllerWaypoints():
 
 
     def cb_common_positions(self,msg):
+        if stopped:
+            return
         #       rospy.loginfo("%s"%rospy.get_master())
         if msg.id == self.hostname:
            
@@ -66,20 +70,30 @@ class controllerWaypoints():
 
 
     def cb_commands_robot(self,msg):
+        if msg.data == "all WP On" or msg.data == "%s WP on"%self.hostname:
+            self.stopped = False
+
+        if msg.data == "all WP Off" or msg.data == "%s WP off"%self.hostname:
+            self.stopped = True
+
+
+        if self.stopped:
+            return
+
         if (msg.data == "Start"):
             self.pub_goal.publish(self.return_cur_goal())
         
-        if msg.data == "New Goal":
+        if msg.data == "all New Goal" or msg.data == "%s New Goal"%self.hostname:
             self.cur_goal += 1
             if (self.cur_goal == self.num_goals):
                 self.cur_goal = 0
             self.cur_goal_msg = self.return_cur_goal()
             self.pub_goal.publish(self.cur_goal_msg)
 
-        if msg.data == "Circle On":
+        if msg.data == "all Circle On" or msg.data == "%s Circle on"%self.hostname:
             THRESHOLD = 0.2
             
-        if msg.data == "Circle Off":
+        if msg.data == "all Circle Off" or msg.data == "%s Circle off"%self.hostname:
             THRESHOLD = 0.1
             
 
