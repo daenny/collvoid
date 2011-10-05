@@ -153,13 +153,6 @@ void ROSAgent::cbCommandsRobot(const std_msgs::String::ConstPtr& msg) {
     locatedPose = geometry_msgs::PoseStamped();
     me.pos.x = me.pos.y= 0;
   }
-  if (strcmp(msg->data.c_str(),"New Goal") ==0) {
-    private_nh.param("goal/x",goal.x,0.0);
-    private_nh.param("goal/y",goal.y,0.0);
-    private_nh.param("goal/ang",goal.ang,M_PI);
-    //sendFinish = false;
-  }
-
 	
 }
 

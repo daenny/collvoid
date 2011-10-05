@@ -21,7 +21,6 @@ def dist(a, b):
 class controllerWaypoints():
 
     def __init__(self):
-        self.hostname = hostname
         self.initialize()
         
 
@@ -69,6 +68,13 @@ class controllerWaypoints():
     def cb_commands_robot(self,msg):
         if (msg.data == "Start"):
             self.pub_goal.publish(self.return_cur_goal())
+        
+        if msg.data == "New Goal":
+            self.cur_goal += 1
+            if (self.cur_goal == self.num_goals):
+                self.cur_goal = 0
+            self.cur_goal_msg = self.return_cur_goal()
+            self.pub_goal.publish(self.cur_goal_msg)
 
 #-- circle between
 #-- add point
