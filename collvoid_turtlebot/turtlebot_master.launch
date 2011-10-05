@@ -18,6 +18,9 @@
   <!--- Run AMCL -->
   <include file="$(find turtlebot_navigation)/config/amcl_turtlebot.launch" />
 
+
+  <rosparam command="load" file="$(find collvoid_turtlebot)/goals.yaml"/>
+
   <rosparam command="load" file="$(find collvoid_turtlebot)/paramsRobots.yaml"/>
   <rosparam command="load" file="$(find collvoid_turtlebot)/orca_lines.yaml"/>
 
