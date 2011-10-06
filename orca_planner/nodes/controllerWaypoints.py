@@ -77,10 +77,12 @@ class controllerWaypoints():
 
     def cb_commands_robot(self,msg):
         if msg.data == "all WP On" or msg.data == "%s WP On"%self.hostname:
+            rospy.loginfo("I am ON")
             self.stopped = False
 
         if msg.data == "all WP Off" or msg.data == "%s WP Off"%self.hostname:
             self.stopped = True
+            rospy.loginfo("I am Off")
 
 
         if self.stopped:
@@ -95,8 +97,10 @@ class controllerWaypoints():
                 self.cur_goal = 0
             self.cur_goal_msg = self.return_cur_goal()
             self.pub_goal.publish(self.cur_goal_msg)
+            rospy.loginfo("Send new Goal")            
 
         if msg.data == "all Circle On" or msg.data == "%s Circle On"%self.hostname:
+            rospy.loginfo("I am on Circlemode")
             self.circle = True
             
         if msg.data == "all Circle Off" or msg.data == "%s Circle Off"%self.hostname:
