@@ -76,10 +76,10 @@ class controllerWaypoints():
 
 
     def cb_commands_robot(self,msg):
-        if msg.data == "all WP On" or msg.data == "%s WP on"%self.hostname:
+        if msg.data == "all WP On" or msg.data == "%s WP On"%self.hostname:
             self.stopped = False
 
-        if msg.data == "all WP Off" or msg.data == "%s WP off"%self.hostname:
+        if msg.data == "all WP Off" or msg.data == "%s WP Off"%self.hostname:
             self.stopped = True
 
 
@@ -96,10 +96,10 @@ class controllerWaypoints():
             self.cur_goal_msg = self.return_cur_goal()
             self.pub_goal.publish(self.cur_goal_msg)
 
-        if msg.data == "all Circle On" or msg.data == "%s Circle on"%self.hostname:
+        if msg.data == "all Circle On" or msg.data == "%s Circle On"%self.hostname:
             self.circle = True
             
-        if msg.data == "all Circle Off" or msg.data == "%s Circle off"%self.hostname:
+        if msg.data == "all Circle Off" or msg.data == "%s Circle Off"%self.hostname:
             self.circle = False
             
 
