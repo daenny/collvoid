@@ -120,19 +120,19 @@ double ROSAgent::calculateMaxTrackSpeedAngle(double T, double theta, double erro
 
 void ROSAgent::cbCommandsRobot(const std_msgs::String::ConstPtr& msg) {
   ROS_INFO("I heard %s",msg->data.c_str());
-  if (strcmp(msg->data.c_str(),"Start") ==0) {
+  if (strcmp(msg->data.c_str(),"all Start") ==0 || strcmp(msg->data.c_str(), std::string(myId + " Start").c_str()) ==0 ) {
     state_ = RUNNING;
     // commandStart = true;
   }
   
-  if (strcmp(msg->data.c_str(),"Stop") ==0) {
+  if (strcmp(msg->data.c_str(),"all Stop") ==0 || strcmp(msg->data.c_str(), std::string(myId + " Stop").c_str()) ==0 ) {
     state_ = STOPPED;
     //commandStart = false;
     geometry_msgs::Twist cmd;
     cmd.linear.x = cmd.linear.y = cmd.angular.z = 0;
     pubTwist.publish(cmd);
   }
-  if (strcmp(msg->data.c_str(),"Restart") ==0) {
+  if (strcmp(msg->data.c_str(),"all Restart") ==0 || strcmp(msg->data.c_str(), std::string(myId + " Restart").c_str()) ==0 ) {
     // goal.x = -me.pos.x;
     // goal.y = -me.pos.y;
     robots.clear();
