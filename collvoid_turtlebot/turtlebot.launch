@@ -19,7 +19,7 @@
   <include file="$(find collvoid_turtlebot)/hokuyo.launch" />
 
   <!--- Run AMCL -->
-  <include file="$(find turtlebot_navigation)/config/amcl_turtlebot_map_from_topic.launch" />
+  <include file="$(find collvoid_turtlebot)/amcl_turtlebot_map_from_topic.launch" />
 
   <rosparam command="load" file="$(find collvoid_turtlebot)/goals.yaml"/>
 
