@@ -23,5 +23,20 @@
 </include>
 <node pkg="orca_planner" type="ROSAgent" name="ROSAgent" ns="robot_3" output="screen"/>
 <rosparam command="load" file="$(find collvoid_sim)/orca_lines.yaml" ns="/robot_3"/>
-<node pkg="rosbag" type="record" name="rosbag" args="record /robot_0/debug /robot_1/debug /robot_2/debug /robot_3/debug  -O $(find collvoid_sim)/collvoid.bag" output="screen"/>
+<include file="$(find collvoid_sim)/launch/amcl_diff.launch">
+<arg name="robot" value="robot_4"/>
+</include>
+<node pkg="orca_planner" type="ROSAgent" name="ROSAgent" ns="robot_4" output="screen"/>
+<rosparam command="load" file="$(find collvoid_sim)/orca_lines.yaml" ns="/robot_4"/>
+<include file="$(find collvoid_sim)/launch/amcl_diff.launch">
+<arg name="robot" value="robot_5"/>
+</include>
+<node pkg="orca_planner" type="ROSAgent" name="ROSAgent" ns="robot_5" output="screen"/>
+<rosparam command="load" file="$(find collvoid_sim)/orca_lines.yaml" ns="/robot_5"/>
+<include file="$(find collvoid_sim)/launch/amcl_diff.launch">
+<arg name="robot" value="robot_6"/>
+</include>
+<node pkg="orca_planner" type="ROSAgent" name="ROSAgent" ns="robot_6" output="screen"/>
+<rosparam command="load" file="$(find collvoid_sim)/orca_lines.yaml" ns="/robot_6"/>
+<node pkg="rosbag" type="record" name="rosbag" args="record /robot_0/debug /robot_1/debug /robot_2/debug /robot_3/debug /robot_4/debug /robot_5/debug /robot_6/debug  /stall /stall_resolved /exceeded -O $(find collvoid_sim)/collvoid.bag" output="screen"/>
 </launch>

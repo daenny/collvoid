@@ -438,19 +438,20 @@ void ROSAgent::update(){
   
 
   // compute NH-ORCA vellocity, this adds ORCA lines to set maxTrackSpeed
-  double T = 0.8; //in how much time I want to be on the holonomic track
+  double T = 0.4; //in how much time I want to be on the holonomic track
 
   double minError = 0.01;
-  double maxError = 0.3;
+  double maxError = 0.15;
   double length = RVO::abs(me.agent->velocity_);
   double error = minError + (maxError-minError) * length / vMaxAng(); // how much error do i allow?
   
+
   //  ROS_ERROR("error %6.4f", error);
   double minTheta = M_PI / 2.0;
   double maxTrackSpeed = calculateMaxTrackSpeedAngle(T,minTheta, error);
   me.agent->maxTrackSpeed_ = maxTrackSpeed;
 
-  me.agent->maxSpeed_ = maxSpeed_linear;
+  me.agent->maxSpeed_ = vMaxAng();
   me.agent->computeNewVelocity(); // compute ORCA velocity
   me.agent->velocity_ = me.agent->newVelocity_;
   ang = atan2(me.agent->newVelocity_.y(), me.agent->newVelocity_.x());
@@ -484,8 +485,8 @@ void ROSAgent::update(){
     cmd.angular.z = 0.0;
   if(std::abs(cmd.linear.x)<minSpeed_linear)
     cmd.linear.x = 0.0;
-  ROS_INFO("%s calcVelo: x,y: (%6.4f, %6.4f) ",myId.c_str(),me.agent->velocity_.x(),me.agent->velocity_.y());
-  ROS_INFO("%s sendVelo: x,z: (%6.4f, %6.4f) ",myId.c_str(),cmd.linear.x,cmd.angular.z);
+  //ROS_INFO("%s calcVelo: x,y: (%6.4f, %6.4f) ",myId.c_str(),me.agent->velocity_.x(),me.agent->velocity_.y());
+  //ROS_INFO("%s sendVelo: x,z: (%6.4f, %6.4f) ",myId.c_str(),cmd.linear.x,cmd.angular.z);
 
   // publish new velocity
   pubTwist.publish(cmd);

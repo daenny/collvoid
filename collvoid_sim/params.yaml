@@ -1,8 +1,8 @@
 /use_sim_time: true
 /simulation_mode: true
 /useTruePos: false
-/scaleRadius: false
-/numRobots: 4
+/scaleRadius: true
+/numRobots: 7
 /maxNeighbors: 10
 /neighborDist: 15.0
 /timeHorizon: 10.0
@@ -19,8 +19,8 @@ robot_0:
     minSpeed_angular: 0.01
     radius: 0.36
     goal:
-        x: -3.614214
-        y: 3.414214
+        x: -3.402082
+        y: 3.202082
         ang: 45.000000
 robot_1:
     wheel_base: 0.4
@@ -30,9 +30,9 @@ robot_1:
     minSpeed_angular: 0.01
     radius: 0.36
     goal:
-        x: -3.614214
-        y: 0.585786
-        ang: 135.000000
+        x: -3.889311
+        y: 1.809660
+        ang: 96.428571
 robot_2:
     wheel_base: 0.4
     maxSpeed_linear: 0.5
@@ -41,9 +41,9 @@ robot_2:
     minSpeed_angular: 0.01
     radius: 0.36
     goal:
-        x: -0.785786
-        y: 0.585786
-        ang: 225.000000
+        x: -3.104455
+        y: 0.560569
+        ang: 147.857143
 robot_3:
     wheel_base: 0.4
     maxSpeed_linear: 0.5
@@ -52,6 +52,39 @@ robot_3:
     minSpeed_angular: 0.01
     radius: 0.36
     goal:
-        x: -0.785786
-        y: 3.414214
-        ang: 315.000000
+        x: -1.638526
+        y: 0.395398
+        ang: 199.285714
+robot_4:
+    wheel_base: 0.4
+    maxSpeed_linear: 0.5
+    maxSpeed_angular: 1.0
+    minSpeed_linear: 0.01
+    minSpeed_angular: 0.01
+    radius: 0.36
+    goal:
+        x: -0.595398
+        y: 1.438526
+        ang: 250.714286
+robot_5:
+    wheel_base: 0.4
+    maxSpeed_linear: 0.5
+    maxSpeed_angular: 1.0
+    minSpeed_linear: 0.01
+    minSpeed_angular: 0.01
+    radius: 0.36
+    goal:
+        x: -0.760569
+        y: 2.904455
+        ang: 302.142857
+robot_6:
+    wheel_base: 0.4
+    maxSpeed_linear: 0.5
+    maxSpeed_angular: 1.0
+    minSpeed_linear: 0.01
+    minSpeed_angular: 0.01
+    radius: 0.36
+    goal:
+        x: -2.009660
+        y: 3.689311
+        ang: 353.571429
