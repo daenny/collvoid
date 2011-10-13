@@ -25,7 +25,7 @@
 
 
   <rosparam command="load" file="$(find collvoid_turtlebot)/paramsRobots.yaml"/>
-  <rosparam command="load" file="$(find collvoid_turtlebot)/orca_lines.yaml"/>
+  <rosparam command="load" file="$(find collvoid_turtlebot)/orca_lines_greenroom.yaml"/>
 
   <!--- Run ORCA -->
   <node pkg="orca_planner" type="ROSAgent" name="ROSAgent" output="screen">

@@ -9,7 +9,7 @@
   <!-- Run the map server -->
 <!--  <arg name="map_file" default="$(find turtlebot_navigation)/maps/willow-2010-02-18-0.10.yaml"/> -->
 
-  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_turtlebot)/map.yaml" output="screen"/>
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_turtlebot)/greenroom.yaml" output="screen"/>
 
 
   <!-- Run the laser -->
@@ -23,7 +23,7 @@
   <rosparam command="load" file="$(find collvoid_turtlebot)/goals.yaml"/>
 
   <rosparam command="load" file="$(find collvoid_turtlebot)/paramsRobots.yaml"/>
-  <rosparam command="load" file="$(find collvoid_turtlebot)/orca_lines.yaml"/>
+  <rosparam command="load" file="$(find collvoid_turtlebot)/orca_lines_greenroom.yaml"/>
 
   <!--- Run ORCA -->
   <node pkg="orca_planner" type="ROSAgent" name="ROSAgent" output="screen">
