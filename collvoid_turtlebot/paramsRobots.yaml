@@ -2,7 +2,7 @@
 /maxSpeed_angular: 1.5
 /minSpeed_linear: 0.1
 /minSpeed_angular: 0.1
-/radius: 0.16
+/radius: 0.2
 /wheel_base: 0.25
 
 /maxNeighbors: 10
