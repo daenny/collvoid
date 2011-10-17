@@ -1,0 +1,16 @@
+<package>
+  <description brief="collvoid_stage">
+
+     collvoid_stage
+
+  </description>
+  <author>Swarmlab</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/collvoid_stage</url>
+  <depend package="stage"/>
+  <depend package="orca"/>
+
+</package>
+
+

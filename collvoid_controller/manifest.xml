@@ -7,7 +7,7 @@
   <author>Daniel Claes</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/controller</url>
+  <url>http://ros.org/wiki/collvoid_controller</url>
   <depend package="rospy"/>
   <depend package="std_msgs"/>
   <depend package="tf"/>

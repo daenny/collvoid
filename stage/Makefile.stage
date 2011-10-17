@@ -1,0 +1,34 @@
+all: installed
+
+FILENAME = Stage-3.2.2-Source.tar.gz
+TARBALL = build/$(FILENAME)
+TARBALL_PATCH = Stage-3.2.2-Source.patch
+TARBALL_URL = http://pr.willowgarage.com/downloads/$(FILENAME)
+SOURCE_DIR = build/Stage-3.2.2-Source
+UNPACK_CMD = tar xzf
+MD5SUM_FILE = $(FILENAME).md5sum
+include $(shell rospack find mk)/download_unpack_build.mk
+
+ifeq ($(ROS_DEBBUILD),1)
+  DESTDIR=$(ROS_DESTDIR)
+  CMAKE_INSTALL_PREFIX=$(ROS_STACK_DIR_FINAL)/stage
+else
+  CMAKE_INSTALL_PREFIX=`pwd`/../../..
+endif
+
+installed: wiped $(SOURCE_DIR)/unpacked Makefile.stage
+	mkdir -p $(SOURCE_DIR)/build
+	cd $(SOURCE_DIR)/build && cmake -D CMAKE_INSTALL_PREFIX=$(CMAKE_INSTALL_PREFIX) ..
+	cd $(SOURCE_DIR)/build && make DESTDIR=$(DESTDIR) $(ROS_PARALLEL_JOBS) install
+	touch installed
+
+clean:
+	-cd $(SOURCE_DIR)/build && make clean
+	rm -rf lib include share bin installed
+
+wiped: Makefile.stage
+	make -f Makefile.stage wipe
+	touch wiped
+
+wipe: clean
+	rm -rf $(SOURCE_DIR)/build

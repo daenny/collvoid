@@ -1,0 +1,17 @@
+<package>
+  <description brief="posetwist_aggregator">
+
+     posetwist_aggregator
+
+  </description>
+  <author>Swarmlab</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/posetwist_aggregator</url>
+  <depend package="geometry_msgs"/>
+  <depend package="nav_msgs"/>
+  <depend package="roscpp"/>
+
+</package>
+
+
