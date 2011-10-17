@@ -43,22 +43,22 @@ define topurg laser
 
 define diff_robot position
 (
-  size [0.455 0.455 0.11]
+  size [0.34 0.34 0.3]
   origin [0 0 0 0]
   gui_nose 1
   drive "diff"
-  wheelbase 0.4
-  topurg(pose [ 0.173 0.000 0 0.000 ])
+  wheelbase 0.25
+  topurg(pose [ 0.0 0.000 0 0.000 ])
 )
 
 define omni_robot position
 (
-  size [0.455 0.455 0.11]
+  size [0.34 0.34 0.3]
   origin [0 0 0 0]
   gui_nose 1
   drive "omni"
-  wheelbase 0.4
-  topurg(pose [ 0.173 0.000 0 0.000 ])
+  wheelbase 0.25
+  topurg(pose [ 0.0 0.000 0 0.000 ])
 )
 
 # robots added here automatically

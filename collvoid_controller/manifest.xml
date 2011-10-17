@@ -13,7 +13,7 @@
   <depend package="tf"/>
   <depend package="geometry_msgs"/>
   <depend package="std_srvs"/>
-  <depend package="orca_planner" />
+  <depend package="collvoid_local_planner" />
 </package>
 
 

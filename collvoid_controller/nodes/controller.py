@@ -11,8 +11,8 @@ except ImportError:
 from std_msgs.msg import String
 from geometry_msgs.msg import PoseWithCovarianceStamped,PoseStamped
 from std_srvs.srv import Empty
-from orca_planner.srv import StateSrv
-from orca_planner.msg import PositionShare
+from collvoid_local_planner.srv import StateSrv
+from collvoid_local_planner.msg import PositionShare
 
 import tf
 
