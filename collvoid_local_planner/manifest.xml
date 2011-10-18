@@ -9,9 +9,7 @@
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/collvoid_local_planner</url>
   <depend package="roscpp"/>
-  <depend package="geometry_msgs"/>
-  <depend package="std_msgs"/>
-  <depend package="nav_msgs"/>
+  <depend package="collvoid_msgs"/>
   <depend package="visualization_msgs"/>
   <depend package="tf" />
   

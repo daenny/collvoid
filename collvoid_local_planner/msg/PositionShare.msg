@@ -1,6 +1,0 @@
-Header header
-geometry_msgs/PoseWithCovariance pose
-geometry_msgs/TwistWithCovariance twist
-float32 radius
-string id
-geometry_msgs/Vector3 holoVelocity
