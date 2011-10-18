@@ -1,0 +1,16 @@
+<package>
+  <description brief="collvoid_msg">
+
+     collvoid_msg
+
+  </description>
+  <author>Daniel Claes</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/collvoid_msg</url>
+  <depend package="geometry_msgs"/>
+  <depend package="nav_msgs"/>
+
+</package>
+
+
