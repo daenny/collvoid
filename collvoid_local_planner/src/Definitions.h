@@ -79,6 +79,8 @@ static const float RVO_EPSILON = 0.00001f;
 namespace RVO
 {
   class Agent;
+  class Obstacle;
+
   /*!
    *  @brief      Computes the squared distance from a line segment with the
    *              specified endpoints to a specified point.
@@ -137,6 +139,8 @@ namespace RVO
        */
       Vector2 direction;
     };
+
+
 }
 
 #endif

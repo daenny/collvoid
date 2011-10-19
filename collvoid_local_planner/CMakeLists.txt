@@ -28,5 +28,5 @@ rosbuild_gensrv()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 #target_link_libraries(example ${PROJECT_NAME})
 
-rosbuild_add_executable(ROSAgent src/ROSAgent.cpp src/Obstacle.cpp src/Agent.cpp)
+rosbuild_add_library(collvoid_local_planner src/collvoid_local_planner.cpp src/ROSAgent.cpp src/Obstacle.cpp src/Agent.cpp)
 

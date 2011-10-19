@@ -12,7 +12,14 @@
   <depend package="collvoid_msgs"/>
   <depend package="visualization_msgs"/>
   <depend package="tf" />
+  <depend package="base_local_planner" />
   
+  <export>
+    <cpp cflags="-I${prefix}/include" lflags="-Wl,-rpath,${prefix}/lib -L${prefix}/lib -lcollvoid_local_planner"/>
+    <nav_core plugin="${prefix}/blp_plugin.xml" />
+  </export>
+
+
 </package>
 
 

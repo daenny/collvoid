@@ -66,7 +66,7 @@
 #define AGENT_H
 
 #include "Definitions.h"
-#include "Obstacle.h"
+
 
 namespace RVO
 {
@@ -78,6 +78,7 @@ namespace RVO
   public:
     /*!
      *  @brief      Constructs an agent instance.
+     *  @param      sim             The simulator instance.
      */
     explicit Agent();
 
@@ -85,11 +86,6 @@ namespace RVO
      *  @brief      Destroys this agent instance.
      */
     ~Agent();
-
-    /*!
-     *  @brief      Computes the neighbors of this agent.
-     */
-    void computeNeighbors();
 
     /*!
      *  @brief      Computes the new velocity of this agent.
@@ -103,6 +99,7 @@ namespace RVO
      *  @param      rangeSq         The squared range around this agent.
      */
     void insertAgentNeighbor(const Agent* agent, float& rangeSq);
+
     /*!
      *  @brief      Inserts a static obstacle neighbor into the set of neighbors
      *              of this agent.
@@ -133,11 +130,6 @@ namespace RVO
     Vector2 velocity_;
 
     size_t id_;
-    float timeStep_;
-    float heading_;
-    float maxTrackSpeed_;
-
-    std::vector<Line> additional_orca_lines_;
 
   };
 

@@ -59,6 +59,7 @@
 
 #include "Obstacle.h"
 
+
 namespace RVO
 {
   Obstacle::Obstacle() : isConvex_(false), nextObstacle(0), point_(), prevObstacle(0), unitDir_(), id_(0)

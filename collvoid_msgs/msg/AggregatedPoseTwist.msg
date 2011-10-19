@@ -1,2 +1,2 @@
 Header header
-posetwist_aggregator/PoseTwistWithCovariance[] posewtiwsts
+collvoid_msgs/PoseTwistWithCovariance[] posetwists
