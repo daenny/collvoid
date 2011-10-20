@@ -12,6 +12,7 @@
   <depend package="collvoid_msgs"/>
   <depend package="visualization_msgs"/>
   <depend package="tf" />
+  <depend package="angles" />
   <depend package="base_local_planner" />
   
   <export>
