@@ -1,5 +1,5 @@
 /*
- *  Obstacle.cpp
+ *  Obstacle.h
  *  RVO2 Library.
  *  
  *  
@@ -57,16 +57,45 @@
  *  
  */
 
-#include "collvoid_local_planner/Obstacle.h"
+/*!
+ *  @file       Obstacle.h
+ *  @brief      Contains the Obstacle class.
+ */
 
+#ifndef OBSTACLE_H
+#define OBSTACLE_H
+
+#include "Definitions.h"
 
 namespace RVO
 {
-  Obstacle::Obstacle() : isConvex_(false), nextObstacle(0), point_(), prevObstacle(0), unitDir_(), id_(0)
+  /*!
+   *  @brief      Defines static obstacles in the simulation.
+   */
+  class Obstacle
   {
-  }
+  public:
+    /*!
+     *  @brief      Constructs a static obstacle instance.
+     */
+    Obstacle();
 
-  Obstacle::~Obstacle()
-  {
-  }
+    /*!
+     *  @brief      Destroys this static obstacle instance.
+     */
+    ~Obstacle();
+
+    bool isConvex_;
+    Obstacle* nextObstacle;
+    Vector2 point_;
+    Obstacle* prevObstacle;
+    Vector2 unitDir_;
+
+    size_t id_;
+
+    friend class Agent;
+  };
 }
+
+#endif
+

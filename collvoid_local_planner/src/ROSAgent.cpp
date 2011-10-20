@@ -7,7 +7,7 @@
  *
  */
 
-#include "ROSAgent.h"
+#include "collvoid_local_planner/ROSAgent.h"
 
 using namespace RVO;
 
@@ -18,6 +18,9 @@ ROSAgent::ROSAgent() :
   maxTrackSpeed_(),
   additionalOrcaLines_()
 {
+}
+
+ROSAgent::~ROSAgent() {
 }
 
 void ROSAgent::computeNewVelocity()
@@ -324,7 +327,7 @@ void ROSAgent::computeNewVelocity()
     }
 
     line.point = velocity_ + 0.5f * u;
-    ros::NodeHandle nh;
+    //ros::NodeHandle nh;
     //ROS_ERROR("%s = line: (%f,%f), dir (%f,%f)",nh.getNamespace().c_str(),line.point.x(),line.point.y(),line.direction.x(),line.direction.y());
     orcaLines_.push_back(line);
   }
@@ -336,6 +339,13 @@ void ROSAgent::computeNewVelocity()
   }
 }
 
+bool ROSAgent::isHoloRobot() {
+  return holo_robot_;
+}
+
+void ROSAgent::setIsHoloRobot(bool holo_robot) {
+  holo_robot_ = holo_robot;
+}
   
 void ROSAgent::setTimeStep(float timeStep) {
   this->timeStep_ = timeStep;
@@ -343,6 +353,22 @@ void ROSAgent::setTimeStep(float timeStep) {
 
 void ROSAgent::setHeading(float heading) {
   this->heading_ = heading;
+}
+
+float ROSAgent::getHeading() {
+  return this->heading_;
+}
+
+void ROSAgent::setHoloVelocity(float x, float y){
+  this->holo_velocity_ = RVO::Vector2(x,y);
+}
+
+RVO::Vector2 ROSAgent::getHoloVelocity(){
+  return this->holo_velocity_;
+}
+
+void ROSAgent::setId(std::str id) {
+  this->id_ = id;
 }
 
 void ROSAgent::setMaxTrackSpeed(float maxTrackSpeed) {

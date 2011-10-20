@@ -57,13 +57,13 @@
  *  
  */
 
-#include "Agent.h"
+#include "collvoid_local_planner/Agent.h"
 
-#include "Obstacle.h"
+#include "collvoid_local_planner/Obstacle.h"
 
 namespace RVO
 {
-  Agent::Agent() : agentNeighbors_(), maxNeighbors_(0), maxSpeed_(0.0f), neighborDist_(0.0f), newVelocity_(), obstacleNeighbors_(), orcaLines_(), position_(), prefVelocity_(), radius_(0.0f), timeHorizon_(0.0f), timeHorizonObst_(0.0f), velocity_(), id_(0)
+  Agent::Agent() : agentNeighbors_(), maxNeighbors_(0), maxSpeed_(0.0f), neighborDist_(0.0f), newVelocity_(), obstacleNeighbors_(), orcaLines_(), position_(), prefVelocity_(), radius_(0.0f), timeHorizon_(0.0f), timeHorizonObst_(0.0f), velocity_(), id_()
   {
   }
 

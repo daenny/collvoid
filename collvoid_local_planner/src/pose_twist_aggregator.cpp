@@ -19,15 +19,48 @@ PoseTwistAggregator::~PoseTwistAggregator(){
     neighbors.clear();
     delete neighbors;
   }
+  if (me_ != NULL) {
+    delete me_;
+  }
 }
 
-void initialize(){
+void initialize(ros::NodeHandle private_nh, tf::TransformListener* tf){
+  tf_ = tf;
+
+  bool holo_robot;
+
+  private_nh.param("/use_ground_truth",use_ground_truth_,false);
+  private_nh.param("/max_neighbors",max_neighbors_,10);
+  private_nh.param("/neighbor_dist",neighbor_dist_,15.0);
+  private_nh.param("/time_horizon",time_horizon_,10.0);
+  private_nh.param("/time_horizon_obst",time_horizon_obst_,10.0);
+	
+  private_nh.param("/threshold_last_seen",THRESHOLD_LAST_SEEN,1.0);
+  private_nh.param("/max_initial_guess",MAX_INITIAL_GUESS_,20);
+  private_nh.param("/init_guess_noise_std",INIT_GUESS_NOISE_STD_, 0.0);
+  private_nh.param("/scale_radius",scale_radius_,true);
+
+  private_nh.param("/holo_robot", holo_robot, false);
+
+  nr_initial_guess_ = 0;
+
+  me = new ROSAgent();
+  me_->setId(cur_id);
+  me_->setMaxMe_s(max_me_s_);
+  me_->setMaxSpeed(max_speed_linear_);
+  me_->setNieghborDist(neighbor_dist_);
+  me_->setIsHoloRobot(holo_robot);
+  me_->setTimeHorizon(time_horizon_);
+  me_->setTimeHorizonObst(time_horizon_obst_);
   
+
+  initialized_ = true;
 }
 
 
 void PoseTwistAggregator::publishPoseTwist(){
   collvoid_local_planner::PoseTwistWithCovariance msg;
+  boost::mutex::scoped_lock lock(odom_lock_);
   msg.pose.pose = me_->base_odom_.pose.pose;
   msg.header = me_->base_odom_.header;
   msg.twist.twist = me_->base_odom_.twist.twist;
@@ -65,7 +98,7 @@ void PoseTwistAggregator::basePoseGroundTruthCallback(const nav_msgs::Odometry:C
   true_y = msg->pose.pose.position.x;
   true_theta = tf::getYaw(msg->pose.pose.orientation)+M_PI/2.0;
   if (use_ground_truth_) {
-    boost::mutex::scoped_lock lock(me_->odom_lock_);
+    me_->odom_lock_.lock();
     me_->setHeading(true_theta);
     me_->setPosition(true_x,true_y);
     me_->setVelocity(-msg->twist.twist.linear.y,msg->twist.twist.linear.x);
@@ -77,6 +110,8 @@ void PoseTwistAggregator::basePoseGroundTruthCallback(const nav_msgs::Odometry:C
     me_->base_odom_.twist.twist.linear.y = msg->twist.twist.linear.x;
     me_->base_odom_.twist.twist.angular.z = msg->twist.twist.angular.z;
     me_->setLastSeen(msg->header.stamp);
+    me_->odom_lock_.unlock();
+
     publishPoseTwist();
   }
   
@@ -91,8 +126,8 @@ void PoseTwistAggregator::basePoseGroundTruthCallback(const nav_msgs::Odometry:C
     
       geometry_msgs::PoseWithCovarianceStamped init_guess;
       //add initial gaussian noise
-      init_guess.pose.pose.position.x = true_x + sampleNormal(0.0, NOISE_STD);
-      init_guess.pose.pose.position.y =  true_y + sampleNormal(0.0, NOISE_STD);
+      init_guess.pose.pose.position.x = true_x + sampleNormal(0.0, INIT_GUESS_NOISE_STD_);
+      init_guess.pose.pose.position.y =  true_y + sampleNormal(0.0, INIT_GUESS_NOISE_STD_);
       init_guess.pose.pose.orientation = tf::createQuaternionMsgFromYaw(true_theta);
       init_guess.header.frame_id = global_frame_;
     
@@ -130,7 +165,6 @@ void PoseTwistAggregator::odomCallback(const nav_msgs::Odometry::ConstPtr& msg){
     return;
   if (tf::frameExists(global_frame_) && tf::frameExists(robot_base_frame_)) {
     try {
-      boost::mutex::scoped_lock lock(odom_lock_);
       tf::StampedTransform transform;
       tfListener.waitForTransform(global_frame_, robot_base_frame_, msg->header.stamp, ros::Duration(0.1));
       tfListener.lookupTransform(global_frame_, robot_base_frame_, msg->header.stamp, transform);
@@ -142,6 +176,7 @@ void PoseTwistAggregator::odomCallback(const nav_msgs::Odometry::ConstPtr& msg){
       me_->setPosition(pose.position.x,pose.position.y);
 
       me_->setVelocity(msg->twist.twist.linear.x,msg->twist.twist.linear.y);
+      me_->odom_lock_.lock();
 
       me_->base_odom_.pose.pose.position.x = msg->pose.pose.position.x;
       me_->base_odom_.pose.pose.position.y =  msg->pose.pose.position.y;
@@ -151,6 +186,8 @@ void PoseTwistAggregator::odomCallback(const nav_msgs::Odometry::ConstPtr& msg){
       me_->base_odom_.twist.twist.linear.y = msg->twist.twist.linear.y;
       me_->base_odom_.twist.twist.angular.z = msg->twist.twist.angular.z;
       me_->base_odom_.header.stamp = msg->header.stamp;
+
+      me_->odom_lock_.unlock();
 
       publishPoseTwist();
     }

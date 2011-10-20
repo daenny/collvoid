@@ -51,7 +51,7 @@ class PoseTwistAggregator{
   bool use_ground_truth_,scale_radius_;
   ROSAgent* me_;
   int nr_initial_guess_, MAX_INITIAL_GUESS_;
-  double loc_error_;
+  double INIT_GUESS_NOISE_STD_,loc_error_;
 
   //params ORCA
   double max_speed_linear_, neighbor_dist_, time_horizon_,time_horizon_obst_;
