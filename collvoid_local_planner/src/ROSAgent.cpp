@@ -13,10 +13,16 @@ using namespace RVO;
 
 ROSAgent::ROSAgent() : 
   Agent(),
-  timeStep_(0.1),
+  timestep_(0.1),
   heading_(),
-  maxTrackSpeed_(),
-  additionalOrcaLines_()
+  max_track_speed_(),
+  left_pref_(),
+  cur_allowed_error_(0.0),
+  max_radius_cov_(-1),
+  holo_robot_(),
+  holo_velocity_(),
+  last_seen_(),
+  additional_orca_lines_()
 {
 }
 
@@ -241,8 +247,8 @@ void ROSAgent::computeNewVelocity()
     }
   }
   // add additional orca lines
-  for (size_t l = 0; l < this->additionalOrcaLines_.size(); l++) {
-    Line line = this->additionalOrcaLines_[l];
+  for (size_t l = 0; l < this->additional_orca_lines_.size(); l++) {
+    Line line = this->additional_orca_lines_[l];
     Vector2 point = Vector2(line.point.x() - this->position_.x(), line.point.y() - this->position_.y());
     Line new_line = Line(line);
     new_line.point = point;
@@ -255,12 +261,12 @@ void ROSAgent::computeNewVelocity()
   
   Line maxVel1;
   Line maxVel2;
-
+  //TODO add real possible move space including acc constraints!!
   Vector2 dir =  Vector2(sin(this->heading_),-cos(this->heading_));
-  maxVel1.point = this->maxTrackSpeed_ * Vector2(-dir.y(),dir.x());
+  maxVel1.point = this->max_track_speed_ * Vector2(-dir.y(),dir.x());
   maxVel1.direction = dir;
   maxVel2.direction = dir;
-  maxVel2.point = -this->maxTrackSpeed_ * Vector2(-dir.y(),dir.x());
+  maxVel2.point = -this->max_track_speed_ * Vector2(-dir.y(),dir.x());
   orcaLines_.push_back(maxVel1);
   orcaLines_.push_back(maxVel2);
 
@@ -300,7 +306,7 @@ void ROSAgent::computeNewVelocity()
 	/* Project on legs. */
 	const float leg = std::sqrt(distSq - combinedRadiusSq);
 
-	if (det(relativePosition, w) > -leftPref_) {
+	if (det(relativePosition, w) > -left_pref_) {
 	  /* Project on left leg. */
 	  line.direction = Vector2(relativePosition.x() * leg - relativePosition.y() * combinedRadius, relativePosition.x() * combinedRadius + relativePosition.y() * leg) / distSq;
 	} else {
@@ -315,7 +321,7 @@ void ROSAgent::computeNewVelocity()
     } else {
       /* Collision. Project on cut-off circle of time timeStep. */
       //  const float invTimeStep = 1.0f / sim_->timeStep_; //TODO update with exact timestep
-      const float invTimeStep = 1.0f/timeStep_;
+      const float invTimeStep = 1.0f/timestep_;
       /* Vector from cutoff center to relative velocity. */
       const Vector2 w = relativeVelocity - invTimeStep * relativePosition;
 
@@ -347,8 +353,8 @@ void ROSAgent::setIsHoloRobot(bool holo_robot) {
   holo_robot_ = holo_robot;
 }
   
-void ROSAgent::setTimeStep(float timeStep) {
-  this->timeStep_ = timeStep;
+void ROSAgent::setTimeStep(float timestep) {
+  this->timestep_ = timestep;
 }
 
 void ROSAgent::setHeading(float heading) {
@@ -367,24 +373,74 @@ RVO::Vector2 ROSAgent::getHoloVelocity(){
   return this->holo_velocity_;
 }
 
-void ROSAgent::setId(std::str id) {
+void ROSAgent::setId(std::string id) {
   this->id_ = id;
 }
 
-void ROSAgent::setMaxTrackSpeed(float maxTrackSpeed) {
-  this->maxTrackSpeed_ = maxTrackSpeed;
+std::string ROSAgent::getId(){
+  return this->id_;
 }
 
-void ROSAgent::setAdditionalOrcaLines(std::vector<RVO::Line> additionalOrcaLines){
-  this->additionalOrcaLines_.clear();
-  this->additionalOrcaLines_ = additionalOrcaLines;
+void ROSAgent::setMaxRadiusCov(float max_rad_cov){
+  this->max_radius_cov_ = max_rad_cov;
 }
 
-void ROSAgent::setLeftPref(float leftPref) {
-  this->leftPref_ = leftPref;
+void ROSAgent::setLastSeen(ros::Time last_seen){
+  this->last_seen_ = last_seen;
+}
+
+void ROSAgent::setMaxTrackSpeed(float max_track_speed) {
+  this->max_track_speed_ = max_track_speed;
+}
+
+void ROSAgent::setLeftPref(float left_pref) {
+  this->left_pref_ = left_pref;
+}
+
+void ROSAgent::setAdditionalOrcaLines(std::vector<RVO::Line> additional_orca_lines){
+  this->additional_orca_lines_.clear();
+  this->additional_orca_lines_ = additional_orca_lines;
+}
+
+void ROSAgent::setRadius(float radius){
+  this->radius_ = radius;
+}
+
+float ROSAgent::getRadius(bool scale){
+  if (!scale)
+    return radius_+cur_allowed_error_;
+  else 
+    return radius_+cur_allowed_error_+max_radius_uncertainty_;
+}
+
+void ROSAgent::setCurAllowedError(float cur_allowed_error){
+  this->cur_allowed_error_ = cur_allowed_error;
+}
+
+void ROSAgent::setPosition(float x, float y){
+  this->position_ = RVO::Vector2(x,y);
+}
+
+void ROSAgent::setVelocity(float x, float y){
+  this->velocity_ = RVO::Vector2(x,y);
+}
+
+void ROSAgent::setMaxSpeedLinear(float max_speed_linear ){
+  this->maxSpeed_ = max_speed_linear;
+}
+void ROSAgent::setMaxNeighbors(int max_neighbors){
+  this->maxNeighbors_ = max_neighbors;
+}
+void ROSAgent::setNeighborDist(float neighbor_dist){
+  this-> neighborDist_ = neighbor_dist;
+}
+void ROSAgent::setTimeHorizon(float time_horizon){
+  this->timeHorizon_ = time_horizon;
+}
+void ROSAgent::setTimeHorizonObst(float time_horizon_obst){
+  this->timeHorizonObst_ = time_horizon_obst;
 }
 
 
-int main(){
-}
+
 

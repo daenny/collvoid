@@ -21,6 +21,8 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #uncomment if you have defined services
 rosbuild_gensrv()
 
+rosbuild_add_boost_directories()
+
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/randomTwistPublish.cpp)
 #target_link_libraries(${PROJECT_NAME} another_library)
@@ -29,4 +31,4 @@ rosbuild_gensrv()
 #target_link_libraries(example ${PROJECT_NAME})
 
 rosbuild_add_library(collvoid_local_planner src/collvoid_local_planner.cpp src/ROSAgent.cpp src/Obstacle.cpp src/Agent.cpp)
-
+rosbuild_add_executable(pose_twist_aggregator src/pose_twist_aggregator.cpp src/ROSAgent.cpp src/Obstacle.cpp src/Agent.cpp)

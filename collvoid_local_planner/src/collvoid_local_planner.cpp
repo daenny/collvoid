@@ -9,6 +9,7 @@
 
 
 #include <pluginlib/class_list_macros.h>
+#include <base_local_planner/goal_functions.h>
 #include "collvoid_local_planner/collvoid_local_planner.h"
 
 using namespace std;
@@ -38,8 +39,10 @@ namespace collvoid_local_planner {
     if (!initialized_){
       tf_ = tf;
       costmap_ros_ = costmap_ros;
+      
       rot_stopped_velocity_ = 1e-2;
       trans_stopped_velocity_ = 1e-2;
+  
 
       ros::NodeHandle private_nh("~/" + name);
       
@@ -51,16 +54,16 @@ namespace collvoid_local_planner {
       private_nh.param("acc_lim_y", acc_lim_y_, 2.5);
       private_nh.param("acc_lim_th", acc_lim_theta_, 3.2);
 
-      private_nh.param("holonomic_robot", holonomic_robot, true);
+      private_nh.param("holo_robot", holo_robot_, false);
       
-      private_nh.param("max_vel_x", max_vel_x, 0.5);
-      private_nh.param("min_vel_x", min_vel_x, 0.1);
+      private_nh.param("max_vel_x", max_vel_x_, 0.5);
+      private_nh.param("min_vel_x", min_vel_x_, 0.1);
 
-      private_nh.param("max_vel_y", max_vel_y, 0.2);
-      private_nh.param("min_vel_y", min_vel_y, 0.0);
+      private_nh.param("max_vel_y", max_vel_y_, 0.2);
+      private_nh.param("min_vel_y", min_vel_y_, 0.0);
 
-      private_nh.param("max_vel_theta", max_vel_theta, 1.5);
-      private_nh.param("min_vel_theta", min_vel_theta, 0.3);
+      private_nh.param("max_vel_theta", max_vel_th_, 1.5);
+      private_nh.param("min_vel_theta", min_vel_th_, 0.3);
 
 
       global_frame_ = costmap_ros_->getGlobalFrameID();
@@ -152,7 +155,7 @@ namespace collvoid_local_planner {
     return true;
   }
 
-  bool TrajectoryPlannerROS::isGoalReached(){
+  bool CollvoidLocalPlanner::isGoalReached(){
     if(!initialized_){
       ROS_ERROR("This planner has not been initialized, please call initialize() before using this planner");
       return false;
@@ -171,7 +174,9 @@ namespace collvoid_local_planner {
 
 
 
-  bool computeVelocityCommands(geometry_msgs::Twist& cmd_vel);
+  bool CollvoidLocalPlanner::computeVelocityCommands(geometry_msgs::Twist& cmd_vel){
+    return false;
+  }
 
 
 

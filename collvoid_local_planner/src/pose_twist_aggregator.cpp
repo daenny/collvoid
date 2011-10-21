@@ -8,68 +8,91 @@
  */
 
 #include "collvoid_local_planner/pose_twist_aggregator.h"
-
+#include <boost/random.hpp>
 
 PoseTwistAggregator::PoseTwistAggregator():
   initialized_(false){
 }
 
 PoseTwistAggregator::~PoseTwistAggregator(){
-  if (neighbors_ != NULL) {
-    neighbors.clear();
-    delete neighbors;
-  }
   if (me_ != NULL) {
     delete me_;
   }
 }
 
-void initialize(ros::NodeHandle private_nh, tf::TransformListener* tf){
+void PoseTwistAggregator::initialize(ros::NodeHandle private_nh, tf::TransformListener* tf){
   tf_ = tf;
 
   bool holo_robot;
+  double radius;
 
-  private_nh.param("/use_ground_truth",use_ground_truth_,false);
-  private_nh.param("/max_neighbors",max_neighbors_,10);
-  private_nh.param("/neighbor_dist",neighbor_dist_,15.0);
-  private_nh.param("/time_horizon",time_horizon_,10.0);
-  private_nh.param("/time_horizon_obst",time_horizon_obst_,10.0);
+  private_nh.param("use_ground_truth",use_ground_truth_,false);
+  private_nh.param("max_neighbors",max_neighbors_,10);
+  private_nh.param("neighbor_dist",neighbor_dist_,15.0);
+  private_nh.param("time_horizon",time_horizon_,10.0);
+  private_nh.param("time_horizon_obst",time_horizon_obst_,10.0);
 	
-  private_nh.param("/threshold_last_seen",THRESHOLD_LAST_SEEN,1.0);
-  private_nh.param("/max_initial_guess",MAX_INITIAL_GUESS_,20);
-  private_nh.param("/init_guess_noise_std",INIT_GUESS_NOISE_STD_, 0.0);
-  private_nh.param("/scale_radius",scale_radius_,true);
+  private_nh.param("threshold_last_seen",THRESHOLD_LAST_SEEN_,1.0);
+  private_nh.param("max_initial_guess",MAX_INITIAL_GUESS_,20);
+  private_nh.param("init_guess_noise_std",INIT_GUESS_NOISE_STD_, 0.0);
+  private_nh.param("scale_radius",scale_radius_,true);
+  
+  private_nh.param("radius",radius, 0.5); //TODO make this safe such that it has to be set always
 
-  private_nh.param("/holo_robot", holo_robot, false);
+  private_nh.param("holo_robot", holo_robot, false);
+
+  private_nh.param("max_speed_linear", max_speed_linear_, 0.5);
+  private_nh.param<std::string>("global_frame", global_frame_, "/map");
+  private_nh.param<std::string>("base_frame", robot_base_frame_, "/base_link");
+  
+  position_share_pub_ = private_nh.advertise<collvoid_msgs::PoseTwistWithCovariance>("/position_share",1);
+  init_guess_pub_ = private_nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("initialpose",1);
+
+  position_share_sub_ = private_nh.subscribe("/position_share",20, &PoseTwistAggregator::positionShareCallback, this);
+  odom_sub_ = private_nh.subscribe("odom",1, &PoseTwistAggregator::odomCallback, this);
+  amcl_pose_sub_ = private_nh.subscribe("amcl_pose",1, &PoseTwistAggregator::amclPoseCallback, this);
+  base_pose_ground_truth_sub_ = private_nh.subscribe("base_pose_ground_truth",1,&PoseTwistAggregator::basePoseGroundTruthCallback,this);
 
   nr_initial_guess_ = 0;
 
-  me = new ROSAgent();
-  me_->setId(cur_id);
-  me_->setMaxMe_s(max_me_s_);
-  me_->setMaxSpeed(max_speed_linear_);
-  me_->setNieghborDist(neighbor_dist_);
+  std::string my_id = private_nh.getNamespace();
+  if (strcmp(my_id.c_str(), "/") == 0) {
+    char hostname[1024];
+    hostname[1023] = '\0';
+    gethostname(hostname,1023); 
+    my_id = std::string(hostname);
+  }
+  ROS_INFO("My name is: %s",my_id.c_str());
+
+
+  me_ = new ROSAgent();
+  me_->setId(my_id);
+  me_->setRadius(radius);
+  me_->setMaxNeighbors(max_neighbors_);
+  me_->setMaxSpeedLinear(max_speed_linear_);
+  me_->setNeighborDist(neighbor_dist_);
   me_->setIsHoloRobot(holo_robot);
   me_->setTimeHorizon(time_horizon_);
   me_->setTimeHorizonObst(time_horizon_obst_);
-  
+
 
   initialized_ = true;
 }
 
 
 void PoseTwistAggregator::publishPoseTwist(){
-  collvoid_local_planner::PoseTwistWithCovariance msg;
-  boost::mutex::scoped_lock lock(odom_lock_);
+
+  collvoid_msgs::PoseTwistWithCovariance msg;
+  boost::mutex::scoped_lock lock(me_->odom_lock_);
   msg.pose.pose = me_->base_odom_.pose.pose;
   msg.header = me_->base_odom_.header;
   msg.twist.twist = me_->base_odom_.twist.twist;
-      
+  msg.header.frame_id = robot_base_frame_;
   msg.holonomic_velocity.x = me_->getHoloVelocity().x();
   msg.holonomic_velocity.y = me_->getHoloVelocity().y();
    
-  msg.radius = me_->getRadius();
-  msg.id = me_->getId();
+  msg.radius = me_->getRadius(scale_radius_);
+  msg.robot_id = me_->getId();
 
   position_share_pub_.publish(msg);
 }
@@ -81,18 +104,21 @@ void PoseTwistAggregator::amclPoseCallback(const geometry_msgs::PoseWithCovarian
   cov_y = msg->pose.covariance[7];
   cov_ang = msg->pose.covariance[35];
   if (!use_ground_truth_ && scale_radius_) {
-    rad_unc = std::max(sqrt(covX),sqrt(covY));
+    rad_unc = std::max(sqrt(cov_x),sqrt(cov_y));
     if (rad_unc == rad_unc){
       me_->setMaxRadiusCov(rad_unc);
-      ROS_DEBUG("%s, max radius covariance: %6.4f", rad_unc);
+      ROS_DEBUG("%s, max radius covariance: %6.4f", me_->getId().c_str(),rad_unc);
     }
+    else 
+      me_->setMaxRadiusCov(0.0);
+      
   }
   else
-    radiusUncertainty = -1;
+    me_->setMaxRadiusCov(-1.0);
 }
 
 
-void PoseTwistAggregator::basePoseGroundTruthCallback(const nav_msgs::Odometry:ConstPtr& msg){
+void PoseTwistAggregator::basePoseGroundTruthCallback(const nav_msgs::Odometry::ConstPtr& msg){
   double true_x,true_y,true_theta;
   true_x = -msg->pose.pose.position.y;
   true_y = msg->pose.pose.position.x;
@@ -109,6 +135,8 @@ void PoseTwistAggregator::basePoseGroundTruthCallback(const nav_msgs::Odometry:C
     me_->base_odom_.twist.twist.linear.x = -msg->twist.twist.linear.y;
     me_->base_odom_.twist.twist.linear.y = msg->twist.twist.linear.x;
     me_->base_odom_.twist.twist.angular.z = msg->twist.twist.angular.z;
+    me_->base_odom_.header.stamp = msg->header.stamp;
+
     me_->setLastSeen(msg->header.stamp);
     me_->odom_lock_.unlock();
 
@@ -141,16 +169,17 @@ void PoseTwistAggregator::basePoseGroundTruthCallback(const nav_msgs::Odometry:C
   
     } else if (state_ != STOPPED){
       //lookup tf from map to baselink
-      if (tf::frameExists(global_frame_) && tf::frameExists(robot_base_frame_)) {
+      if (tf_->frameExists(global_frame_) && tf_->frameExists(robot_base_frame_)) {
 	try {
 	  tf::StampedTransform transform;
-	  tfListener.waitForTransform(global_frame_, robot_base_frame_,
+	  tf_->waitForTransform(global_frame_, robot_base_frame_,
 				      msg->header.stamp, ros::Duration(0.1));
-	  tfListener.lookupTransform(global_frame_, robot_base_frame_,  
+	  tf_->lookupTransform(global_frame_, robot_base_frame_,  
 				     msg->header.stamp, transform);
 	  geometry_msgs::Pose pose;
 	  tf::poseTFToMsg(transform, pose);
 	  loc_error_ = sqrt(RVO::sqr(true_x - pose.position.x)+RVO::sqr(true_y - pose.position.y));
+	  ROS_DEBUG("Localization error is: %6.4f", loc_error_);
  	}
 	catch (tf::TransformException ex){
 	  ROS_ERROR("%s",ex.what());
@@ -163,11 +192,11 @@ void PoseTwistAggregator::basePoseGroundTruthCallback(const nav_msgs::Odometry:C
 void PoseTwistAggregator::odomCallback(const nav_msgs::Odometry::ConstPtr& msg){
   if (use_ground_truth_)
     return;
-  if (tf::frameExists(global_frame_) && tf::frameExists(robot_base_frame_)) {
+  if (tf_->frameExists(global_frame_) && tf_->frameExists(robot_base_frame_)) {
     try {
       tf::StampedTransform transform;
-      tfListener.waitForTransform(global_frame_, robot_base_frame_, msg->header.stamp, ros::Duration(0.1));
-      tfListener.lookupTransform(global_frame_, robot_base_frame_, msg->header.stamp, transform);
+      tf_->waitForTransform(global_frame_, robot_base_frame_, msg->header.stamp, ros::Duration(0.1));
+      tf_->lookupTransform(global_frame_, robot_base_frame_, msg->header.stamp, transform);
       geometry_msgs::Pose pose;
       tf::poseTFToMsg(transform, pose);
 
@@ -180,7 +209,7 @@ void PoseTwistAggregator::odomCallback(const nav_msgs::Odometry::ConstPtr& msg){
 
       me_->base_odom_.pose.pose.position.x = msg->pose.pose.position.x;
       me_->base_odom_.pose.pose.position.y =  msg->pose.pose.position.y;
-      me_->base_odom_.pose.pose.orientation = tf::getQuaternionMsgFromYaw(me_->getHeading());
+      me_->base_odom_.pose.pose.orientation = tf::createQuaternionMsgFromYaw(me_->getHeading());
   
       me_->base_odom_.twist.twist.linear.x = msg->twist.twist.linear.x;
       me_->base_odom_.twist.twist.linear.y = msg->twist.twist.linear.y;
@@ -200,11 +229,11 @@ void PoseTwistAggregator::odomCallback(const nav_msgs::Odometry::ConstPtr& msg){
 }
 
 
-void PoseTwistAggregator::commonPositionsCallback(const collvoid_msgs::PoseTwistWithCovariaceConstPtr& msg) {
+void PoseTwistAggregator::positionShareCallback(const collvoid_msgs::PoseTwistWithCovariance::ConstPtr& msg) {
   int i;
   
   std::string cur_id = msg->robot_id;
-  if (strcmp(cur_id.c_str(),me_->get_id.c_str()) == 0) {
+  if (strcmp(cur_id.c_str(),me_->getId().c_str()) == 0) {
     return;
   }
 
@@ -220,7 +249,7 @@ void PoseTwistAggregator::commonPositionsCallback(const collvoid_msgs::PoseTwist
     ROSAgent* neighbor = new ROSAgent();
     neighbor->setId(cur_id);
     neighbor->setMaxNeighbors(max_neighbors_);
-    neighbor->setMaxSpeed(max_speed_linear_);
+    neighbor->setMaxSpeedLinear(max_speed_linear_);
     neighbor->setNeighborDist(neighbor_dist_);
     neighbor->setIsHoloRobot(msg->holo_robot);
     neighbor->setTimeHorizon(time_horizon_);
@@ -234,10 +263,21 @@ void PoseTwistAggregator::commonPositionsCallback(const collvoid_msgs::PoseTwist
   neighbors_[i]->setRadius(msg->radius);
 
   if(use_ground_truth_)
-    neighbors_[i].agent->velocity_ = RVO::Vector2(msg->twist.twist.linear.x, msg->twist.twist.linear.y);
+    neighbors_[i]->setVelocity(msg->twist.twist.linear.x, msg->twist.twist.linear.y);
   else {
-    neighbors_[i].agent->velocity_ =  rotateVectorByAngle(msg->twist.twist.linear.x, msg->twist.twist.linear.y, neighbors[i]->getHeading());
+    RVO::Vector2 vel = rotateVectorByAngle(msg->twist.twist.linear.x, msg->twist.twist.linear.y, neighbors_[i]->getHeading());
+    neighbors_[i]->setVelocity(vel.x(),vel.y());
   }
+}
+
+double sampleNormal(double mean, double sigma) {
+  static boost::mt19937 rng(static_cast<unsigned> (std::time(0)));
+  boost::normal_distribution<double> nd(mean, sigma);
+
+  boost::variate_generator<boost::mt19937&, 
+                           boost::normal_distribution<> > var_nor(rng, nd);
+
+  return var_nor();
 }
 
 RVO::Vector2 rotateVectorByAngle(double x, double y, double ang){
@@ -246,4 +286,17 @@ RVO::Vector2 rotateVectorByAngle(double x, double y, double ang){
   sin_a = sin(ang);
   return RVO::Vector2(cos_a * x - sin_a * y, cos_a * y + sin_a * x);
 
+}
+
+
+int main(int argc, char **argv) {
+  ros::init(argc, argv, "pose_twist_aggregator");
+  ros::NodeHandle nh;
+   
+  PoseTwistAggregator pt_agg;
+  tf::TransformListener tf;
+  pt_agg.initialize(nh,&tf);
+  ROS_INFO("PoseTwistAggregator initialized");
+  ros::spin();
+  
 }

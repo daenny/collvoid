@@ -45,6 +45,9 @@ namespace collvoid_local_planner {
     double acc_lim_x_, acc_lim_y_, acc_lim_theta_;
     double xy_goal_tolerance_, yaw_goal_tolerance_;
 
+    double rot_stopped_velocity_, trans_stopped_velocity_;
+  
+
     double inscribed_radius_, circumscribed_radius_, inflation_radius_; 
 
 
@@ -55,7 +58,7 @@ namespace collvoid_local_planner {
     std::vector<geometry_msgs::PoseStamped> global_plan_;
 
     
-    bool diff_drive;
+    bool holo_robot_;
 
 
     ros::Subscriber odom_sub_;

@@ -11,6 +11,9 @@
 #define ROSAGENT_H
 
 #include <ros/ros.h>
+#include <nav_msgs/Odometry.h>
+#include <boost/thread.hpp>
+//#include <boost/scoped_ptr.hpp>
 #include "collvoid_local_planner/Agent.h"
 #include "collvoid_local_planner/Obstacle.h"
 
@@ -20,13 +23,14 @@ class ROSAgent : protected RVO::Agent {
   float heading_;
   float max_track_speed_;
   float left_pref_;  
-  float max_radius_cov_;
-
+  float cur_allowed_error_;
+  float max_radius_cov_,max_radius_uncertainty_;
+  
   bool holo_robot_;
 
   RVO::Vector2 holo_velocity_;
-  ros::Time last_seen;
-  std::vector<RVO::Line> additional_orcaLines_;
+  ros::Time last_seen_;
+  std::vector<RVO::Line> additional_orca_lines_;
     
   
  public:
@@ -53,12 +57,20 @@ class ROSAgent : protected RVO::Agent {
   void setLeftPref(float left_pref);
   void setAdditionalOrcaLines(std::vector<RVO::Line> additional_orca_lines);
   void setRadius(float radius);
+  float getRadius(bool scale);
+  void setCurAllowedError(float cur_allowed_error);
   void setPosition(float x, float y);
   void setVelocity(float x, float y);
 
+  void setMaxSpeedLinear(float max_speed_linear);
+  void setMaxNeighbors(int max_neighbors);
+  void setNeighborDist(float neighbor_dist);
+  void setTimeHorizon(float time_horizon);
+  void setTimeHorizonObst(float time_horizon_obst);
+
   void computeNewVelocity();
 
-  boost::recursive_mutex odom_lock_;
+  boost::mutex odom_lock_;
   nav_msgs::Odometry base_odom_; ///< @brief Used to get the velocity of the robot
 
 };
