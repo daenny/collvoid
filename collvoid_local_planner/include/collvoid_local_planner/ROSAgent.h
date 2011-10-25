@@ -13,11 +13,10 @@
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
 #include <boost/thread.hpp>
-//#include <boost/scoped_ptr.hpp>
 #include "collvoid_local_planner/Agent.h"
 #include "collvoid_local_planner/Obstacle.h"
 
-class ROSAgent : protected RVO::Agent {
+class ROSAgent : public RVO::Agent {
  private:
   float timestep_;
   float heading_;
@@ -67,6 +66,8 @@ class ROSAgent : protected RVO::Agent {
   void setNeighborDist(float neighbor_dist);
   void setTimeHorizon(float time_horizon);
   void setTimeHorizonObst(float time_horizon_obst);
+
+  void clearNeighbors();
 
   void computeNewVelocity();
 

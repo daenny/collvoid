@@ -16,10 +16,10 @@ ROSAgent::ROSAgent() :
   timestep_(0.1),
   heading_(),
   max_track_speed_(),
-  left_pref_(),
+  left_pref_(0.1),
   cur_allowed_error_(0.0),
   max_radius_cov_(-1),
-  holo_robot_(),
+  holo_robot_(false),
   holo_velocity_(),
   last_seen_(),
   additional_orca_lines_()
@@ -256,7 +256,7 @@ void ROSAgent::computeNewVelocity()
   }
 
 
-  //  orcaLines_.insert(orcaLines_.end(), additional_orca_lines_.begin(), additional_orca_lines_.end());
+  //orcaLines_.insert(orcaLines_.end(), additional_orca_lines_.begin(), additional_orca_lines_.end());
 
   
   Line maxVel1;
@@ -441,6 +441,11 @@ void ROSAgent::setTimeHorizonObst(float time_horizon_obst){
   this->timeHorizonObst_ = time_horizon_obst;
 }
 
-
+void ROSAgent::clearNeighbors(){
+  //for (size_t i  = 0; i < agentNeighbors_.size(); i++){
+    //    delete agentNeighbors_[i];
+  //}
+  agentNeighbors_.clear();
+}
 
 
