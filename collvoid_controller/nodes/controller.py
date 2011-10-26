@@ -12,7 +12,7 @@ from std_msgs.msg import String
 from geometry_msgs.msg import PoseWithCovarianceStamped,PoseStamped
 from std_srvs.srv import Empty
 from collvoid_local_planner.srv import StateSrv
-from collvoid_local_planner.msg import PositionShare
+from collvoid_msgs.msg import PoseTwistWithCovariance
 
 import tf
 
@@ -159,10 +159,10 @@ class controller(wx.Frame):
         self.initGuessPubs[num].publish(msg)
 
     def cbCommonPositions(self,msg):
-        if self.robotList.count(msg.id) == 0:
+        if self.robotList.count(msg.robot_id) == 0:
             rospy.loginfo("robot added")
-            self.robotList.append(msg.id)
-            self.choiceBox.Append(msg.id)
+            self.robotList.append(msg.robot_id)
+            self.choiceBox.Append(msg.robot_id)
 
 
     def setCircleOn(self,event):

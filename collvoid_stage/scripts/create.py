@@ -11,7 +11,7 @@ def create_world_file(argv):
     centerX = -2.2
     centerY = 2
     omni = False
-    groudTruth = True
+    localization = True
     simulation = True
     runExperiments = False
     scaleRadius = False
@@ -34,7 +34,7 @@ def create_world_file(argv):
         elif opt in ("-o","--omni"):
             omni = True
         elif opt in ("-l","--localization"):
-            groundTruth = False
+            localization = False
         elif opt in ("-x", "--experiments"):
             runExperiments = True
         elif opt in ("-f", "--bagFileName"):

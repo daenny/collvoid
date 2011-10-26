@@ -53,6 +53,7 @@ namespace collvoid_local_planner {
 
       private_nh.param("yaw_goal_tolerance", yaw_goal_tolerance_, 0.05);
       private_nh.param("xy_goal_tolerance", xy_goal_tolerance_, 0.10);
+      private_nh.param("latch_xy_goal_tolerance", latch_xy_goal_tolerance_,false);
 
       private_nh.param("acc_lim_x", acc_lim_x_, 2.5);
       private_nh.param("acc_lim_y", acc_lim_y_, 2.5);
@@ -66,11 +67,15 @@ namespace collvoid_local_planner {
       private_nh.param("max_vel_y", max_vel_y_, 0.2);
       private_nh.param("min_vel_y", min_vel_y_, 0.0);
 
-      private_nh.param("max_vel_theta", max_vel_th_, 1.5);
-      private_nh.param("min_vel_theta", min_vel_th_, 0.3);
+      private_nh.param("max_vel_th", max_vel_th_, 1.5);
+      private_nh.param("min_vel_th", min_vel_th_, 0.3);
 
       private_nh.param("wheel_base", wheel_base_, 0.25);
-
+      
+      double radius;
+      private_nh.param("radius",radius, 0.5); //TODO make this safe such that it has to be set always
+      circumscribed_radius_ = radius;
+      private_nh.param("inscribed_radius",inscribed_radius_, 0.5); //TODO make this safe such that it has to be set always
 
       global_frame_ = costmap_ros_->getGlobalFrameID();
       robot_base_frame_ = costmap_ros_->getBaseFrameID();
@@ -94,7 +99,6 @@ namespace collvoid_local_planner {
 
 
       nr_initial_guess_ = 0;
-      double radius;
 
       private_nh.param("use_ground_truth",use_ground_truth_,false);
       private_nh.param("max_neighbors",max_neighbors_,10);
@@ -107,7 +111,6 @@ namespace collvoid_local_planner {
       private_nh.param("init_guess_noise_std",INIT_GUESS_NOISE_STD_, 0.0);
       private_nh.param("scale_radius",scale_radius_,true);
   
-      private_nh.param("radius",radius, 0.5); //TODO make this safe such that it has to be set always
 
 
       ros::NodeHandle nh;
@@ -371,6 +374,29 @@ namespace collvoid_local_planner {
     ROS_DEBUG("Collvoid: target robot pose %f %f ==> %f", target_pose.getOrigin().x(), target_pose.getOrigin().y(), tf::getYaw(target_pose.getRotation()));
     geometry_msgs::Twist res;
     tf::Pose diff = target_pose.inverse() * global_pose;
+
+    while(fabs(diff.getOrigin().x()) <= xy_goal_tolerance_ &&
+          fabs(diff.getOrigin().y()) <=  xy_goal_tolerance_ &&
+	  fabs(tf::getYaw(diff.getRotation())) <=  yaw_goal_tolerance_)
+    {
+      if(current_waypoint_ < global_plan_.size() - 1)
+      {
+	current_waypoint_++;
+        tf::poseStampedMsgToTF(global_plan_[current_waypoint_], target_pose);
+        diff = target_pose.inverse() * global_pose;
+     }
+      else
+      {
+	geometry_msgs::Twist empty_twist;
+	cmd_vel = empty_twist;
+
+        ROS_INFO("Reached goal: %d", current_waypoint_);
+	return true;
+      }
+    }
+
+
+
     res.linear.x = diff.getOrigin().x();
     res.linear.y = diff.getOrigin().y();
     res.angular.z = tf::getYaw(diff.getRotation());

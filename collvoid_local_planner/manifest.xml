@@ -14,7 +14,10 @@
   <depend package="tf" />
   <depend package="angles" />
   <depend package="base_local_planner" />
+  <depend package="pluginlib"/>
+  <depend package="nav_core"/>
   
+
   <export>
     <cpp cflags="-I${prefix}/include" lflags="-Wl,-rpath,${prefix}/lib -L${prefix}/lib -lcollvoid_local_planner"/>
     <nav_core plugin="${prefix}/blp_plugin.xml" />

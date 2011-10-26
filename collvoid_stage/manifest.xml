@@ -9,7 +9,7 @@
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/collvoid_stage</url>
   <depend package="stage"/>
-  <depend package="orca"/>
+  <depend package="collvoid_local_planner"/>
 
 </package>
 

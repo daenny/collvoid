@@ -74,12 +74,12 @@ namespace collvoid_local_planner {
 
     double wheel_base_;
 
-    bool latch_xy_goal_tolerance_, xy_tolerance_latch_, rotating_to_goal_,prune_plan_;
+    bool latch_xy_goal_tolerance_, xy_tolerance_latch_, rotating_to_goal_;
     
     int current_waypoint_;
     //params ORCA
     bool use_ground_truth_, scale_radius_;
-    double max_speed_linear_, neighbor_dist_, time_horizon_,time_horizon_obst_;
+    double  neighbor_dist_, time_horizon_,time_horizon_obst_;
     int max_neighbors_;
     bool holo_robot_;
     double INIT_GUESS_NOISE_STD_,THRESHOLD_LAST_SEEN_;
@@ -87,7 +87,7 @@ namespace collvoid_local_planner {
     int nr_initial_guess_;
     State state_;
     ROSAgent* me_;
-    boost::unordered_map<std::string,ROSAgent> neighbors_;
+    //boost::unordered_map<std::string,ROSAgent> neighbors_;
    
 
     std::string global_frame_; ///< @brief The frame in which the controller will run
