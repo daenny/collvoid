@@ -49,6 +49,9 @@ namespace collvoid_local_planner {
 
     void addAllNeighbors();
     void updateROSAgentWithMsg(ROSAgent* agent, collvoid_msgs::PoseTwistWithCovariance* msg);
+    bool transformGlobalPlan(const tf::TransformListener& tf, const std::vector<geometry_msgs::PoseStamped>& global_plan, const costmap_2d::Costmap2DROS& costmap, const std::string& global_frame, std::vector<geometry_msgs::PoseStamped>& transformed_plan);
+    void findBestWaypoint(geometry_msgs::PoseStamped& target_pose, const tf::Stamped<tf::Pose>& global_pose);
+
 
     double sign(double x){
       return x < 0.0 ? -1.0 : 1.0;
@@ -76,7 +79,7 @@ namespace collvoid_local_planner {
 
     bool latch_xy_goal_tolerance_, xy_tolerance_latch_, rotating_to_goal_;
     
-    int current_waypoint_;
+    unsigned int current_waypoint_;
     //params ORCA
     bool use_ground_truth_, scale_radius_;
     double  neighbor_dist_, time_horizon_,time_horizon_obst_;
@@ -93,7 +96,7 @@ namespace collvoid_local_planner {
     std::string global_frame_; ///< @brief The frame in which the controller will run
     std::string robot_base_frame_; ///< @brief Used as the base frame id of the robot
     std::vector<geometry_msgs::PoseStamped> global_plan_, transformed_plan_;
-  
+    ros::Publisher g_plan_pub_, l_plan_pub_;
 
   };//end class
 
