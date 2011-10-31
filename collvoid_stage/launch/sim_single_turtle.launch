@@ -1,0 +1,14 @@
+<launch>
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_stage)/world/swarmlab_map.yaml"/>
+  <node pkg="stage" type="stageros" name="stageros" args="$(find collvoid_stage)/world/swarmlab_single.world" respawn="false" output="screen" />
+  <include file="$(find collvoid_stage)/launch/amcl_diff_single.launch">
+  </include>
+  <rosparam command="load" file="$(find collvoid_stage)/params_created.yaml"/>
+
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <rosparam command="load" file="$(find collvoid_stage)/params/params_turtle.yaml"/>
+   <!---  <param name="base_local_planner" value="pose_follower/PoseFollower" /> -->  
+       <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
+  </node>
+</launch>
+  

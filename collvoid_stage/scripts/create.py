@@ -68,9 +68,9 @@ def create_world_file(argv):
         
         posY = circleSize*math.sin(angle/360*2*math.pi)
         if (omni):
-           worldFileNew.write('omni_robot( pose [ {0:f} {1:f} 0 {2:f} ] name "robot_{3:d}" color "{4}")\n'.format(centerX+posX,centerY+posY,anglePrint,x,cols[40 +  10 * x]))
+           worldFileNew.write('pr2( pose [ {0:f} {1:f} 0 {2:f} ] name "robot_{3:d}" color "{4}")\n'.format(centerX+posX,centerY+posY,anglePrint,x,cols[40 +  10 * x]))
         else:
-            worldFileNew.write('diff_robot( pose [ {0:f} {1:f} 0 {2:f} ] name "robot_{3:d}" color "{4}")\n'.format(centerX+posX,centerY+posY,anglePrint,x,cols[40 +  10 * x]))
+            worldFileNew.write('roomba( pose [ {0:f} {1:f} 0 {2:f} ] name "robot_{3:d}" color "{4}")\n'.format(centerX+posX,centerY+posY,anglePrint,x,cols[40 +  10 * x]))
 
     
     #tele_robot( pose [ -1 0 0 180.000 ] name "bob" color "blue")
@@ -93,21 +93,13 @@ def create_yaml_file(circleSize, numRobots,omni,simulation,localization,centerX,
        yamlWrite.write('/scale_radius: true\n')
     else:
        yamlWrite.write('/scale_radius: false\n')
-    
-    yamlWrite.write('/num_robots: ' + str(numRobots) + '\n')
-    
-    yamlWrite.write("/max_neighbors: 10\n")
-    yamlWrite.write("/neighbor_dist: 15.0\n")
-    yamlWrite.write("/time_horizon: 10.0\n")
-    yamlWrite.write("/time_horizon_obst: 10.0\n")
-    yamlWrite.write("/threshold_goal: 0.1\n")
-    yamlWrite.write("/threshold_last_seen: 1.0\n")
-    yamlWrite.write("/nr_initial_guess: 20.0\n")
     if not useNoise:
         yamlWrite.write("/init_guess_noise_std: 0.0\n")
     else:
         yamlWrite.write("/init_guess_noise_std: 0.20\n")
-
+  
+    yamlWrite.write('/num_robots: ' + str(numRobots) + '\n')
+    
     angle = 360.0 / numRobots
     for x in range(numRobots):
         angleX = 90 + x * angle - 45
@@ -115,21 +107,10 @@ def create_yaml_file(circleSize, numRobots,omni,simulation,localization,centerX,
         posY = circleSize*math.sin(angleX/360*2*math.pi)
   
         yamlWrite.write('robot_{0}:\n'.format(x))
-        yamlWrite.write('    wheel_base: 0.25\n') 
-        if (omni):
-            yamlWrite.write('    diff: false\n')
-        else:
-            yamlWrite.write('    diff: true\n')
-        yamlWrite.write("    maxSpeed_linear: 0.5\n")
-        yamlWrite.write("    maxSpeed_angular: 1.5\n")
-        yamlWrite.write("    minSpeed_linear: 0.01\n")
-        yamlWrite.write("    minSpeed_angular: 0.01\n")
-        yamlWrite.write("    radius: 0.24\n") # sqrt(0.17^2*2)
         yamlWrite.write('    goal:\n')
         yamlWrite.write('        x: {0:f}\n'.format(centerX-posY))
         yamlWrite.write('        y: {0:f}\n'.format(centerY+posX))
         yamlWrite.write('        ang: {0:f}\n'.format(angleX))
-       
     
     yamlWrite.close()
     
@@ -146,17 +127,26 @@ def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,
         launchWrite.write('<node pkg="collvoid_controller" type="controller.py" name="controller" output="screen"/>\n')
     launchWrite.write('<node pkg="stage" type="stageros" name="stageros" args="$(find collvoid_stage)/world/swarmlab_created.world" respawn="false" output="screen" />\n')
     for x in range(numRobots):
-        if localization: # TODO: use "not localizationx" amcl is still used in orca_planner
-            launchWrite.write('<include file="$(find collvoid_stage)/launch/amcl_diff.launch">\n')
-            launchWrite.write('<arg name="robot" value="robot_{0}"/>\n'.format(x))
-            launchWrite.write('</include>\n')
-            launchWrite.write('<node pkg="orca_planner" type="ROSAgent" name="ROSAgent" ns="robot_{0}" output="screen"/>\n'.format(x))
-            launchWrite.write('<rosparam command="load" file="$(find collvoid_stage)/world/swarmlab_orca_lines.yaml" ns="/robot_{0}"/>\n'.format(x))
+        #if localization: # TODO: use "not localizationx" amcl is still used in orca_planner
+        if (omni):
+            launchWrite.write('<include file="$(find collvoid_stage)/launch/amcl_omni_multi.launch">\n')
+        else:
+            launchWrite.write('<include file="$(find collvoid_stage)/launch/amcl_diff_multi.launch">\n')
+        launchWrite.write('<arg name="robot" value="robot_{0}"/>\n'.format(x))
+        launchWrite.write('</include>\n')
+        
+        launchWrite.write('  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen" ns="robot_{0}" output="screen">\n'.format(x))
+        if (omni):
+            launchWrite.write('  <rosparam command="load" file="$(find collvoid_stage)/params/params_pr2.yaml"/> ')
+        else:
+            launchWrite.write('  <rosparam command="load" file="$(find collvoid_stage)/params/params_turtle.yaml"/> ')
+        launchWrite.write('  <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />')
+        launchWrite.write(' </node>')
 
-                
     s = ""
-    for x in range(numRobots):
-        s += "/robot_%d/debug "%(x)
+
+#    for x in range(numRobots):
+#        s += "/robot_%d/debug "%(x)
     if useBagFile:
         launchWrite.write('<node pkg="rosbag" type="record" name="rosbag" args="record {0} /stall /stall_resolved /exceeded -O $(find collvoid_stage)/{1}" output="screen"/>\n'.format(s,bagFilename))
     

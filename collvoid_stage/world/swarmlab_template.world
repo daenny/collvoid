@@ -103,4 +103,27 @@ define omni_robot position
   topurg(pose [ 0.0 0.000 0 0.000 ])
 )
 
+define pr2 position
+(
+  size [0.55 0.55 0.1]
+  origin [0 0 0 0]
+  gui_nose 1
+
+  # This block approximates the shape of a PR2
+  block
+  ( 
+  points 5
+  point[0] [ -0.325 -0.325 ]
+  point[1] [ -0.325  0.325 ]
+  point[2] [ 0.325 0.325 ]
+  point[3] [ 0.46 0.0 ]
+  point[4] [ 0.325 -0.325 ]
+  )
+ 	
+  topurg( pose [0.275 0 0.1 0] )
+  drive "omni"
+
+)
+
+
 # robots added here automatically

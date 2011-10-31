@@ -102,7 +102,10 @@ namespace collvoid_local_planner {
 
       nr_initial_guess_ = 0;
 
-      private_nh.param("use_ground_truth",use_ground_truth_,false);
+      private_nh.param("/use_ground_truth",use_ground_truth_,false);
+      private_nh.param("/init_guess_noise_std",INIT_GUESS_NOISE_STD_, 0.0);
+      private_nh.param("/scale_radius",scale_radius_,true);
+  
       private_nh.param("max_neighbors",max_neighbors_,10);
       private_nh.param("neighbor_dist",neighbor_dist_,15.0);
       private_nh.param("time_horizon",time_horizon_,10.0);
@@ -110,9 +113,7 @@ namespace collvoid_local_planner {
 	
       private_nh.param("threshold_last_seen",THRESHOLD_LAST_SEEN_,1.0);
       private_nh.param("max_initial_guess",MAX_INITIAL_GUESS_,20);
-      private_nh.param("init_guess_noise_std",INIT_GUESS_NOISE_STD_, 0.0);
-      private_nh.param("scale_radius",scale_radius_,true);
-  
+    
 
 
       ros::NodeHandle nh;
