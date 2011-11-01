@@ -8,6 +8,8 @@
  */
 
 #include "collvoid_local_planner/ROSAgent.h"
+#include <visualization_msgs/Marker.h>
+
 
 using namespace RVO;
 
@@ -24,6 +26,8 @@ ROSAgent::ROSAgent() :
   last_seen_(),
   additional_orca_lines_()
 {
+  ros::NodeHandle nh;
+  line_pub_ = nh.advertise<visualization_msgs::Marker>("orca_lines", 10);
 }
 
 ROSAgent::~ROSAgent() {
@@ -262,9 +266,9 @@ void ROSAgent::computeNewVelocity()
   Line maxVel1;
   Line maxVel2;
   //TODO add real possible move space including acc constraints!!
-  Vector2 dir =  Vector2(sin(this->heading_),-cos(this->heading_));
+  Vector2 dir =  Vector2(cos(this->heading_), sin(this->heading_));
   maxVel1.point = this->max_track_speed_ * Vector2(-dir.y(),dir.x());
-  maxVel1.direction = dir;
+  maxVel1.direction = -dir;
   maxVel2.direction = dir;
   maxVel2.point = -this->max_track_speed_ * Vector2(-dir.y(),dir.x());
   orcaLines_.push_back(maxVel1);
@@ -344,6 +348,48 @@ void ROSAgent::computeNewVelocity()
     linearProgram3(orcaLines_, numObstLines, lineFail, maxSpeed_, newVelocity_);
   }
 }
+
+
+void ROSAgent::publishOrcaLines(){
+  visualization_msgs::Marker line_list;
+  //line_list.header.frame_id = myId + "/base_link";
+  line_list.header.frame_id = "/map";
+  line_list.header.stamp = ros::Time::now();
+  line_list.ns = base_odom_.header.frame_id;
+  line_list.action = visualization_msgs::Marker::ADD;
+  line_list.pose.orientation.w = 1.0;
+  line_list.type = visualization_msgs::Marker::LINE_LIST;
+  line_list.scale.x = 0.05;
+  line_list.color.r = 1.0;
+  line_list.color.a = 1.0;
+  geometry_msgs::Point p;
+  p.x = position_.x();
+  p.y = position_.y();
+  p.z = 0.2;
+  line_list.points.push_back(p);
+  p.x = p.x + velocity_.x();
+  p.y = p.y + velocity_.y();
+  line_list.points.push_back(p);
+  for (size_t i=0;i< orcaLines_.size();i++) {
+    geometry_msgs::Point p;
+    p.x = position_.x() + orcaLines_[i].point.x() - orcaLines_[i].direction.x();
+    p.y = position_.y() + orcaLines_[i].point.y() - orcaLines_[i].direction.y();
+    
+    line_list.points.push_back(p);
+    p.x = p.x + 2 * orcaLines_[i].direction.x();
+    p.y = p.y + 2 * orcaLines_[i].direction.y();
+    line_list.points.push_back(p);
+     
+    //p.x = 2*me.agent->orcaLines_[i].point.x();
+    //p.y = 2*me.agent->orcaLines_[i].point.y();
+    //line_list.points.push_back(p);
+
+    
+    }
+  line_pub_.publish(line_list);
+    
+}
+
 
 bool ROSAgent::isHoloRobot() {
   return holo_robot_;

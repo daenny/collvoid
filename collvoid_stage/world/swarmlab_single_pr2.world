@@ -16,7 +16,7 @@ define map model
   gui_grid 0
   gui_move 0
   gui_outline 0
-  obstacle_return 0
+  obstacle_return 1
   gripper_return 0
   fiducial_return 0
   laser_return 1
@@ -105,7 +105,7 @@ define omni_robot position
 
 define pr2 position
 (
-  size [0.55 0.55 0.1]
+  size [0.46 0.46 0.1]
   origin [0 0 0 0]
   gui_nose 1
 
@@ -113,11 +113,15 @@ define pr2 position
   block
   ( 
   points 5
-  point[0] [ -0.325 -0.325 ]
-  point[1] [ -0.325  0.325 ]
-  point[2] [ 0.325 0.325 ]
+   
+  point[0] [ -0.325  0.325 ]
+  point[1] [ -0.325 -0.325 ]
+  point[2] [ 0.325 -0.325 ]
   point[3] [ 0.46 0.0 ]
-  point[4] [ 0.325 -0.325 ]
+
+  point[4] [ 0.325 0.325 ]
+
+
   )
  	
   topurg( pose [0.275 0 0.1 0] )

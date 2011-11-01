@@ -163,6 +163,8 @@ void PoseTwistAggregator::amclPoseCallback(const geometry_msgs::PoseWithCovarian
 }
 
 void PoseTwistAggregator::positionShareCallback(const collvoid_msgs::PoseTwistWithCovariance::ConstPtr& msg) {
+  //  return;
+  boost::mutex::scoped_lock lock(neighbors_lock_);
   std::string cur_id = msg->robot_id;
   if (strcmp(cur_id.c_str(),my_id_.c_str()) == 0) {
     return;
@@ -170,7 +172,7 @@ void PoseTwistAggregator::positionShareCallback(const collvoid_msgs::PoseTwistWi
   size_t i;
   for(i=0; i < neighbors_.size(); i++)
   {
-    if (strcmp(neighbors_[i]->robot_id.c_str(),cur_id.c_str()) == 0) {
+    if (strcmp(neighbors_[i].robot_id.c_str(),cur_id.c_str()) == 0) {
       //I found the robot
       break;
     }
@@ -179,16 +181,18 @@ void PoseTwistAggregator::positionShareCallback(const collvoid_msgs::PoseTwistWi
   if (i>=neighbors_.size()) { //Robot is new, so it will be added to the list
     collvoid_msgs::PoseTwistWithCovariance msg;
     msg.robot_id = cur_id;
-    msg.holo_robot= holo_robot_; 
-    neighbors_.push_back(&msg);
+    msg.holo_robot = holo_robot_; 
+    neighbors_.push_back(msg);
     ROS_DEBUG("I added a new neighbor with id %s",cur_id.c_str());
   }
-  neighbors_[i]->header = msg->header;
-  neighbors_[i]->pose.pose = msg->pose.pose;
-  neighbors_[i]->twist.twist = msg->twist.twist;
-  neighbors_[i]->holonomic_velocity.x = msg->holonomic_velocity.x;
-  neighbors_[i]->holonomic_velocity.y = msg->holonomic_velocity.y;
-  neighbors_[i]->radius = msg->radius;
+  neighbors_[i].header = msg->header;
+  neighbors_[i].pose.pose = msg->pose.pose;
+  neighbors_[i].twist.twist = msg->twist.twist;
+  neighbors_[i].holonomic_velocity.x = msg->holonomic_velocity.x;
+  neighbors_[i].holonomic_velocity.y = msg->holonomic_velocity.y;
+  neighbors_[i].radius = msg->radius;
+  //  ROS_DEBUG("Neighbor updated with position %f, %f and speed x %f, y %f, z%f",neighbors_[i].pose.pose.position.x, neighbors_[i].pose.pose.position.y, neighbors_[i].twist.twist.linear.x, neighbors_[i].twist.twist.linear.y,neighbors_[i].twist.twist.angular.z);
+
 }
 
 void PoseTwistAggregator::setRadius(double radius){
@@ -211,7 +215,7 @@ void PoseTwistAggregator::setHoloVelocity(double x, double y){
   holo_velocity_.y = y;
 }
 
-std::vector<collvoid_msgs::PoseTwistWithCovariance*> PoseTwistAggregator::getNeighbors(){
+std::vector<collvoid_msgs::PoseTwistWithCovariance> PoseTwistAggregator::getNeighbors(){
   return neighbors_;
 }
 

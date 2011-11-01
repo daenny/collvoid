@@ -25,7 +25,7 @@ class PoseTwistAggregator{
   void initialize(ros::NodeHandle private_nh, tf::TransformListener* tf, bool use_ground_truth, bool scale_radius, double radius, bool holo_robot, std::string robot_base_frame, std::string global_frame, std::string my_id );
 
   void initialize(ros::NodeHandle private_nh, tf::TransformListener* tf);
-  std::vector<collvoid_msgs::PoseTwistWithCovariance*> getNeighbors();
+  std::vector<collvoid_msgs::PoseTwistWithCovariance> getNeighbors();
   collvoid_msgs::PoseTwistWithCovariance getLastMeMsg();
   void setRadius(double radius);
   double getRadius();
@@ -49,14 +49,14 @@ class PoseTwistAggregator{
   std::string global_frame_; ///< @brief The frame in which the controller will run
   std::string robot_base_frame_; ///< @brief Used as the base frame id of the robot
   collvoid_msgs::PoseTwistWithCovariance last_me_msg_;
-  std::vector<collvoid_msgs::PoseTwistWithCovariance*> neighbors_;
+  std::vector<collvoid_msgs::PoseTwistWithCovariance> neighbors_;
   std::string my_id_;
   double radius_, rad_unc_;
   bool holo_robot_;
   nav_msgs::Odometry base_odom_,ground_truth_;
   ros::Publisher position_share_pub_, init_guess_pub_;
   ros::Subscriber odom_sub_, position_share_sub_, base_pose_ground_truth_sub_;
-  boost::mutex odom_lock_;
+  boost::mutex odom_lock_,neighbors_lock_;
   geometry_msgs::Vector3 holo_velocity_;
 
 

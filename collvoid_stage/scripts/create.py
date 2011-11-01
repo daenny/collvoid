@@ -119,12 +119,12 @@ def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,
 
     launchWrite = open(direct + '/launch/sim_created.launch','w')
     launchWrite.write("<launch>\n")
-    launchWrite.write('<node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_stage)/world/swarmlab.yaml"/>\n')
+    launchWrite.write('<node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_stage)/world/swarmlab_map.yaml"/>\n')
     launchWrite.write('<rosparam command="load" file="$(find collvoid_stage)/params_created.yaml"/>\n')
-    if (runExperiments):
-        launchWrite.write('<node pkg="collvoid_controller" type="watchdog.py" name="watchdog" output="screen"/>\n')
-    else:
-        launchWrite.write('<node pkg="collvoid_controller" type="controller.py" name="controller" output="screen"/>\n')
+   # if (runExperiments):
+   #     launchWrite.write('<node pkg="collvoid_controller" type="watchdog.py" name="watchdog" output="screen"/>\n')
+   # else:
+   #     launchWrite.write('<node pkg="collvoid_controller" type="controller.py" name="controller" output="screen"/>\n')
     launchWrite.write('<node pkg="stage" type="stageros" name="stageros" args="$(find collvoid_stage)/world/swarmlab_created.world" respawn="false" output="screen" />\n')
     for x in range(numRobots):
         #if localization: # TODO: use "not localizationx" amcl is still used in orca_planner
@@ -135,13 +135,16 @@ def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,
         launchWrite.write('<arg name="robot" value="robot_{0}"/>\n'.format(x))
         launchWrite.write('</include>\n')
         
-        launchWrite.write('  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen" ns="robot_{0}" output="screen">\n'.format(x))
+        launchWrite.write('<node pkg="move_base" type="move_base" respawn="false" name="move_base" ns="robot_{0}" output="screen">\n'.format(x))
         if (omni):
-            launchWrite.write('  <rosparam command="load" file="$(find collvoid_stage)/params/params_pr2.yaml"/> ')
+            launchWrite.write('<rosparam command="load" file="$(find collvoid_stage)/params/params_pr2.yaml" />\n ')
         else:
-            launchWrite.write('  <rosparam command="load" file="$(find collvoid_stage)/params/params_turtle.yaml"/> ')
-        launchWrite.write('  <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />')
-        launchWrite.write(' </node>')
+            launchWrite.write('<rosparam command="load" file="$(find collvoid_stage)/params/params_turtle.yaml" />\n ')
+        launchWrite.write('<remap from="map" to="/map" />\n')
+        launchWrite.write('<param name="~tf_prefix" value="robot_{0}" />\n'.format(x))
+        launchWrite.write('<param name="~/global_costmap/robot_base_frame" value="robot_{0}/base_link" /> \n <param name="~/local_costmap/robot_base_frame" value="robot_{1}/base_link" /> \n  <param name="~/local_costmap/global_frame" value="robot_{0}/odom" /> \n'.format(x,x,x))
+        launchWrite.write('<param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />\n')
+        launchWrite.write('</node> \n')
 
     s = ""
 
