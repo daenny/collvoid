@@ -110,7 +110,7 @@ def create_yaml_file(circleSize, numRobots,omni,simulation,localization,centerX,
         yamlWrite.write('    goal:\n')
         yamlWrite.write('        x: {0:f}\n'.format(centerX-posY))
         yamlWrite.write('        y: {0:f}\n'.format(centerY+posX))
-        yamlWrite.write('        ang: {0:f}\n'.format(angleX))
+        yamlWrite.write('        ang: {0:f}\n'.format((angleX+90) / 360.0 * 2 * math.pi))
     
     yamlWrite.close()
     
@@ -145,6 +145,7 @@ def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,
         launchWrite.write('<param name="~/global_costmap/robot_base_frame" value="robot_{0}/base_link" /> \n <param name="~/local_costmap/robot_base_frame" value="robot_{1}/base_link" /> \n  <param name="~/local_costmap/global_frame" value="robot_{0}/odom" /> \n'.format(x,x,x))
         launchWrite.write('<param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />\n')
         launchWrite.write('</node> \n')
+        launchWrite.write('<node pkg="collvoid_local_planner" type="controllerWaypoints.py" name="controllerWP" ns="robot_{0}" output="screen" />\n'.format(x))
 
     s = ""
 

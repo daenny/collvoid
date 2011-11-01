@@ -16,6 +16,9 @@
   <depend package="base_local_planner" />
   <depend package="pluginlib"/>
   <depend package="nav_core"/>
+  <depend package="actionlib"/>
+  <depend package="move_base_msgs"/>
+  <depend package="std_srvs"/>
   
 
   <export>

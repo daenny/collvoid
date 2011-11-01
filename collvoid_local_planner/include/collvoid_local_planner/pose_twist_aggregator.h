@@ -15,6 +15,7 @@
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Vector3.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <std_srvs/Empty.h>
 
 #include "collvoid_msgs/PoseTwistWithCovariance.h"
 
@@ -31,6 +32,8 @@ class PoseTwistAggregator{
   double getRadius();
   void setHoloVelocity(double x, double y);
   void publishInitialGuess(double noise_std);
+  // Service callback for intguess
+  bool initGuessCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
   
  private:
 
@@ -41,6 +44,7 @@ class PoseTwistAggregator{
   void publishPoseTwist();
   void setMaxRadiusCov(double max_rad_unc);
   
+
   tf::TransformListener* tf_; 
   bool initialized_;
 
@@ -58,6 +62,8 @@ class PoseTwistAggregator{
   ros::Subscriber odom_sub_, position_share_sub_, base_pose_ground_truth_sub_;
   boost::mutex odom_lock_,neighbors_lock_;
   geometry_msgs::Vector3 holo_velocity_;
+  ros::ServiceServer init_guess_srv_;
+
 
 
 };

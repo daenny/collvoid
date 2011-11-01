@@ -5,10 +5,13 @@ import commands
 import string
 import sys
 import math
+import actionlib
+from std_srvs.srv import Empty
 from std_msgs.msg import String
 from geometry_msgs.msg import PoseWithCovarianceStamped,PoseStamped
 from socket import gethostname
-from orca_planner.msg import PositionShare
+from collvoid_msgs.msg import PoseTwistWithCovariance
+from move_base_msgs.msg import *
 
 import tf
 
@@ -27,22 +30,40 @@ class controllerWaypoints():
 
     def initialize(self):
         self.stopped = True
-        self.pub_goal = rospy.Publisher("/goal", PoseStamped)
-        self.pub_commands_robot = rospy.Publisher("/commandsRobot", String)
-        self.sub_common_position = rospy.Subscriber("/commonPositions", PositionShare, self.cb_common_positions)
-        self.sub_commands_robot = rospy.Subscriber("/commandsRobot", String, self.cb_commands_robot)
-        self.hostname = gethostname()
+        self.client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
+        self.client.wait_for_server()
+       
+    
+        self.pub_goal = rospy.Publisher("move_base/goal", MoveBaseActionGoal)
+     
+        self.init_guess_srv = rospy.ServiceProxy("init_guess_pub", Empty)
+
+#        self.pub_commands_robot = rospy.Publisher("/commands_robot", String)
+#        self.sub_common_position = rospy.Subscriber("/position_share", PoseTwistWithCovariance, self.cb_common_positions)
+#        self.sub_commands_robot = rospy.Subscriber("/commands_robot", String, self.cb_commands_robot)
+
+        self.name = rospy.get_namespace()
+        if (self.name == "/"):
+            self.name = gethostname()
 #        self.hostname = "turtlebot4"
-        rospy.logerr("Hostname: %s",self.hostname)
-        self.goals = rospy.get_param("/%s/goals"%self.hostname)
-        rospy.loginfo("goals: %s"%str(self.goals))
-        self.cur_goal = 0
-        self.num_goals = len(self.goals["x"])
-        rospy.loginfo("num Goals %d"%self.num_goals)
-#        rospy.loginfo("Cur Goal %s"%str(self.return_cur_goal()))
+        rospy.loginfo("Name: %s",self.name)
+        self.goal = rospy.get_param("/%s/goal"%self.name)
+        #rospy.loginfo("goal: %s"%str(self.goal))
+  
+        #rospy.loginfo("Cur Goal %s"%str(self.return_cur_goal()))
         self.cur_goal_msg = self.return_cur_goal()
         self.circle = False
 
+        rospy.sleep(2.0)
+        self.init_guess_srv()
+        rospy.sleep(2.0)
+        #self.s_goal = ctionGoal()
+#        rospy.loginfo("sgoal: %s"%str(self.s_goal))
+  
+        #self.s_goal.target_pose = self.cur_goal_msg
+        #self.s_goal.header.stamp = rospy.get_time()
+        self.client.send_goal(self.cur_goal_msg)
+        #self.pub_goal.publish(self.cur_goal_msg)
 
     def cb_common_positions(self,msg):
         if self.stopped:
@@ -68,10 +89,22 @@ class controllerWaypoints():
             return
     
     def return_cur_goal(self):
-        goal = PoseStamped()
-        goal.pose.position.x = self.goals["x"][self.cur_goal]
-        goal.pose.position.y = self.goals["y"][self.cur_goal]
+        goal = MoveBaseGoal()
+        #rospy.loginfo("goal: %s"%str(goal))
+        
+        goal.target_pose.pose.position.x = self.goal["x"]
+        goal.target_pose.pose.position.y = self.goal["y"]
+        q = tf.transformations.quaternion_from_euler(0,0, self.goal["ang"], axes='sxyz')
+        goal.target_pose.pose.orientation.x = q[0]
+        goal.target_pose.pose.orientation.y = q[1]
+        goal.target_pose.pose.orientation.z = q[2]
+        goal.target_pose.pose.orientation.w = q[3]
+        
+#        goal.target_pose.header.stamp = rospy.get_time()
+        goal.target_pose.header.frame_id = "/map"
         return goal
+
+
         
 
 

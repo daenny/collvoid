@@ -29,6 +29,9 @@ void PoseTwistAggregator::initialize(ros::NodeHandle private_nh, tf::TransformLi
   odom_sub_ = private_nh.subscribe("odom",1, &PoseTwistAggregator::odomCallback, this);
   base_pose_ground_truth_sub_ = private_nh.subscribe("base_pose_ground_truth",1,&PoseTwistAggregator::basePoseGroundTruthCallback,this);
   init_guess_pub_ = private_nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("initialpose",1);
+
+  init_guess_srv_ = private_nh.advertiseService("init_guess_pub", &PoseTwistAggregator::initGuessCallback, this);
+
 }
 
 void PoseTwistAggregator::initialize(ros::NodeHandle private_nh, tf::TransformListener* tf){
@@ -48,6 +51,7 @@ void PoseTwistAggregator::initialize(ros::NodeHandle private_nh, tf::TransformLi
 
   init_guess_pub_ = private_nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("initialpose",1);
 
+  init_guess_srv_ = private_nh.advertiseService("init_guess_pub", &PoseTwistAggregator::initGuessCallback, this);
 
   my_id_ = private_nh.getNamespace();
   if (strcmp(my_id_.c_str(), "/") == 0) {
@@ -89,6 +93,14 @@ void PoseTwistAggregator::publishInitialGuess(double noise_std){
   init_guess_pub_.publish(init_guess);
  
 }
+
+bool PoseTwistAggregator::initGuessCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response){
+  ROS_INFO_NAMED("PoseTwistAggregator","Sending init guess from grount truth");
+  publishInitialGuess(0.0); //TODO: add own srvs with noise as request
+  return true;
+
+}
+ 
 
 void PoseTwistAggregator::basePoseGroundTruthCallback(const nav_msgs::Odometry::ConstPtr& msg){
   double true_x,true_y,true_theta;
