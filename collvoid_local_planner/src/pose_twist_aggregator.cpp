@@ -265,17 +265,17 @@ void PoseTwistAggregator::publishNeighborPositions(){
    sphere_list.markers[2*i+1].header.stamp = timestamp;
    sphere_list.markers[2*i+1].ns = robot_base_frame_;
    sphere_list.markers[2*i+1].action = visualization_msgs::Marker::ADD;
-   sphere_list.markers[2*i+1].pose.orientation = tf::createQuaternionMsgFromYaw(yaw+th_dif);
+   sphere_list.markers[2*i+1].pose.orientation.w = 1.0;//tf::createQuaternionMsgFromYaw(yaw+th_dif);
    sphere_list.markers[2*i+1].type = visualization_msgs::Marker::ARROW;
-   sphere_list.markers[2*i+1].scale.x = 1.0;
-   sphere_list.markers[2*i+1].scale.y = 1.2;
+   sphere_list.markers[2*i+1].scale.x = 0.1;
+   sphere_list.markers[2*i+1].scale.y = 0.2;
    sphere_list.markers[2*i+1].scale.z = 0.1;
    sphere_list.markers[2*i+1].color.r = 1.0;
    sphere_list.markers[2*i+1].color.a = 1.0;
    sphere_list.markers[2*i+1].id = 2*i+1; 
-   sphere_list.markers[2*i+1].pose.position.x = neighbors_[i].pose.pose.position.x + x_dif;
-   sphere_list.markers[2*i+1].pose.position.y = neighbors_[i].pose.pose.position.y + y_dif;
-   sphere_list.markers[2*i+1].pose.position.z = 0.2;
+   //sphere_list.markers[2*i+1].pose.position.x = neighbors_[i].pose.pose.position.x + x_dif;
+   //sphere_list.markers[2*i+1].pose.position.y = neighbors_[i].pose.pose.position.y + y_dif;
+   //sphere_list.markers[2*i+1].pose.position.z = 0.2;
    
    geometry_msgs::Point p;
    p.x = neighbors_[i].pose.pose.position.x + x_dif;
