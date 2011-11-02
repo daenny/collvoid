@@ -19,7 +19,7 @@ ROSAgent::ROSAgent() :
   timestep_(0.1),
   heading_(),
   max_track_speed_(),
-  left_pref_(0.2),
+  left_pref_(0.1),
   cur_allowed_error_(0.0),
   max_radius_cov_(-1),
   holo_robot_(false),

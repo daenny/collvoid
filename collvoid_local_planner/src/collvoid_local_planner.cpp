@@ -83,6 +83,11 @@ namespace collvoid_local_planner {
 
       getParam(private_nh, "holo_robot",&holo_robot_);
       
+      if (!holo_robot_)
+	getParam(private_nh,"wheel_base", &wheel_base_);
+      else
+	wheel_base_ = 0.0;
+
       getParam(private_nh,"max_vel_x", &max_vel_x_);
       getParam(private_nh,"min_vel_x", &min_vel_x_);
 
@@ -92,7 +97,6 @@ namespace collvoid_local_planner {
       getParam(private_nh,"max_vel_th", &max_vel_th_);
       getParam(private_nh,"min_vel_th", &min_vel_th_);
 
-      getParam(private_nh,"wheel_base", &wheel_base_);
       
       double radius;
       getParam(private_nh,"radius",&radius);
@@ -121,26 +125,23 @@ namespace collvoid_local_planner {
       }
       ROS_INFO("Sim period is set to %.2f", sim_period_);
 
-
-      nr_initial_guess_ = 0;
-
-      private_nh.param("/use_ground_truth",use_ground_truth_,false);
-      private_nh.param("/init_guess_noise_std",INIT_GUESS_NOISE_STD_, 0.0);
-      private_nh.param("/scale_radius",scale_radius_,true);
+      
+      use_ground_truth_ = getParamDef(private_nh,"/use_ground_truth",false);
+      scale_radius_ = getParamDef(private_nh,"/scale_radius",true);
   
-      private_nh.param("max_neighbors",max_neighbors_,10);
-      private_nh.param("neighbor_dist",neighbor_dist_,15.0);
-      private_nh.param("time_horizon",time_horizon_,10.0);
-      private_nh.param("time_horizon_obst",time_horizon_obst_,10.0);
+      max_neighbors_ = getParamDef(private_nh,"max_neighbors",10);
+      neighbor_dist_ = getParamDef(private_nh,"neighbor_dist",15.0);
+      time_horizon_ = getParamDef(private_nh,"time_horizon",10.0);
+      time_horizon_obst_ = getParamDef(private_nh,"time_horizon_obst",10.0);
+
+      time_to_holo_ = getParamDef(private_nh,"time_to_holo", 0.4);
+      min_error_holo_ = getParamDef(private_nh,"min_error_holo", 0.01);
+      max_error_holo_ = getParamDef(private_nh, "max_error_holo", 0.15);
 	
-      private_nh.param("threshold_last_seen",THRESHOLD_LAST_SEEN_,1.0);
-      private_nh.param("max_initial_guess",MAX_INITIAL_GUESS_,20);
-    
-
-
+      THRESHOLD_LAST_SEEN_ = getParamDef(private_nh,"threshold_last_seen",1.0);
+      
       ros::NodeHandle nh;
-
-    
+   
       std::string my_id = nh.getNamespace();
       if (strcmp(my_id.c_str(), "/") == 0) {
 	char hostname[1024];
@@ -449,12 +450,12 @@ namespace collvoid_local_planner {
     me_->prefVelocity_ = RVO::Vector2(goal_dir.x(),goal_dir.y());
 
     addAllNeighbors();
-    double T = 0.4; //in how much time I want to be on the holonomic track
+    double T = time_to_holo_; //in how much time I want to be on the holonomic track
     
     if (!me_->isHoloRobot()) {
     
-      double min_error = 0.01;
-      double max_error = 0.15;
+      double min_error = min_error_holo_;
+      double max_error = max_error_holo_;
   
       double speed = RVO::abs(me_->velocity_);
       double error = min_error + (max_error-min_error) * speed / vMaxAng(); // how much error do i allow?
@@ -466,12 +467,13 @@ namespace collvoid_local_planner {
       me_->setMaxTrackSpeed(max_track_speed);
 
       me_->setMaxSpeedLinear(vMaxAng());
-
+      pt_agg_->setRadius(circumscribed_radius_ + error);
     }
     else {
       me_->setMaxTrackSpeed(max_vel_y_);
       //TODO compute orca lines for max y speed...
     }
+    me_->setRadius(pt_agg_->getRadius());
     me_->computeNewVelocity(); // compute ORCA velocity
     me_->setVelocity(me_->newVelocity_.x(), me_->newVelocity_.y());
     double speed_ang = atan2(me_->newVelocity_.y(), me_->newVelocity_.x());
@@ -593,17 +595,12 @@ namespace collvoid_local_planner {
 	  double time_dif = (ros::Time::now()-neighbor_msgs[i].header.stamp).toSec();
 	  if (time_dif > THRESHOLD_LAST_SEEN_)
 	    continue;
-	  
-	  //robots[i].agent->position_ = robots[i].agent->position_ + robots[i].agent->velocity_ * timeDif;
-	  // ROS_INFO("Position of robot i =%s at: [%f, %f] with vel = [%f, %f], timeDif = %f", neighbor_msgs[i].robot_id.c_str(), robots[i].agent->position_.x(), robots[i].agent->position_.y(),robots[i].agent->velocity_.x(),robots[i].agent->velocity_.y(),timeDif);
-	  // if (neighbors_.count(neighbor_msgs[i]->robot_id) == 0) {
+ 
 	  ROSAgent* new_neighbor = new ROSAgent();
-	  //   neighbors_[neighbor_msgs[i]->robot_id] = new_neighbor;
 	  updateROSAgentWithMsg(new_neighbor, &neighbor_msgs[i]);
 	  me_->insertAgentNeighbor(new_neighbor,range_sq);
 	}
       }
-    me_->publishNeighborPositions();
   }
 
   void CollvoidLocalPlanner::updateROSAgentWithMsg(ROSAgent* agent, collvoid_msgs::PoseTwistWithCovariance* msg){
@@ -634,7 +631,6 @@ namespace collvoid_local_planner {
     }
     agent->setHeading(yaw + th_dif);
     agent->setPosition(msg->pose.pose.position.x + x_dif, msg->pose.pose.position.y + y_dif);   
-
    
     RVO::Vector2 vel = rotateVectorByAngle(msg->twist.twist.linear.x, msg->twist.twist.linear.y, agent->getHeading());
     agent->setVelocity(vel.x(),vel.y());

@@ -119,45 +119,43 @@ def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,
 
     launchWrite = open(direct + '/launch/sim_created.launch','w')
     launchWrite.write("<launch>\n")
-    launchWrite.write('<node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_stage)/world/swarmlab_map.yaml"/>\n')
-    launchWrite.write('<rosparam command="load" file="$(find collvoid_stage)/params_created.yaml"/>\n')
+    launchWrite.write('  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_stage)/world/swarmlab_map.yaml"/>\n')
+    launchWrite.write('  <rosparam command="load" file="$(find collvoid_stage)/params_created.yaml"/>\n')
    # if (runExperiments):
    #     launchWrite.write('<node pkg="collvoid_controller" type="watchdog.py" name="watchdog" output="screen"/>\n')
    # else:
    #     launchWrite.write('<node pkg="collvoid_controller" type="controller.py" name="controller" output="screen"/>\n')
-    launchWrite.write('<node pkg="stage" type="stageros" name="stageros" args="$(find collvoid_stage)/world/swarmlab_created.world" respawn="false" output="screen" />\n')
+    launchWrite.write('  <node pkg="stage" type="stageros" name="stageros" args="$(find collvoid_stage)/world/swarmlab_created.world" respawn="false" output="screen" />\n')
     for x in range(numRobots):
         #if localization: # TODO: use "not localizationx" amcl is still used in orca_planner
         if (omni):
-            launchWrite.write('<include file="$(find collvoid_stage)/launch/amcl_omni_multi.launch">\n')
+            launchWrite.write('  <include file="$(find collvoid_stage)/launch/amcl_omni_multi.launch">\n')
         else:
-            launchWrite.write('<include file="$(find collvoid_stage)/launch/amcl_diff_multi.launch">\n')
-        launchWrite.write('<arg name="robot" value="robot_{0}"/>\n'.format(x))
-        launchWrite.write('</include>\n')
+            launchWrite.write('  <include file="$(find collvoid_stage)/launch/amcl_diff_multi.launch">\n')
+        launchWrite.write('    <arg name="robot" value="robot_{0}"/>\n'.format(x))
+        launchWrite.write('  </include>\n')
         
-        launchWrite.write('<node pkg="move_base" type="move_base" respawn="false" name="move_base" ns="robot_{0}" output="screen">\n'.format(x))
+        launchWrite.write('  <node pkg="move_base" type="move_base" respawn="false" name="move_base" ns="robot_{0}" output="screen">\n'.format(x))
         if (omni):
-            launchWrite.write('<rosparam command="load" file="$(find collvoid_stage)/params/params_pr2.yaml" />\n ')
+            launchWrite.write('    <rosparam command="load" file="$(find collvoid_stage)/params/params_pr2.yaml" />\n')
         else:
-            launchWrite.write('<rosparam command="load" file="$(find collvoid_stage)/params/params_turtle.yaml" />\n ')
-        launchWrite.write('<remap from="map" to="/map" />\n')
-        launchWrite.write('<param name="~tf_prefix" value="robot_{0}" />\n'.format(x))
-        launchWrite.write('<param name="~/global_costmap/robot_base_frame" value="robot_{0}/base_link" /> \n <param name="~/local_costmap/robot_base_frame" value="robot_{1}/base_link" /> \n  <param name="~/local_costmap/global_frame" value="robot_{0}/odom" /> \n'.format(x,x,x))
-        launchWrite.write('<param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />\n')
-        launchWrite.write('</node> \n')
-        launchWrite.write('<node pkg="collvoid_local_planner" type="controllerWaypoints.py" name="controllerWP" ns="robot_{0}" output="screen" />\n'.format(x))
-
+            launchWrite.write('    <rosparam command="load" file="$(find collvoid_stage)/params/params_turtle.yaml" />\n')
+        launchWrite.write('    <remap from="map" to="/map" />\n')
+        launchWrite.write('    <param name="~tf_prefix" value="robot_{0}" />\n'.format(x))
+        launchWrite.write('    <param name="~/global_costmap/robot_base_frame" value="robot_{0}/base_link" /> \n    <param name="~/local_costmap/robot_base_frame" value="robot_{1}/base_link" /> \n    <param name="~/local_costmap/global_frame" value="robot_{0}/odom" /> \n'.format(x,x,x))
+        launchWrite.write('    <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />\n')
+        launchWrite.write('  </node> \n')
+        launchWrite.write('  <node pkg="collvoid_local_planner" type="controllerWaypoints.py" name="controllerWP" ns="robot_{0}" output="screen" />\n'.format(x))
+    launchWrite.write('  <node pkg="collvoid_controller" type="controller.py" name="controller" output="screen" />\n')
+  
     s = ""
 
 #    for x in range(numRobots):
 #        s += "/robot_%d/debug "%(x)
     if useBagFile:
-        launchWrite.write('<node pkg="rosbag" type="record" name="rosbag" args="record {0} /stall /stall_resolved /exceeded -O $(find collvoid_stage)/{1}" output="screen"/>\n'.format(s,bagFilename))
-    
+        launchWrite.write('  <node pkg="rosbag" type="record" name="rosbag" args="record {0} /stall /stall_resolved /exceeded -O $(find collvoid_stage)/{1}" output="screen"/>\n'.format(s,bagFilename))
 
     launchWrite.write("</launch>\n")
-
-    
     launchWrite.close()
 
     

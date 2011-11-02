@@ -8,6 +8,8 @@
  */
 #include "collvoid_local_planner/pose_twist_aggregator.h"
 #include <boost/random.hpp>
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 
 
 PoseTwistAggregator::PoseTwistAggregator():
@@ -16,7 +18,6 @@ initialized_(false)
 }
 
 void PoseTwistAggregator::initialize(ros::NodeHandle private_nh, tf::TransformListener* tf, bool use_ground_truth, bool scale_radius, double radius, bool holo_robot, std::string robot_base_frame, std::string global_frame, std::string my_id ){
-
   tf_ = tf;
   use_ground_truth_ = use_ground_truth;
   scale_radius_ = scale_radius;
@@ -25,16 +26,10 @@ void PoseTwistAggregator::initialize(ros::NodeHandle private_nh, tf::TransformLi
   robot_base_frame_ = robot_base_frame;
   global_frame_ = global_frame;
   my_id_= my_id;
-  rad_unc_ = -1.0;
-  position_share_pub_ = private_nh.advertise<collvoid_msgs::PoseTwistWithCovariance>("/position_share",1);
-  position_share_sub_ = private_nh.subscribe("/position_share",20, &PoseTwistAggregator::positionShareCallback, this);
-  odom_sub_ = private_nh.subscribe("odom",1, &PoseTwistAggregator::odomCallback, this);
-  base_pose_ground_truth_sub_ = private_nh.subscribe("base_pose_ground_truth",1,&PoseTwistAggregator::basePoseGroundTruthCallback,this);
-  init_guess_pub_ = private_nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("initialpose",1);
-  ROS_DEBUG_NAMED("PT","radius = %f",radius_);
- 
 
-  init_guess_srv_ = private_nh.advertiseService("init_guess_pub", &PoseTwistAggregator::initGuessCallback, this);
+  initCommon(private_nh);
+  ROS_INFO("My name is: %s",my_id_.c_str());
+
   initialized_ = true;
 }
 
@@ -45,20 +40,11 @@ void PoseTwistAggregator::initialize(ros::NodeHandle private_nh, tf::TransformLi
 
   private_nh.param("use_ground_truth",use_ground_truth_,false);
   private_nh.param("scale_radius",scale_radius_,true);
-  private_nh.param("radius",radius_, 0.5); //TODO make this safe such that it has to be set always
+  private_nh.param("radius",radius_, 0.5); 
   private_nh.param("holo_robot", holo_robot_, false);
   private_nh.param<std::string>("base_frame", robot_base_frame_, "/base_link");
   private_nh.param<std::string>("global_frame", global_frame_, "/map");
   
-  position_share_pub_ = private_nh.advertise<collvoid_msgs::PoseTwistWithCovariance>("/position_share",1);
-  position_share_sub_ = private_nh.subscribe("/position_share",20, &PoseTwistAggregator::positionShareCallback, this);
-  odom_sub_ = private_nh.subscribe("odom",1, &PoseTwistAggregator::odomCallback, this);
-  base_pose_ground_truth_sub_ = private_nh.subscribe("base_pose_ground_truth",1,&PoseTwistAggregator::basePoseGroundTruthCallback,this);
-
-  init_guess_pub_ = private_nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("initialpose",1);
-
-  init_guess_srv_ = private_nh.advertiseService("init_guess_pub", &PoseTwistAggregator::initGuessCallback, this);
-
   my_id_ = private_nh.getNamespace();
   if (strcmp(my_id_.c_str(), "/") == 0) {
     char hostname[1024];
@@ -67,8 +53,23 @@ void PoseTwistAggregator::initialize(ros::NodeHandle private_nh, tf::TransformLi
     my_id_ = std::string(hostname);
   }
   ROS_INFO("My name is: %s",my_id_.c_str());
+
+  initCommon(private_nh);
   initialized_ = true;
 }
+
+void PoseTwistAggregator::initCommon(ros::NodeHandle private_nh) {
+  rad_unc_ = -1.0;
+  position_share_pub_ = private_nh.advertise<collvoid_msgs::PoseTwistWithCovariance>("/position_share",1);
+  position_share_sub_ = private_nh.subscribe("/position_share",20, &PoseTwistAggregator::positionShareCallback, this);
+  odom_sub_ = private_nh.subscribe("odom",1, &PoseTwistAggregator::odomCallback, this);
+  base_pose_ground_truth_sub_ = private_nh.subscribe("base_pose_ground_truth",1,&PoseTwistAggregator::basePoseGroundTruthCallback,this);
+  amcl_pose_sub_ = private_nh.subscribe("amcl_pose", 1, &PoseTwistAggregator::amclPoseCallback,this);
+  neighbors_pub_ = private_nh.advertise<visualization_msgs::MarkerArray>("neighbors", 10);
+  init_guess_pub_ = private_nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("initialpose",1);
+  init_guess_srv_ = private_nh.advertiseService("init_guess_pub", &PoseTwistAggregator::initGuessCallback, this);
+}
+
 
 void PoseTwistAggregator::publishPoseTwist(){
   if (!initialized_) {
@@ -207,7 +208,7 @@ void PoseTwistAggregator::positionShareCallback(const collvoid_msgs::PoseTwistWi
   if (i>=neighbors_.size()) { //Robot is new, so it will be added to the list
     collvoid_msgs::PoseTwistWithCovariance msgNew;
     msgNew.robot_id = cur_id;
-    msgNew.holo_robot = holo_robot_; 
+    msgNew.holo_robot = msg->holo_robot; 
     neighbors_.push_back(msgNew);
     ROS_DEBUG("I added a new neighbor with id %s and radius %f",cur_id.c_str(),msg->radius);
   }
@@ -217,9 +218,88 @@ void PoseTwistAggregator::positionShareCallback(const collvoid_msgs::PoseTwistWi
   neighbors_[i].holonomic_velocity.x = msg->holonomic_velocity.x;
   neighbors_[i].holonomic_velocity.y = msg->holonomic_velocity.y;
   neighbors_[i].radius = msg->radius;
+  publishNeighborPositions();
   //  ROS_DEBUG("Neighbor %s updated with position %f, %f and speed x %f, y %f, z%f",cur_id.c_str(),neighbors_[i].pose.pose.position.x, neighbors_[i].pose.pose.position.y, neighbors_[i].twist.twist.linear.x, neighbors_[i].twist.twist.linear.y,neighbors_[i].twist.twist.angular.z);
 
 }
+
+void PoseTwistAggregator::publishNeighborPositions(){
+  visualization_msgs::MarkerArray sphere_list;
+  sphere_list.markers.resize(2*neighbors_.size());
+  ros::Time timestamp = ros::Time::now();
+  for (size_t i=0;i< neighbors_.size();i++) {
+
+    //visualization_msgs::Marker neighbor;
+   //sphere_list.header.frame_id = myId + "/base_link";
+   sphere_list.markers[2*i].header.frame_id = global_frame_;
+   sphere_list.markers[2*i].header.stamp = timestamp;
+   sphere_list.markers[2*i].ns = robot_base_frame_;
+   sphere_list.markers[2*i].action = visualization_msgs::Marker::ADD;
+   sphere_list.markers[2*i].pose.orientation.w = 1.0;
+   sphere_list.markers[2*i].type = visualization_msgs::Marker::SPHERE;
+   sphere_list.markers[2*i].scale.x = 0.1*neighbors_[i].radius;
+   sphere_list.markers[2*i].scale.y = 0.1*neighbors_[i].radius;
+   sphere_list.markers[2*i].scale.z = 0.1;
+   sphere_list.markers[2*i].color.r = 1.0;
+   sphere_list.markers[2*i].color.a = 1.0;
+   sphere_list.markers[2*i].id = i; 
+
+   double yaw, x_dif, y_dif, th_dif, time_dif;\
+   time_dif = (ros::Time::now() - neighbors_[i].header.stamp).toSec();
+   yaw = tf::getYaw(neighbors_[i].pose.pose.orientation);
+   th_dif =  time_dif * neighbors_[i].twist.twist.angular.z;
+   if (neighbors_[i].holo_robot) {
+     x_dif = time_dif * neighbors_[i].twist.twist.linear.x;
+     y_dif = time_dif * neighbors_[i].twist.twist.linear.y;
+   }
+   else {
+     x_dif = time_dif * neighbors_[i].twist.twist.linear.x * cos(yaw + th_dif/2.0);
+     y_dif = time_dif * neighbors_[i].twist.twist.linear.x * sin(yaw + th_dif/2.0);
+   }
+   sphere_list.markers[2*i].pose.position.x = neighbors_[i].pose.pose.position.x + x_dif;
+   sphere_list.markers[2*i].pose.position.y = neighbors_[i].pose.pose.position.y + y_dif;
+   sphere_list.markers[2*i].pose.position.z = 0.2;
+
+
+   sphere_list.markers[2*i+1].header.frame_id = global_frame_;
+   sphere_list.markers[2*i+1].header.stamp = timestamp;
+   sphere_list.markers[2*i+1].ns = robot_base_frame_;
+   sphere_list.markers[2*i+1].action = visualization_msgs::Marker::ADD;
+   sphere_list.markers[2*i+1].pose.orientation = tf::createQuaternionMsgFromYaw(yaw+th_dif);
+   sphere_list.markers[2*i+1].type = visualization_msgs::Marker::ARROW;
+   sphere_list.markers[2*i+1].scale.x = 1.0;
+   sphere_list.markers[2*i+1].scale.y = 1.2;
+   sphere_list.markers[2*i+1].scale.z = 0.1;
+   sphere_list.markers[2*i+1].color.r = 1.0;
+   sphere_list.markers[2*i+1].color.a = 1.0;
+   sphere_list.markers[2*i+1].id = 2*i+1; 
+   sphere_list.markers[2*i+1].pose.position.x = neighbors_[i].pose.pose.position.x + x_dif;
+   sphere_list.markers[2*i+1].pose.position.y = neighbors_[i].pose.pose.position.y + y_dif;
+   sphere_list.markers[2*i+1].pose.position.z = 0.2;
+   
+   geometry_msgs::Point p;
+   p.x = neighbors_[i].pose.pose.position.x + x_dif;
+   p.y = neighbors_[i].pose.pose.position.y + y_dif;
+   p.z = 0.1;
+   sphere_list.markers[i].points.push_back(p);
+   
+   p.x += 2.0*cos(yaw+th_dif); 
+   p.y += 2.0*sin(yaw+th_dif);
+   sphere_list.markers[i].points.push_back(p);
+   
+
+
+
+   //geometry_msgs::Point p;
+   //p.x = agentNeighbors_[i].second->position_.x();
+   //p.y = agentNeighbors_[i].second->position_.y();
+   //p.z = 0.2;
+   //sphere_list.markers[i].points.push_back(p);
+   //sphere_list.markers[i] = neighbor;
+ }
+ neighbors_pub_.publish(sphere_list);
+}
+
 
 void PoseTwistAggregator::setRadius(double radius){
   radius_ = radius;

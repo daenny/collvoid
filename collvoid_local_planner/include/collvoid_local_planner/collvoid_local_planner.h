@@ -91,7 +91,8 @@ namespace collvoid_local_planner {
     State state_;
     ROSAgent* me_;
     //boost::unordered_map<std::string,ROSAgent> neighbors_;
-   
+
+    double time_to_holo_, min_error_holo_, max_error_holo_;
 
     std::string global_frame_; ///< @brief The frame in which the controller will run
     std::string robot_base_frame_; ///< @brief Used as the base frame id of the robot

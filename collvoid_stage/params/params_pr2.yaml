@@ -5,15 +5,12 @@ CollvoidLocalPlanner:
   time_horizon: 10.0
   time_horizon_obst: 10.0
   threshold_last_seen: 1.0
-  max_initial_guess: 20.0
 
   yaw_goal_tolerance: 0.05
   xy_goal_tolerance: 0.10
 #  latch_xy_goal_tolerance: true
   global_frame: /map
 
-
-  wheel_base: 0.25
   holo_robot: true
 
   max_vel_x: 0.5
