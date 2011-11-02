@@ -281,11 +281,11 @@ void PoseTwistAggregator::publishNeighborPositions(){
    p.x = neighbors_[i].pose.pose.position.x + x_dif;
    p.y = neighbors_[i].pose.pose.position.y + y_dif;
    p.z = 0.1;
-   sphere_list.markers[i].points.push_back(p);
+   sphere_list.markers[2*i+1].points.push_back(p);
    
-   p.x += 4.0*cos(yaw+th_dif); 
-   p.y += 4.0*sin(yaw+th_dif);
-   sphere_list.markers[i].points.push_back(p);
+   p.x += neighbors_[i].radius * 1.1 * cos(yaw + th_dif); 
+   p.y += neighbors_[i].radius * 1.1 * sin(yaw + th_dif);
+   sphere_list.markers[2*i+1].points.push_back(p);
    
 
 
