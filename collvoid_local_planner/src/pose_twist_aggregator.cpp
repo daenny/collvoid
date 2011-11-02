@@ -237,12 +237,12 @@ void PoseTwistAggregator::publishNeighborPositions(){
    sphere_list.markers[2*i].action = visualization_msgs::Marker::ADD;
    sphere_list.markers[2*i].pose.orientation.w = 1.0;
    sphere_list.markers[2*i].type = visualization_msgs::Marker::SPHERE;
-   sphere_list.markers[2*i].scale.x = 0.1*neighbors_[i].radius;
-   sphere_list.markers[2*i].scale.y = 0.1*neighbors_[i].radius;
+   sphere_list.markers[2*i].scale.x = neighbors_[i].radius;
+   sphere_list.markers[2*i].scale.y = neighbors_[i].radius;
    sphere_list.markers[2*i].scale.z = 0.1;
    sphere_list.markers[2*i].color.r = 1.0;
    sphere_list.markers[2*i].color.a = 1.0;
-   sphere_list.markers[2*i].id = i; 
+   sphere_list.markers[2*i].id = 2*i; 
 
    double yaw, x_dif, y_dif, th_dif, time_dif;\
    time_dif = (ros::Time::now() - neighbors_[i].header.stamp).toSec();
@@ -283,8 +283,8 @@ void PoseTwistAggregator::publishNeighborPositions(){
    p.z = 0.1;
    sphere_list.markers[i].points.push_back(p);
    
-   p.x += 2.0*cos(yaw+th_dif); 
-   p.y += 2.0*sin(yaw+th_dif);
+   p.x += 4.0*cos(yaw+th_dif); 
+   p.y += 4.0*sin(yaw+th_dif);
    sphere_list.markers[i].points.push_back(p);
    
 
