@@ -34,7 +34,9 @@ class PoseTwistAggregator{
   void publishInitialGuess(double noise_std);
   // Service callback for intguess
   bool initGuessCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+  boost::mutex odom_lock_,neighbors_lock_;
   
+ 
  private:
 
   void basePoseGroundTruthCallback(const nav_msgs::Odometry::ConstPtr& msg);
@@ -60,7 +62,6 @@ class PoseTwistAggregator{
   nav_msgs::Odometry base_odom_,ground_truth_;
   ros::Publisher position_share_pub_, init_guess_pub_;
   ros::Subscriber odom_sub_, position_share_sub_, base_pose_ground_truth_sub_;
-  boost::mutex odom_lock_,neighbors_lock_;
   geometry_msgs::Vector3 holo_velocity_;
   ros::ServiceServer init_guess_srv_;
 

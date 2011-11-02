@@ -29,7 +29,6 @@ class controllerWaypoints():
         
 
     def initialize(self):
-        self.stopped = True
         self.client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
         self.client.wait_for_server()
        
@@ -40,30 +39,20 @@ class controllerWaypoints():
 
 #        self.pub_commands_robot = rospy.Publisher("/commands_robot", String)
 #        self.sub_common_position = rospy.Subscriber("/position_share", PoseTwistWithCovariance, self.cb_common_positions)
-#        self.sub_commands_robot = rospy.Subscriber("/commands_robot", String, self.cb_commands_robot)
+        self.sub_commands_robot = rospy.Subscriber("/commands_robot", String, self.cb_commands_robot)
 
         self.name = rospy.get_namespace()
         if (self.name == "/"):
             self.name = gethostname()
-#        self.hostname = "turtlebot4"
+
         rospy.loginfo("Name: %s",self.name)
         self.goal = rospy.get_param("/%s/goal"%self.name)
-        #rospy.loginfo("goal: %s"%str(self.goal))
-  
-        #rospy.loginfo("Cur Goal %s"%str(self.return_cur_goal()))
         self.cur_goal_msg = self.return_cur_goal()
         self.circle = False
 
         rospy.sleep(2.0)
-        self.init_guess_srv()
-        rospy.sleep(2.0)
-        #self.s_goal = ctionGoal()
-#        rospy.loginfo("sgoal: %s"%str(self.s_goal))
-  
-        #self.s_goal.target_pose = self.cur_goal_msg
-        #self.s_goal.header.stamp = rospy.get_time()
-        self.client.send_goal(self.cur_goal_msg)
-        #self.pub_goal.publish(self.cur_goal_msg)
+
+
 
     def cb_common_positions(self,msg):
         if self.stopped:
@@ -109,41 +98,24 @@ class controllerWaypoints():
 
 
     def cb_commands_robot(self,msg):
-        if msg.data == "all WP On" or msg.data == "%s WP On"%self.hostname:
+        if msg.data == "all WP On" or msg.data == "%s WP On"%self.name:
             rospy.loginfo("I am ON")
             self.stopped = False
 
-        if msg.data == "all WP Off" or msg.data == "%s WP Off"%self.hostname:
+        if msg.data == "all WP Off" or msg.data == "%s WP Off"%self.name:
             self.stopped = True
             rospy.loginfo("I am Off")
 
+        if (msg.data == "all Start"):
+            self.client.send_goal(self.cur_goal_msg)
 
-        if self.stopped:
-            return
-
-        if (msg.data == "Start"):
-            self.pub_goal.publish(self.return_cur_goal())
+        if (msg.data == "all init Guess"):
+            self.init_guess_srv()
         
-        if msg.data == "all New Goal" or msg.data == "%s New Goal"%self.hostname:
-            self.cur_goal += 1
-            if (self.cur_goal == self.num_goals):
-                self.cur_goal = 0
-            self.cur_goal_msg = self.return_cur_goal()
-            self.pub_goal.publish(self.cur_goal_msg)
-            rospy.loginfo("Send new Goal")            
-
-        if msg.data == "all Circle On" or msg.data == "%s Circle On"%self.hostname:
-            rospy.loginfo("I am on Circlemode")
-            self.circle = True
-            
-        if msg.data == "all Circle Off" or msg.data == "%s Circle Off"%self.hostname:
-            self.circle = False
-            
-
-#-- circle between
-#-- add point
-
-
+        if (msg.data == "all Stop"):
+            self.client.cancel_goal()
+       
+   
 
 if __name__ == '__main__':
 #    if not (len(sys.argv) == 2):

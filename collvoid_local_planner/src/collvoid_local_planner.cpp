@@ -581,6 +581,7 @@ namespace collvoid_local_planner {
 
 
   void CollvoidLocalPlanner::addAllNeighbors(){
+    boost::mutex::scoped_lock lock(pt_agg_->neighbors_lock_);
     me_->clearNeighbors();
     std::vector<collvoid_msgs::PoseTwistWithCovariance> neighbor_msgs = pt_agg_->getNeighbors();
     size_t i;
@@ -594,14 +595,15 @@ namespace collvoid_local_planner {
 	    continue;
 	  
 	  //robots[i].agent->position_ = robots[i].agent->position_ + robots[i].agent->velocity_ * timeDif;
-	  //ROS_INFO("Position of robot i =%d at: [%f, %f] with vel = [%f, %f], timeDif = %f", i, robots[i].agent->position_.x(), robots[i].agent->position_.y(),robots[i].agent->velocity_.x(),robots[i].agent->velocity_.y(),timeDif);
+	  // ROS_INFO("Position of robot i =%s at: [%f, %f] with vel = [%f, %f], timeDif = %f", neighbor_msgs[i].robot_id.c_str(), robots[i].agent->position_.x(), robots[i].agent->position_.y(),robots[i].agent->velocity_.x(),robots[i].agent->velocity_.y(),timeDif);
 	  // if (neighbors_.count(neighbor_msgs[i]->robot_id) == 0) {
-	  ROSAgent new_neighbor;
+	  ROSAgent* new_neighbor = new ROSAgent();
 	  //   neighbors_[neighbor_msgs[i]->robot_id] = new_neighbor;
-	  updateROSAgentWithMsg(&new_neighbor, &neighbor_msgs[i]);
-	  me_->insertAgentNeighbor(&new_neighbor,range_sq);
+	  updateROSAgentWithMsg(new_neighbor, &neighbor_msgs[i]);
+	  me_->insertAgentNeighbor(new_neighbor,range_sq);
 	}
       }
+    me_->publishNeighborPositions();
   }
 
   void CollvoidLocalPlanner::updateROSAgentWithMsg(ROSAgent* agent, collvoid_msgs::PoseTwistWithCovariance* msg){
@@ -615,6 +617,7 @@ namespace collvoid_local_planner {
     agent->setTimeHorizonObst(time_horizon_obst_);
     agent->setLastSeen(msg->header.stamp);
     agent->base_odom_.twist = msg->twist;
+    agent->base_odom_.header = msg->header;
     double time_dif = (ros::Time::now() - msg->header.stamp).toSec();
     //ROS_DEBUG("time dif to last seen is: %6.4f", time_dif);
     double yaw, x_dif, y_dif, th_dif;
@@ -635,7 +638,8 @@ namespace collvoid_local_planner {
    
     RVO::Vector2 vel = rotateVectorByAngle(msg->twist.twist.linear.x, msg->twist.twist.linear.y, agent->getHeading());
     agent->setVelocity(vel.x(),vel.y());
-    
+    //ROS_INFO("%s Position of robot i =%s at: [%f, %f] with vel = [%f, %f], timeDif = %f", me_->getId().c_str(), agent->getId().c_str(), agent->position_.x(), agent->position_.y(),agent->velocity_.x(),agent->velocity_.y(),time_dif);
+	
   }
 
   double CollvoidLocalPlanner::vMaxAng(){
@@ -677,6 +681,8 @@ namespace collvoid_local_planner {
     else
       return std::min(error*max_vel_th_/theta,max_vel_x_);
   }
+
+
   bool transformGlobalPlan(const tf::TransformListener& tf, const std::vector<geometry_msgs::PoseStamped>& global_plan, 
       const costmap_2d::Costmap2DROS& costmap, const std::string& global_frame, 
       std::vector<geometry_msgs::PoseStamped>& transformed_plan){

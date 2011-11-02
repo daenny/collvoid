@@ -9,6 +9,7 @@
 
 #include "collvoid_local_planner/ROSAgent.h"
 #include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 
 
 using namespace RVO;
@@ -18,7 +19,7 @@ ROSAgent::ROSAgent() :
   timestep_(0.1),
   heading_(),
   max_track_speed_(),
-  left_pref_(0.1),
+  left_pref_(0.2),
   cur_allowed_error_(0.0),
   max_radius_cov_(-1),
   holo_robot_(false),
@@ -28,16 +29,18 @@ ROSAgent::ROSAgent() :
 {
   ros::NodeHandle nh;
   line_pub_ = nh.advertise<visualization_msgs::Marker>("orca_lines", 10);
+  neighbors_pub_ = nh.advertise<visualization_msgs::MarkerArray>("neighbors", 10);
+
 }
 
 ROSAgent::~ROSAgent() {
+  clearNeighbors();
 }
 
 void ROSAgent::computeNewVelocity()
 {
   orcaLines_.clear();
 
-  //const float invTimeHorizonObst = 1.0f / timeHorizonObst_;
   const float invTimeHorizonObst = 1.0f / timeHorizonObst_;
 
   /* Create obstacle ORCA lines. */
@@ -390,6 +393,44 @@ void ROSAgent::publishOrcaLines(){
     
 }
 
+void ROSAgent::publishNeighborPositions(){
+  visualization_msgs::MarkerArray sphere_list;
+  sphere_list.markers.resize(agentNeighbors_.size());
+  for (size_t i=0;i< agentNeighbors_.size();i++) {
+
+    //visualization_msgs::Marker neighbor;
+   const Agent* const agent = agentNeighbors_[i].second;
+   //sphere_list.header.frame_id = myId + "/base_link";
+   sphere_list.markers[i].header.frame_id = "/map";
+   sphere_list.markers[i].header.stamp = ros::Time::now();
+   sphere_list.markers[i].ns = base_odom_.header.frame_id;
+   sphere_list.markers[i].action = visualization_msgs::Marker::ADD;
+   sphere_list.markers[i].pose.orientation.w = 1.0;
+   sphere_list.markers[i].type = visualization_msgs::Marker::SPHERE;
+   sphere_list.markers[i].scale.x = agentNeighbors_[i].second->radius_;
+   sphere_list.markers[i].scale.y = agentNeighbors_[i].second->radius_;
+   sphere_list.markers[i].scale.z = 0.1;
+   sphere_list.markers[i].color.r = 1.0;
+   sphere_list.markers[i].color.a = 1.0;
+   sphere_list.markers[i].id = i;
+  
+   sphere_list.markers[i].pose.position.x = agentNeighbors_[i].second->position_.x();
+   sphere_list.markers[i].pose.position.y = agentNeighbors_[i].second->position_.y();
+   sphere_list.markers[i].pose.position.z = 0.2;
+   geometry_msgs::Point p;
+   p.x = agentNeighbors_[i].second->position_.x();
+   p.y = agentNeighbors_[i].second->position_.y();
+   p.z = 0.2;
+   sphere_list.markers[i].points.push_back(p);
+   //sphere_list.markers[i] = neighbor;
+   ROS_DEBUG("%s neighbor %s at x = %f y %f wiTh radius: %f", id_.c_str(), agent->id_.c_str(), agent->position_.x(), agent->position_.y(), agent->radius_);
+
+ }
+ neighbors_pub_.publish(sphere_list);
+  
+
+}
+
 
 bool ROSAgent::isHoloRobot() {
   return holo_robot_;
@@ -488,10 +529,10 @@ void ROSAgent::setTimeHorizonObst(float time_horizon_obst){
 }
 
 void ROSAgent::clearNeighbors(){
-  //for (size_t i  = 0; i < agentNeighbors_.size(); i++){
-    //    delete agentNeighbors_[i];
-  //}
-  agentNeighbors_.clear();
+ for (size_t i  = 0; i < agentNeighbors_.size(); i++){
+        delete agentNeighbors_[i].second;
+ }
+ agentNeighbors_.clear();
 }
 
 

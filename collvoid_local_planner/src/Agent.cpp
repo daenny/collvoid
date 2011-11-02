@@ -383,6 +383,7 @@ namespace RVO
         }
       }
     }
+
   }
 
   void Agent::insertObstacleNeighbor(const Obstacle* obstacle, float rangeSq)

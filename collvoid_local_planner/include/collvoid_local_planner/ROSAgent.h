@@ -30,7 +30,7 @@ class ROSAgent : public RVO::Agent {
   RVO::Vector2 holo_velocity_;
   ros::Time last_seen_;
   std::vector<RVO::Line> additional_orca_lines_;
-  ros::Publisher line_pub_;
+  ros::Publisher line_pub_,neighbors_pub_;
   
  public:
   ROSAgent();
@@ -71,6 +71,7 @@ class ROSAgent : public RVO::Agent {
 
   void computeNewVelocity();
   void publishOrcaLines();
+  void publishNeighborPositions();
 
   boost::mutex odom_lock_;
   nav_msgs::Odometry base_odom_; ///< @brief Used to get the velocity of the robot

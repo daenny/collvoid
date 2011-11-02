@@ -16,6 +16,7 @@ initialized_(false)
 }
 
 void PoseTwistAggregator::initialize(ros::NodeHandle private_nh, tf::TransformListener* tf, bool use_ground_truth, bool scale_radius, double radius, bool holo_robot, std::string robot_base_frame, std::string global_frame, std::string my_id ){
+
   tf_ = tf;
   use_ground_truth_ = use_ground_truth;
   scale_radius_ = scale_radius;
@@ -24,18 +25,23 @@ void PoseTwistAggregator::initialize(ros::NodeHandle private_nh, tf::TransformLi
   robot_base_frame_ = robot_base_frame;
   global_frame_ = global_frame;
   my_id_= my_id;
+  rad_unc_ = -1.0;
   position_share_pub_ = private_nh.advertise<collvoid_msgs::PoseTwistWithCovariance>("/position_share",1);
   position_share_sub_ = private_nh.subscribe("/position_share",20, &PoseTwistAggregator::positionShareCallback, this);
   odom_sub_ = private_nh.subscribe("odom",1, &PoseTwistAggregator::odomCallback, this);
   base_pose_ground_truth_sub_ = private_nh.subscribe("base_pose_ground_truth",1,&PoseTwistAggregator::basePoseGroundTruthCallback,this);
   init_guess_pub_ = private_nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("initialpose",1);
+  ROS_DEBUG_NAMED("PT","radius = %f",radius_);
+ 
 
   init_guess_srv_ = private_nh.advertiseService("init_guess_pub", &PoseTwistAggregator::initGuessCallback, this);
-
+  initialized_ = true;
 }
 
 void PoseTwistAggregator::initialize(ros::NodeHandle private_nh, tf::TransformListener* tf){
+
   tf_ = tf;
+  rad_unc_ = -1.0;
 
   private_nh.param("use_ground_truth",use_ground_truth_,false);
   private_nh.param("scale_radius",scale_radius_,true);
@@ -61,9 +67,14 @@ void PoseTwistAggregator::initialize(ros::NodeHandle private_nh, tf::TransformLi
     my_id_ = std::string(hostname);
   }
   ROS_INFO("My name is: %s",my_id_.c_str());
+  initialized_ = true;
 }
 
 void PoseTwistAggregator::publishPoseTwist(){
+  if (!initialized_) {
+    ROS_DEBUG_NAMED("PT","not initialized yet");
+    return;
+  }
   boost::mutex::scoped_lock lock(odom_lock_);
   last_me_msg_.pose.pose = base_odom_.pose.pose;
   last_me_msg_.header = base_odom_.header;
@@ -175,7 +186,10 @@ void PoseTwistAggregator::amclPoseCallback(const geometry_msgs::PoseWithCovarian
 }
 
 void PoseTwistAggregator::positionShareCallback(const collvoid_msgs::PoseTwistWithCovariance::ConstPtr& msg) {
-  //  return;
+  if (!initialized_) {
+    ROS_DEBUG_NAMED("PT","not initialized yet");
+    return;
+  }
   boost::mutex::scoped_lock lock(neighbors_lock_);
   std::string cur_id = msg->robot_id;
   if (strcmp(cur_id.c_str(),my_id_.c_str()) == 0) {
@@ -191,11 +205,11 @@ void PoseTwistAggregator::positionShareCallback(const collvoid_msgs::PoseTwistWi
   }
   
   if (i>=neighbors_.size()) { //Robot is new, so it will be added to the list
-    collvoid_msgs::PoseTwistWithCovariance msg;
-    msg.robot_id = cur_id;
-    msg.holo_robot = holo_robot_; 
-    neighbors_.push_back(msg);
-    ROS_DEBUG("I added a new neighbor with id %s",cur_id.c_str());
+    collvoid_msgs::PoseTwistWithCovariance msgNew;
+    msgNew.robot_id = cur_id;
+    msgNew.holo_robot = holo_robot_; 
+    neighbors_.push_back(msgNew);
+    ROS_DEBUG("I added a new neighbor with id %s and radius %f",cur_id.c_str(),msg->radius);
   }
   neighbors_[i].header = msg->header;
   neighbors_[i].pose.pose = msg->pose.pose;
@@ -203,7 +217,7 @@ void PoseTwistAggregator::positionShareCallback(const collvoid_msgs::PoseTwistWi
   neighbors_[i].holonomic_velocity.x = msg->holonomic_velocity.x;
   neighbors_[i].holonomic_velocity.y = msg->holonomic_velocity.y;
   neighbors_[i].radius = msg->radius;
-  //  ROS_DEBUG("Neighbor updated with position %f, %f and speed x %f, y %f, z%f",neighbors_[i].pose.pose.position.x, neighbors_[i].pose.pose.position.y, neighbors_[i].twist.twist.linear.x, neighbors_[i].twist.twist.linear.y,neighbors_[i].twist.twist.angular.z);
+  //  ROS_DEBUG("Neighbor %s updated with position %f, %f and speed x %f, y %f, z%f",cur_id.c_str(),neighbors_[i].pose.pose.position.x, neighbors_[i].pose.pose.position.y, neighbors_[i].twist.twist.linear.x, neighbors_[i].twist.twist.linear.y,neighbors_[i].twist.twist.angular.z);
 
 }
 
