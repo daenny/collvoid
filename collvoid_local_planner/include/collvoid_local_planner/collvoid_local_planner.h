@@ -40,12 +40,6 @@ namespace collvoid_local_planner {
     bool rotateToGoal(const tf::Stamped<tf::Pose>& global_pose, const tf::Stamped<tf::Pose>& robot_vel, double goal_th, geometry_msgs::Twist& cmd_vel);
     bool stopWithAccLimits(const tf::Stamped<tf::Pose>& global_pose, const tf::Stamped<tf::Pose>& robot_vel, geometry_msgs::Twist& cmd_vel);
 
-    double calculateMaxTrackSpeedAngle(double T, double theta, double error);
-    double calcVstarError(double T,double theta, double error);
-    double calcVstar(double vh, double theta);
-    double vMaxAng();
-    double beta(double T, double theta);
-    double gamma(double T, double theta, double error);
 
     void addAllNeighbors();
     void updateROSAgentWithMsg(ROSAgent* agent, collvoid_msgs::PoseTwistWithCovariance* msg);

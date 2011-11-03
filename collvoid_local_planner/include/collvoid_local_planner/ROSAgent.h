@@ -18,13 +18,21 @@
 
 class ROSAgent : public RVO::Agent {
  private:
+  double beta(double T, double theta, double max_vel_x);
+  double gamma(double T, double theta, double error, double max_vel_x);
+  double sign(double x){
+    return x < 0.0 ? -1.0 : 1.0;
+  }
+
+
   float timestep_;
   float heading_;
   float max_track_speed_;
   float left_pref_;  
   float cur_allowed_error_;
   float max_radius_cov_,max_radius_uncertainty_;
-  
+  float wheel_base_;
+
   bool holo_robot_;
 
   RVO::Vector2 holo_velocity_;
@@ -38,7 +46,8 @@ class ROSAgent : public RVO::Agent {
 
   bool isHoloRobot();
   void setIsHoloRobot(bool holo_robot);
-  
+
+  void setWheelBase(float wheel_base);
   void setTimeStep(float timestep);
   
   void setHeading(float heading);
@@ -72,6 +81,15 @@ class ROSAgent : public RVO::Agent {
   void computeNewVelocity();
   void publishOrcaLines();
   void publishNeighborPositions();
+
+  double calculateMaxTrackSpeedAngle(double T, double theta, double error, double max_vel_x, double max_vel_th);
+  double calcVstarError(double T,double theta, double error);
+  double vMaxAng(double max_vel_x);
+  double calcVstar(double vh, double theta);
+
+  void addAccelerationConstraintsXY(double max_vel_x, double acc_lim_x, double max_vel_y, double acc_lim_y, double sim_period);
+
+  void addMovementConstraintsDiff(double error, double max_vel_x, double max_vel_th);
 
   boost::mutex odom_lock_;
   nav_msgs::Odometry base_odom_; ///< @brief Used to get the velocity of the robot

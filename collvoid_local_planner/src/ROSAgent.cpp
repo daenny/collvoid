@@ -254,29 +254,15 @@ void ROSAgent::computeNewVelocity()
     }
   }
   // add additional orca lines
-  for (size_t l = 0; l < this->additional_orca_lines_.size(); l++) {
+  /*for (size_t l = 0; l < this->additional_orca_lines_.size(); l++) {
     Line line = this->additional_orca_lines_[l];
     Vector2 point = Vector2(line.point.x() - this->position_.x(), line.point.y() - this->position_.y());
     Line new_line = Line(line);
     new_line.point = point;
     orcaLines_.push_back(new_line);
-  }
+    }*/
 
-
-  //orcaLines_.insert(orcaLines_.end(), additional_orca_lines_.begin(), additional_orca_lines_.end());
-
-  
-  Line maxVel1;
-  Line maxVel2;
-  //TODO add real possible move space including acc constraints!!
-  Vector2 dir =  Vector2(cos(this->heading_), sin(this->heading_));
-  maxVel1.point = this->max_track_speed_ * Vector2(-dir.y(),dir.x());
-  maxVel1.direction = -dir;
-  maxVel2.direction = dir;
-  maxVel2.point = -this->max_track_speed_ * Vector2(-dir.y(),dir.x());
-  orcaLines_.push_back(maxVel1);
-  orcaLines_.push_back(maxVel2);
-
+  orcaLines_.insert(orcaLines_.end(), additional_orca_lines_.begin(), additional_orca_lines_.end());
 
   const size_t numObstLines = orcaLines_.size();
   const float invTimeHorizon = 1.0f / timeHorizon_;
@@ -350,6 +336,8 @@ void ROSAgent::computeNewVelocity()
   if (lineFail < orcaLines_.size()) {
     linearProgram3(orcaLines_, numObstLines, lineFail, maxSpeed_, newVelocity_);
   }
+
+  additional_orca_lines_.clear();
 }
 
 
@@ -379,8 +367,8 @@ void ROSAgent::publishOrcaLines(){
     p.y = position_.y() + orcaLines_[i].point.y() - orcaLines_[i].direction.y();
     
     line_list.points.push_back(p);
-    p.x = p.x + 2 * orcaLines_[i].direction.x();
-    p.y = p.y + 2 * orcaLines_[i].direction.y();
+    p.x = p.x + 3 * orcaLines_[i].direction.x();
+    p.y = p.y + 3 * orcaLines_[i].direction.y();
     line_list.points.push_back(p);
      
     //p.x = 2*me.agent->orcaLines_[i].point.x();
@@ -478,7 +466,93 @@ void ROSAgent::setLastSeen(ros::Time last_seen){
 
 void ROSAgent::setMaxTrackSpeed(float max_track_speed) {
   this->max_track_speed_ = max_track_speed;
+  Line maxVel1;
+  Line maxVel2;
+
+  Vector2 dir =  Vector2(cos(this->heading_), sin(this->heading_));
+  maxVel1.point = this->max_track_speed_ * Vector2(-dir.y(),dir.x());
+  maxVel1.direction = -dir;
+  maxVel2.direction = dir;
+  maxVel2.point = -this->max_track_speed_ * Vector2(-dir.y(),dir.x());
+  additional_orca_lines_.push_back(maxVel1);
+  additional_orca_lines_.push_back(maxVel2);
 }
+
+void ROSAgent::addMovementConstraintsDiff(double error, double T,  double max_vel_x, double max_vel_th){
+   
+  double min_theta = M_PI / 2.0;
+  double yaw = heading_;
+  double max_track_speed = calculateMaxTrackSpeedAngle(T,min_theta, error, max_vel_x_, max_vel_th_);
+
+  Vector2 first_point = max_track_speed * Vector2(cos(this->heading_+min_theta), sin(this->heading_+min_theta));
+  
+  double step_size = - M_PI / 4.0;
+
+  for (int i=1; i<=4; i++) {
+    
+    Line line;
+    double cur_ang = min_theta + i* step_size;
+    Vector2 second_point = Vector2(cos(yaw + cur_ang), sin(yaw + cur_ang));
+    double track_speed = 
+    second_point  = calculateMaxTrackSpeedAngle(T,min_theta, error, max_vel_x_, max_vel_th_);
+
+      
+    first_point = second_point;
+  }
+  //  me_->setMaxTrackSpeed(max_track_speed);
+  me_->setMaxSpeedLinear(me_->vMaxAng(max_vel_x_));
+}
+
+
+
+void ROSAgent::addAccelerationConstraintsXY(double max_vel_x, double acc_lim_x, double max_vel_y, double acc_lim_y, double sim_period){
+  double max_lim_x, max_lim_y, min_lim_x, min_lim_y;
+  Line line_x_back, line_x_front, line_y_left, line_y_right;
+  
+
+  Vector2 dir_front =  Vector2(cos(this->heading_), sin(this->heading_));
+  Vector2 dir_right =  Vector2(dir_front.y(),-dir_front.x());
+  
+  double cur_x = base_odom_.twist.twist.linear.x;
+  double cur_y = base_odom_.twist.twist.linear.y;
+  
+
+  max_lim_x = std::min(max_vel_x, cur_x + sim_period * acc_lim_x);
+  max_lim_y = std::min(max_vel_y, cur_y + sim_period * acc_lim_y);
+
+  min_lim_x = std::max(-max_vel_x, cur_x - sim_period * acc_lim_x);
+  min_lim_y = std::max(-max_vel_y, cur_y - sim_period * acc_lim_y);
+
+  ROS_DEBUG("Max limints x = %f, %f, y = %f, %f", max_lim_x, min_lim_x, max_lim_y, min_lim_y);
+
+  line_x_front.point = dir_front * max_lim_x;
+  line_x_front.direction =  -dir_right;
+
+  line_x_back.point = dir_front * min_lim_x;
+  line_x_back.direction = dir_right;
+  
+  
+  additional_orca_lines_.push_back(line_x_front);
+  additional_orca_lines_.push_back(line_x_back);
+  
+  if(holo_robot_) {
+    line_y_left.point = -dir_right * max_lim_y;
+    line_y_left.direction = -dir_front;
+
+    line_y_right.point = -dir_right * min_lim_y;
+    line_y_right.direction = dir_front;
+  
+  
+    additional_orca_lines_.push_back(line_y_left);
+    additional_orca_lines_.push_back(line_y_right);
+
+  }
+}
+
+void ROSAgent::setWheelBase(float wheel_base){
+  wheel_base_ = wheel_base;
+}
+
 
 void ROSAgent::setLeftPref(float left_pref) {
   this->left_pref_ = left_pref;
@@ -533,6 +607,46 @@ void ROSAgent::clearNeighbors(){
         delete agentNeighbors_[i].second;
  }
  agentNeighbors_.clear();
+}
+
+double ROSAgent::vMaxAng(double max_vel_x){
+  return max_vel_x - std::abs(base_odom_.twist.twist.angular.z) * wheel_base_/2.0;
+}
+
+double ROSAgent::beta(double T, double theta, double max_vel_x){
+  double v_max = vMaxAng(max_vel_x);
+  return - ((2.0 * RVO::sqr(T) * sin(theta)) / theta) * v_max;
+}
+
+double ROSAgent::gamma(double T, double theta, double error, double max_vel_x) {
+  double v_max = vMaxAng(max_vel_x);
+  return (((2.0 * RVO::sqr(T) * (1.0 - cos(theta))) / RVO::sqr(theta)) * RVO::sqr(v_max) - RVO::sqr(error));
+}
+
+double ROSAgent::calcVstar(double vh, double theta){
+  return vh * ((theta * sin(theta))/(2.0 * (1.0 - cos(theta))));
+}
+
+double ROSAgent::calcVstarError(double T,double theta, double error) {
+  
+  return calcVstar(error/T,theta) * sqrt((2.0*(1.0-cos(theta)))/(2.0*(1.0-cos(theta))-RVO::sqr(sin(theta))));
+}
+
+double ROSAgent::calculateMaxTrackSpeedAngle(double T, double theta, double error, double max_vel_x, double max_vel_th){
+  if (fabs(theta/T) <= max_vel_th) {
+    double vstar_error = calcVstarError(T,theta,error);
+    if (vstar_error <=vMaxAng(max_vel_x)) { 
+      return std::min(vstar_error * (2.0 * (1.0 - cos(theta))) / (theta*sin(theta)),max_vel_x);
+    }
+    else {
+      double b, g;
+      b = beta(T,theta,max_vel_th);
+      g = gamma(T,theta,error,max_vel_th);
+      return std::min((-b+sqrt(RVO::sqr(b)-4*RVO::sqr(T)*g))/ (2.0 * g), max_vel_x);
+    }
+  }
+  else
+    return std::min(error*max_vel_th/theta,max_vel_x);
 }
 
 

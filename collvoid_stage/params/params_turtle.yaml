@@ -1,3 +1,5 @@
+/controller_frequency: 10
+
 CollvoidLocalPlanner:
   simulation_mode: true
   max_neighbors: 10
@@ -24,7 +26,7 @@ CollvoidLocalPlanner:
   acc_lim_x: 0.5
   acc_lim_y: 0.5
   acc_lim_th: 1.0
-  radius: 0.20
+  radius: 0.17
   inscribed_radius: 0.17
 
 TrajectoryPlannerROS:

@@ -166,6 +166,8 @@ namespace collvoid_local_planner {
       me_->setTimeHorizonObst(time_horizon_obst_);
       me_->setTimeStep(sim_period_);
 
+      me_->setWheelBase(wheel_base_);
+
       state_ = INIT;
       initialized_ = true;
 
@@ -204,7 +206,7 @@ namespace collvoid_local_planner {
     //we still want to lay down the footprint of the robot and check if the action is legal
     bool valid_cmd = true; //TODO tc_->checkTrajectory(global_pose.getOrigin().getX(), global_pose.getOrigin().getY(), yaw, robot_vel.getOrigin().getX(), robot_vel.getOrigin().getY(), vel_yaw, 0.0, 0.0, v_theta_samp);
 
-    ROS_DEBUG("Moving to desired goal orientation, th cmd: %.2f, valid_cmd: %d", v_theta_samp, valid_cmd);
+    //ROS_DEBUG("Moving to desired goal orientation, th cmd: %.2f, valid_cmd: %d", v_theta_samp, valid_cmd);
 
     if(valid_cmd){
       cmd_vel.angular.z = v_theta_samp;
@@ -230,7 +232,7 @@ namespace collvoid_local_planner {
 
     //if we have a valid command, we'll pass it on, otherwise we'll command all zeros
     if(valid_cmd){
-      ROS_DEBUG("Slowing down... using vx, vy, vth: %.2f, %.2f, %.2f", vx, vy, vth);
+      //ROS_DEBUG("Slowing down... using vx, vy, vth: %.2f, %.2f, %.2f", vx, vy, vth);
       cmd_vel.linear.x = vx;
       cmd_vel.linear.y = vy;
       cmd_vel.angular.z = vth;
@@ -393,7 +395,7 @@ namespace collvoid_local_planner {
 
         //if we're not stopped yet... we want to stop... taking into account the acceleration limits of the robot
         if(!rotating_to_goal_ && !base_local_planner::stopped(base_odom, rot_stopped_velocity_, trans_stopped_velocity_)){
-          ROS_DEBUG("Not stopped yet. base_odom: x=%6.4f,y=%6.4f,z=%6.4f", base_odom.twist.twist.linear.x,base_odom.twist.twist.linear.y,base_odom.twist.twist.angular.z); 
+          //ROS_DEBUG("Not stopped yet. base_odom: x=%6.4f,y=%6.4f,z=%6.4f", base_odom.twist.twist.linear.x,base_odom.twist.twist.linear.y,base_odom.twist.twist.angular.z); 
 	  if(!stopWithAccLimits(global_pose, robot_vel, cmd_vel))
             return false;
         }
@@ -429,8 +431,8 @@ namespace collvoid_local_planner {
     //    tf::poseStampedMsgToTF(transformed_plan_[current_waypoint_], target_pose);
     tf::poseStampedMsgToTF(global_plan_.back(), target_pose);
 
-    ROS_DEBUG("Collvoid: current robot pose %f %f ==> %f", global_pose.getOrigin().x(), global_pose.getOrigin().y(), tf::getYaw(global_pose.getRotation()));
-    ROS_DEBUG("Collvoid: target robot pose %f %f ==> %f", target_pose.getOrigin().x(), target_pose.getOrigin().y(), tf::getYaw(target_pose.getRotation()));
+    //ROS_DEBUG("Collvoid: current robot pose %f %f ==> %f", global_pose.getOrigin().x(), global_pose.getOrigin().y(), tf::getYaw(global_pose.getRotation()));
+    //ROS_DEBUG("Collvoid: target robot pose %f %f ==> %f", target_pose.getOrigin().x(), target_pose.getOrigin().y(), tf::getYaw(target_pose.getRotation()));
    
     geometry_msgs::Twist res;
 
@@ -458,22 +460,17 @@ namespace collvoid_local_planner {
       double max_error = max_error_holo_;
   
       double speed = RVO::abs(me_->velocity_);
-      double error = min_error + (max_error-min_error) * speed / vMaxAng(); // how much error do i allow?
+      double error = min_error + (max_error-min_error) * speed / me_->vMaxAng(max_vel_x_); // how much error do i allow?
   
-
+      me_->addMovementConstraintsDiff(error, T, max_vel_x_,max_vel_th_);
       //  ROS_ERROR("error %6.4f", error);
-      double min_theta = M_PI / 2.0;
-      double max_track_speed = calculateMaxTrackSpeedAngle(T,min_theta, error);
-      me_->setMaxTrackSpeed(max_track_speed);
-
-      me_->setMaxSpeedLinear(vMaxAng());
       pt_agg_->setRadius(circumscribed_radius_ + error);
     }
-    else {
-      me_->setMaxTrackSpeed(max_vel_y_);
-      //TODO compute orca lines for max y speed...
-    }
+    
+    me_->addAccelerationConstraintsXY(max_vel_x_,acc_lim_x_, max_vel_y_, acc_lim_y_, sim_period_);
+
     me_->setRadius(pt_agg_->getRadius());
+
     me_->computeNewVelocity(); // compute ORCA velocity
     me_->setVelocity(me_->newVelocity_.x(), me_->newVelocity_.y());
     double speed_ang = atan2(me_->newVelocity_.y(), me_->newVelocity_.x());
@@ -484,15 +481,14 @@ namespace collvoid_local_planner {
       double vstar;
  
       if (std::abs(dif_ang) > 0.01)
-	vstar = calcVstar(vel,dif_ang);
+	vstar = me_->calcVstar(vel,dif_ang);
       else
 	vstar = max_vel_x_;
 
       //cmd.linear.x = (vel)*cos(difAng);
       //cmd.angular.z = (vel)*sin(difAng);
-    
-   
-      cmd_vel.linear.x = std::min(vstar,vMaxAng());
+      
+      cmd_vel.linear.x = std::min(vstar,me_->vMaxAng(max_vel_x_));
       cmd_vel.linear.y = 0.0;
   
       cmd_vel.angular.z = sign(dif_ang) * std::min(std::abs(dif_ang/T),max_vel_th_);
@@ -507,7 +503,7 @@ namespace collvoid_local_planner {
 
       cmd_vel.linear.x = rotated_vel.x();
       cmd_vel.linear.y = rotated_vel.y();
-      cmd_vel.angular.z = sign(dif_ang) * std::min(std::abs(dif_ang),max_vel_th_);
+      cmd_vel.angular.z = sign(dif_ang) * std::min(std::abs(dif_ang),max_vel_th_);  //TODO add max acc theta
     }
 
     if(std::abs(cmd_vel.angular.z)<min_vel_th_)
@@ -636,46 +632,6 @@ namespace collvoid_local_planner {
     agent->setVelocity(vel.x(),vel.y());
     //ROS_INFO("%s Position of robot i =%s at: [%f, %f] with vel = [%f, %f], timeDif = %f", me_->getId().c_str(), agent->getId().c_str(), agent->position_.x(), agent->position_.y(),agent->velocity_.x(),agent->velocity_.y(),time_dif);
 	
-  }
-
-  double CollvoidLocalPlanner::vMaxAng(){
-    return max_vel_th_ - std::abs(me_->base_odom_.twist.twist.angular.z) * wheel_base_/2.0;
-  }
-
-  double CollvoidLocalPlanner::beta(double T, double theta){
-    double v_max = vMaxAng();
-    return - ((2.0 * RVO::sqr(T) * sin(theta)) / theta) * v_max;
-  }
-
-  double CollvoidLocalPlanner::gamma(double T, double theta, double error) {
-    double v_max = vMaxAng();
-    return (((2.0 * RVO::sqr(T) * (1.0 - cos(theta))) / RVO::sqr(theta)) * RVO::sqr(v_max) - RVO::sqr(error));
-  }
-
-  double CollvoidLocalPlanner::calcVstar(double vh, double theta){
-    return vh * ((theta * sin(theta))/(2.0 * (1.0 - cos(theta))));
-  }
-
-  double CollvoidLocalPlanner::calcVstarError(double T,double theta, double error) {
-  
-    return calcVstar(error/T,theta) * sqrt((2.0*(1.0-cos(theta)))/(2.0*(1.0-cos(theta))-RVO::sqr(sin(theta))));
-  }
-
-  double CollvoidLocalPlanner::calculateMaxTrackSpeedAngle(double T, double theta, double error){
-    if (theta/T <= max_vel_th_) {
-      double vstar_error = calcVstarError(T,theta,error);
-      if (vstar_error <=vMaxAng()) { 
-	return std::min(vstar_error * (2.0 * (1.0 - cos(theta))) / (theta*sin(theta)),max_vel_x_);
-      }
-      else {
-	double b, g;
-	b = beta(T,theta);
-	g = gamma(T,theta,error);
-	return std::min((-b+sqrt(RVO::sqr(b)-4*RVO::sqr(T)*g))/ (2.0 * g), max_vel_x_);
-      }
-    }
-    else
-      return std::min(error*max_vel_th_/theta,max_vel_x_);
   }
 
 

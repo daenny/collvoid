@@ -113,7 +113,7 @@ class controllerWaypoints():
             self.init_guess_srv()
         
         if (msg.data == "all Stop"):
-            self.client.cancel_goal()
+            self.client.cancel_all_goals()
        
    
 
