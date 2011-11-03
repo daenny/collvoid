@@ -3,7 +3,7 @@
 CollvoidLocalPlanner:
   simulation_mode: true
   max_neighbors: 10
-  neighbor_dist: 15.0
+  neighbor_dist: 3.0
   time_horizon: 10.0
   time_horizon_obst: 10.0
   threshold_last_seen: 1.0
@@ -19,12 +19,12 @@ CollvoidLocalPlanner:
   holo_robot: false
   max_vel_x: 0.5
   max_vel_th: 1.5
-  min_vel_x: 0.01
+  min_vel_x: 0.1
   min_vel_th: 0.1
   min_vel_y: 0.01
   max_vel_y: 0.1
-  acc_lim_x: 0.5
-  acc_lim_y: 0.5
+  acc_lim_x: 1.0
+  acc_lim_y: 0.0
   acc_lim_th: 1.0
   radius: 0.17
   inscribed_radius: 0.17

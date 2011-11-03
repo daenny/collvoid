@@ -451,7 +451,7 @@ namespace collvoid_local_planner {
     me_->setHeading(tf::getYaw(global_pose.getRotation()));
     me_->prefVelocity_ = RVO::Vector2(goal_dir.x(),goal_dir.y());
 
-    addAllNeighbors();
+    double min_dist =  addAllNeighbors(); //closest neighbor TODO: keep in mind for obstacles..
     double T = time_to_holo_; //in how much time I want to be on the holonomic track
     
     if (!me_->isHoloRobot()) {
@@ -459,9 +459,16 @@ namespace collvoid_local_planner {
       double min_error = min_error_holo_;
       double max_error = max_error_holo_;
   
-      double speed = RVO::abs(me_->velocity_);
-      double error = min_error + (max_error-min_error) * speed / me_->vMaxAng(max_vel_x_); // how much error do i allow?
-  
+      //double speed = RVO::abs(me_->velocity_);
+      
+      double error = max_error;
+      if (min_dist < me_->getRadius()){
+	  error = min_error + (max_error-min_error) * min_dist / me_->getRadius(); // how much error do i allow?
+	  if (error<0) {
+	    error = min_error;
+	    ROS_WARN("%s I think I am in collision", me_->getId().c_str());
+	  }
+      }
       me_->addMovementConstraintsDiff(error, T, max_vel_x_,max_vel_th_);
       //  ROS_ERROR("error %6.4f", error);
       pt_agg_->setRadius(circumscribed_radius_ + error);
@@ -515,7 +522,7 @@ namespace collvoid_local_planner {
 
     if (current_waypoint_ < transformed_plan_.size()-1)
       transformed_plan_.erase(transformed_plan_.begin()+current_waypoint_,transformed_plan_.end());
-    ROS_DEBUG("cmd_vel.x %6.4f, cmd_vel.y %6.4f, cmd_vel_y %6.4f", cmd_vel.linear.x, cmd_vel.linear.y, cmd_vel.angular.z); 
+    //ROS_DEBUG("%s cmd_vel.x %6.4f, cmd_vel.y %6.4f, cmd_vel_z %6.4f", me_->getId().c_str(), cmd_vel.linear.x, cmd_vel.linear.y, cmd_vel.angular.z); 
     base_local_planner::publishPlan(transformed_plan_, g_plan_pub_, 0.0, 1.0, 0.0, 0.0);
     me_->publishOrcaLines();
     return true;
@@ -538,7 +545,7 @@ namespace collvoid_local_planner {
       }
     //ROS_DEBUG("waypoint = %d, of %d", current_waypoint_, transformed_plan_.size());
 
-    if (min_dist > me_->getRadius(scale_radius_)) //lets first get to the begin pose of the plan
+    if (min_dist > me_->getRadius()) //lets first get to the begin pose of the plan
       return;
     
     if (current_waypoint_ == transformed_plan_.size()-1) //I am at the end of the plan
@@ -578,9 +585,10 @@ namespace collvoid_local_planner {
   }
 
 
-  void CollvoidLocalPlanner::addAllNeighbors(){
+  double CollvoidLocalPlanner::addAllNeighbors(){
     boost::mutex::scoped_lock lock(pt_agg_->neighbors_lock_);
     me_->clearNeighbors();
+    double min_dist = DBL_MAX;
     std::vector<collvoid_msgs::PoseTwistWithCovariance> neighbor_msgs = pt_agg_->getNeighbors();
     size_t i;
     for(i=0; i < neighbor_msgs.size(); i++)
@@ -594,9 +602,14 @@ namespace collvoid_local_planner {
  
 	  ROSAgent* new_neighbor = new ROSAgent();
 	  updateROSAgentWithMsg(new_neighbor, &neighbor_msgs[i]);
+	  double dist = RVO::abs (new_neighbor->position_ - me_->position_) - me_->getRadius() - new_neighbor->getRadius();
+	  if (dist < min_dist) {
+	    min_dist = dist;
+	  }
 	  me_->insertAgentNeighbor(new_neighbor,range_sq);
 	}
       }
+    return min_dist;
   }
 
   void CollvoidLocalPlanner::updateROSAgentWithMsg(ROSAgent* agent, collvoid_msgs::PoseTwistWithCovariance* msg){

@@ -59,14 +59,14 @@ class ROSAgent : public RVO::Agent {
   void setId(std::string id);
   std::string getId();
 
-  void setMaxRadiusCov(float max_rad_cov);
+  //  void setMaxRadiusCov(float max_rad_cov);
   void setLastSeen(ros::Time last_seen);
   void setMaxTrackSpeed(float max_track_speed);
   void setLeftPref(float left_pref);
   void setAdditionalOrcaLines(std::vector<RVO::Line> additional_orca_lines);
   void setRadius(float radius);
-  float getRadius(bool scale);
-  void setCurAllowedError(float cur_allowed_error);
+  float getRadius();
+  //  void setCurAllowedError(float cur_allowed_error);
   void setPosition(float x, float y);
   void setVelocity(float x, float y);
 
@@ -89,7 +89,7 @@ class ROSAgent : public RVO::Agent {
 
   void addAccelerationConstraintsXY(double max_vel_x, double acc_lim_x, double max_vel_y, double acc_lim_y, double sim_period);
 
-  void addMovementConstraintsDiff(double error, double max_vel_x, double max_vel_th);
+  void addMovementConstraintsDiff(double error,double T,  double max_vel_x, double max_vel_th);
 
   boost::mutex odom_lock_;
   nav_msgs::Odometry base_odom_; ///< @brief Used to get the velocity of the robot
