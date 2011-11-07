@@ -7,6 +7,7 @@
 #include <nav_core/base_local_planner.h>
 #include <angles/angles.h>
 #include <nav_msgs/Odometry.h>
+#include <nav_msgs/GridCells.h>
 #include <ros/ros.h>
 #include <boost/unordered_map.hpp>
 
@@ -46,6 +47,7 @@ namespace collvoid_local_planner {
     bool transformGlobalPlan(const tf::TransformListener& tf, const std::vector<geometry_msgs::PoseStamped>& global_plan, const costmap_2d::Costmap2DROS& costmap, const std::string& global_frame, std::vector<geometry_msgs::PoseStamped>& transformed_plan);
     void findBestWaypoint(geometry_msgs::PoseStamped& target_pose, const tf::Stamped<tf::Pose>& global_pose);
 
+    void obstaclesCallback(const nav_msgs::GridCells::ConstPtr& msg);
 
     double sign(double x){
       return x < 0.0 ? -1.0 : 1.0;
@@ -92,6 +94,7 @@ namespace collvoid_local_planner {
     std::string robot_base_frame_; ///< @brief Used as the base frame id of the robot
     std::vector<geometry_msgs::PoseStamped> global_plan_, transformed_plan_;
     ros::Publisher g_plan_pub_, l_plan_pub_;
+    ros::Subscriber obstacles_sub_;
 
   };//end class
 

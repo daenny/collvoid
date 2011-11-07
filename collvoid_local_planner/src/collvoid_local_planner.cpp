@@ -174,6 +174,7 @@ namespace collvoid_local_planner {
       g_plan_pub_ = private_nh.advertise<nav_msgs::Path>("global_plan", 1);
       l_plan_pub_ = private_nh.advertise<nav_msgs::Path>("local_plan", 1);
 
+      obstacles_sub_ = nh.subscribe("move_base/local_costmap/obstacles",1,&CollvoidLocalPlanner::obstaclesCallback,this);
     }
     else
       ROS_WARN("This planner has already been initialized, you can't call it twice, doing nothing");
@@ -299,7 +300,7 @@ namespace collvoid_local_planner {
       return false;
     }
 
-    if(!base_local_planner::transformGlobalPlan(*tf_, global_plan_, *costmap_ros_, global_frame_, transformed_plan_)){
+    if(!transformGlobalPlan(*tf_, global_plan_, *costmap_ros_, global_frame_, transformed_plan_)){
       ROS_WARN("Could not transform the global plan to the frame of the controller");
       return false;
     }
@@ -423,14 +424,19 @@ namespace collvoid_local_planner {
 
   
     //    tf::poseStampedMsgToTF(transformed_plan_[current_waypoint_], target_pose);
-    geometry_msgs::PoseStamped target_pose_msg;
-    findBestWaypoint(target_pose_msg, global_pose);
-    //    current_waypoint_ = transformed_plan_.size()-1;
-    //ROS_DEBUG("Cur waypoint = %d, of %d", current_waypoint_, transformed_plan_.size());
 
-    //    tf::poseStampedMsgToTF(transformed_plan_[current_waypoint_], target_pose);
-    tf::poseStampedMsgToTF(global_plan_.back(), target_pose);
+    tf::poseStampedMsgToTF(transformed_plan_[current_waypoint_], target_pose);
+   
+    if (base_local_planner::goalPositionReached(global_pose, target_pose.getOrigin().x(), target_pose.getOrigin().y(),xy_goal_tolerance_)) {
+      geometry_msgs::PoseStamped target_pose_msg;
+      findBestWaypoint(target_pose_msg, global_pose);
+      //    current_waypoint_ = transformed_plan_.size()-1;
+      ROS_DEBUG("Cur waypoint = %d, of %d", current_waypoint_, transformed_plan_.size());
 
+      tf::poseStampedMsgToTF(transformed_plan_[current_waypoint_], target_pose);
+    }
+    //tf::poseStampedMsgToTF(global_plan_.back(), target_pose);
+      
     //ROS_DEBUG("Collvoid: current robot pose %f %f ==> %f", global_pose.getOrigin().x(), global_pose.getOrigin().y(), tf::getYaw(global_pose.getRotation()));
     //ROS_DEBUG("Collvoid: target robot pose %f %f ==> %f", target_pose.getOrigin().x(), target_pose.getOrigin().y(), tf::getYaw(target_pose.getRotation()));
    
@@ -439,7 +445,8 @@ namespace collvoid_local_planner {
     res.linear.x = target_pose.getOrigin().x() - global_pose.getOrigin().x();
     res.linear.y = target_pose.getOrigin().y() - global_pose.getOrigin().y();
     res.angular.z = angles::shortest_angular_distance(tf::getYaw(global_pose.getRotation()),atan2(res.linear.y, res.linear.x));
-      //angles::shortest_angular_distance(tf::getYaw(global_pose.getRotation()),tf::getYaw(target_pose.getRotation()));
+    double dif_ang_goal = res.angular.z;
+    //angles::shortest_angular_distance(tf::getYaw(global_pose.getRotation()),tf::getYaw(target_pose.getRotation()));
    
     RVO::Vector2 goal_dir = RVO::Vector2(res.linear.x,res.linear.y);
     // RVO::Vector2 goal_dir = RVO::Vector2(goal_x,goal_y);
@@ -469,8 +476,12 @@ namespace collvoid_local_planner {
 	    ROS_WARN("%s I think I am in collision", me_->getId().c_str());
 	  }
       }
+      //if (fabs(dif_ang_goal) <= M_PI/2.0)
       me_->addMovementConstraintsDiff(error, T, max_vel_x_,max_vel_th_);
-      //  ROS_ERROR("error %6.4f", error);
+	// else {
+	//double max_track_speed = me_->calculateMaxTrackSpeedAngle(T,M_PI/2.0, error, max_vel_x_, max_vel_th_);
+	//me_->setMaxTrackSpeed(max_track_speed);
+	//}      //  ROS_ERROR("error %6.4f", error);
       pt_agg_->setRadius(circumscribed_radius_ + error);
     }
     
@@ -648,7 +659,7 @@ namespace collvoid_local_planner {
   }
 
 
-  bool transformGlobalPlan(const tf::TransformListener& tf, const std::vector<geometry_msgs::PoseStamped>& global_plan, 
+  bool CollvoidLocalPlanner::transformGlobalPlan(const tf::TransformListener& tf, const std::vector<geometry_msgs::PoseStamped>& global_plan, 
       const costmap_2d::Costmap2DROS& costmap, const std::string& global_frame, 
       std::vector<geometry_msgs::PoseStamped>& transformed_plan){
     const geometry_msgs::PoseStamped& plan_pose = global_plan[0];
@@ -677,16 +688,30 @@ namespace collvoid_local_planner {
       //we'll keep points on the plan that are within the window that we're looking at
       double dist_threshold = std::max(costmap.getSizeInCellsX() * costmap.getResolution() / 2.0, costmap.getSizeInCellsY() * costmap.getResolution() / 2.0);
 
-      unsigned int i = 0;
       double sq_dist_threshold = dist_threshold * dist_threshold;
       double sq_dist = DBL_MAX;
 
+      //unsigned int cur_waypoint = 0;
+      //for (size_t i=0; i < transformed_plan_.size(); i++) 
+      //{
+      //  double y = robot_pose.getOrigin().y();
+      //  double x = robot_pose.getOrigin().x();
+      //  double dist = base_local_planner::distance(x, y, global_plan_[i].pose.position.x, global_plan_[i].pose.position.y);
+      //  if (dist < sqrt(sq_dist)) {
+      //    sq_dist = dist * dist;
+      //    cur_waypoint = i;
+      //
+      //  }
+      //}
+
+      unsigned int i =0;// cur_waypoint;
+
       //we need to loop to a point on the plan that is within a certain distance of the robot
       while(i < (unsigned int)global_plan.size() && sq_dist > sq_dist_threshold){
-        double x_diff = robot_pose.getOrigin().x() - global_plan[i].pose.position.x;
-        double y_diff = robot_pose.getOrigin().y() - global_plan[i].pose.position.y;
-        sq_dist = x_diff * x_diff + y_diff * y_diff;
-        ++i;
+       double x_diff = robot_pose.getOrigin().x() - global_plan[i].pose.position.x;
+       double y_diff = robot_pose.getOrigin().y() - global_plan[i].pose.position.y;
+       sq_dist = x_diff * x_diff + y_diff * y_diff;
+       ++i;
       }
 
       //make sure not to count the first point that is too far away
@@ -732,6 +757,21 @@ namespace collvoid_local_planner {
 
     return true;
   }
+
+  void CollvoidLocalPlanner::obstaclesCallback(const nav_msgs::GridCells::ConstPtr& msg){
+    size_t num_obst = msg->cells.size();
+    boost::mutex::scoped_lock lock(me_->obstacle_lock_);
+    me_->obstacle_points_.clear();
+    for (size_t i = 0; i < num_obst; i++) {
+      //ROS_DEBUG("obstacle at %f %f",msg->cells[i].x,msg->cells[i].y);
+      me_->obstacle_points_.push_back(RVO::Vector2(msg->cells[i].x,msg->cells[i].y));
+    }
+    //ROS_DEBUG("obstacle size befor unique %d",me_->obstacle_points_.size());
+    //me_->obstacle_points_.erase(unique(me_->obstacle_points_.begin(),me_->obstacle_points_.end()), me_->obstacle_points_.end());
+    //ROS_DEBUG("obstacle size after unique %d",me_->obstacle_points_.size());
+
+  }
+
 
   RVO::Vector2 rotateVectorByAngle(double x, double y, double ang){
     double cos_a, sin_a;

@@ -24,6 +24,8 @@ class ROSAgent : public RVO::Agent {
     return x < 0.0 ? -1.0 : 1.0;
   }
 
+  void calculateObstacleLines();
+  bool compareObstacles(const RVO::Vector2& v1, const RVO::Vector2& v2);
 
   float timestep_;
   float heading_;
@@ -91,9 +93,9 @@ class ROSAgent : public RVO::Agent {
 
   void addMovementConstraintsDiff(double error,double T,  double max_vel_x, double max_vel_th);
 
-  boost::mutex odom_lock_;
+  boost::mutex odom_lock_, obstacle_lock_;
   nav_msgs::Odometry base_odom_; ///< @brief Used to get the velocity of the robot
-
+  std::vector<RVO::Vector2> obstacle_points_;
 };
 
 

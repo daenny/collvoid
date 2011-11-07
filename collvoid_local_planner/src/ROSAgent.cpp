@@ -10,6 +10,8 @@
 #include "collvoid_local_planner/ROSAgent.h"
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <boost/bind.hpp>
+
 
 using namespace RVO;
 
@@ -18,7 +20,7 @@ ROSAgent::ROSAgent() :
   timestep_(0.1),
   heading_(),
   max_track_speed_(),
-  left_pref_(0.1),
+  left_pref_(0.15),
   cur_allowed_error_(0.0),
   max_radius_cov_(-1),
   holo_robot_(false),
@@ -263,6 +265,8 @@ void ROSAgent::computeNewVelocity()
 
   orcaLines_.insert(orcaLines_.end(), additional_orca_lines_.begin(), additional_orca_lines_.end());
 
+  calculateObstacleLines();
+
   const size_t numObstLines = orcaLines_.size();
   const float invTimeHorizon = 1.0f / timeHorizon_;
 
@@ -459,6 +463,32 @@ void ROSAgent::setLastSeen(ros::Time last_seen){
   this->last_seen_ = last_seen;
 }
 
+bool ROSAgent::compareObstacles(const RVO::Vector2& v1, const RVO::Vector2& v2){
+  return RVO::absSq(position_ - v1) <= RVO::absSq(position_ - v2);
+}
+
+void ROSAgent::calculateObstacleLines(){
+  boost::mutex::scoped_lock lock(obstacle_lock_);
+
+  std::sort(obstacle_points_.begin(),obstacle_points_.end(), boost::bind(&ROSAgent::compareObstacles,this,_1,_2));
+  
+  for(size_t i = 0; i< obstacle_points_.size(); i++){
+    //ROS_DEBUG("obstacle at %f %f dist %f",obstacle_points_[i].x(),obstacle_points_[i].y(),RVO::abs(position_-obstacle_points_[i]));
+    double dist = RVO::abs(position_ - obstacle_points_[i]);
+    Line line;
+    Vector2 relative_position = obstacle_points_[i] - position_;
+    line.point = normalize(relative_position) * (dist - radius_);
+
+    line.direction = Vector2 (-normalize(relative_position).y(),normalize(relative_position).x()) ; 
+    
+    orcaLines_.push_back(line);
+    
+    if (dist > timeHorizonObst_ * RVO::abs(velocity_))
+      return;
+  }
+
+}
+
 void ROSAgent::setMaxTrackSpeed(float max_track_speed) {
   this->max_track_speed_ = max_track_speed;
   Line maxVel1;
@@ -490,7 +520,7 @@ void ROSAgent::addMovementConstraintsDiff(double error, double T,  double max_ve
   double max_track_speed = calculateMaxTrackSpeedAngle(T,min_theta, error, max_vel_x, max_vel_th);
 
   Vector2 first_point = max_track_speed * Vector2(cos(this->heading_-min_theta), sin(this->heading_-min_theta));
-  double steps = 6.0;
+  double steps = 4.0;
 
   double step_size = - M_PI / steps;
  
@@ -506,6 +536,7 @@ void ROSAgent::addMovementConstraintsDiff(double error, double T,  double max_ve
     line.point = first_point;
     line.direction = normalize(second_point - first_point);
     additional_orca_lines_.push_back(line);
+    //    ROS_DEBUG("line point 1 x, y, %f, %f, point 2 = %f,%f",first_point.x(),first_point.y(),second_point.x(),second_point.y());
     first_point = second_point;
   }
   //  me_->setMaxTrackSpeed(max_track_speed);
