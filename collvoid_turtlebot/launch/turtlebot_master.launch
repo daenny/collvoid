@@ -4,7 +4,7 @@
   <include file="$(find turtlebot_bringup)/base.launch" />
 
   <!--- Run the kinect -->
-  <include file="$(find collvoid_turtlebot)/kinect.launch" /> 
+  <include file="$(find collvoid_turtlebot)/launch/kinect.launch" /> 
 
   <!-- Run the map server -->
 <!--  <arg name="map_file" default="$(find turtlebot_navigation)/maps/willow-2010-02-18-0.10.yaml"/> -->
@@ -13,10 +13,10 @@
 
 
   <!-- Run the laser -->
-  <include file="$(find collvoid_turtlebot)/hokuyo.launch" />
+  <include file="$(find collvoid_turtlebot)/launch/hokuyo.launch" />
 
   <!--- Run AMCL -->
-  <include file="$(find collvoid_turtlebot)/amcl_turtlebot.launch"/> 
+  <include file="$(find collvoid_turtlebot)/launch/amcl_turtlebot.launch"/> 
  
 
 
@@ -26,7 +26,7 @@
   <rosparam command="load" file="$(find collvoid_turtlebot)/orca_lines_greenroom.yaml"/>
 -->
   <!--- Run collvoid -->
-  <rosparam command="load" file="$(find collvoid_turtlebot)/params_created.yaml"/>
+  <rosparam command="load" file="$(find collvoid_turtlebot)/params/params_created.yaml"/>
 
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
     <rosparam command="load" file="$(find collvoid_turtlebot)/params/params_turtle.yaml"/>
