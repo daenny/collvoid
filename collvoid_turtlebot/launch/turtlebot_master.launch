@@ -3,9 +3,9 @@
   <!--- Run Robot Pose EKF -->
   <include file="$(find turtlebot_bringup)/base.launch" />
 
-  <!--- Run the kinect -->
+  <!--- Run the kinect 
   <include file="$(find collvoid_turtlebot)/launch/kinect.launch" /> 
-
+-->
   <!-- Run the map server -->
 <!--  <arg name="map_file" default="$(find turtlebot_navigation)/maps/willow-2010-02-18-0.10.yaml"/> -->
 
