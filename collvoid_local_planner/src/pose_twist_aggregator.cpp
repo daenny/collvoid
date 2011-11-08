@@ -66,6 +66,7 @@ void PoseTwistAggregator::initCommon(ros::NodeHandle private_nh) {
   base_pose_ground_truth_sub_ = private_nh.subscribe("base_pose_ground_truth",1,&PoseTwistAggregator::basePoseGroundTruthCallback,this);
   amcl_pose_sub_ = private_nh.subscribe("amcl_pose", 1, &PoseTwistAggregator::amclPoseCallback,this);
   neighbors_pub_ = private_nh.advertise<visualization_msgs::MarkerArray>("neighbors", 10);
+  me_pub_ = private_nh.advertise<visualization_msgs::MarkerArray>("me", 10);
   init_guess_pub_ = private_nh.advertise<geometry_msgs::PoseWithCovarianceStamped>("initialpose",1);
   init_guess_srv_ = private_nh.advertiseService("init_guess_pub", &PoseTwistAggregator::initGuessCallback, this);
 }
@@ -219,7 +220,74 @@ void PoseTwistAggregator::positionShareCallback(const collvoid_msgs::PoseTwistWi
   neighbors_[i].holonomic_velocity.y = msg->holonomic_velocity.y;
   neighbors_[i].radius = msg->radius;
   publishNeighborPositions();
+  publishMePosition();
   //  ROS_DEBUG("Neighbor %s updated with position %f, %f and speed x %f, y %f, z%f",cur_id.c_str(),neighbors_[i].pose.pose.position.x, neighbors_[i].pose.pose.position.y, neighbors_[i].twist.twist.linear.x, neighbors_[i].twist.twist.linear.y,neighbors_[i].twist.twist.angular.z);
+
+}
+
+
+void PoseTwistAggregator::publishMePosition(){
+  visualization_msgs::MarkerArray me_marker;
+  me_marker.markers.resize(2);
+  ros::Time timestamp = ros::Time::now();
+    //visualization_msgs::Marker neighbor;
+   //me_marker.header.frame_id = myId + "/base_link";
+   me_marker.markers[0].header.frame_id = global_frame_;
+   me_marker.markers[0].header.stamp = timestamp;
+   me_marker.markers[0].ns = robot_base_frame_;
+   me_marker.markers[0].action = visualization_msgs::Marker::ADD;
+   me_marker.markers[0].pose.orientation.w = 1.0;
+   me_marker.markers[0].type = visualization_msgs::Marker::SPHERE;
+   me_marker.markers[0].scale.x = 2.0*last_me_msg_.radius;
+   me_marker.markers[0].scale.y = 2.0*last_me_msg_.radius;
+   me_marker.markers[0].scale.z = 0.1;
+   me_marker.markers[0].color.r = 1.0;
+   me_marker.markers[0].color.a = 1.0;
+   me_marker.markers[0].id = 0; 
+
+   double yaw, x_dif, y_dif, th_dif, time_dif;\
+   time_dif = (ros::Time::now() - last_me_msg_.header.stamp).toSec();
+   yaw = tf::getYaw(last_me_msg_.pose.pose.orientation);
+   th_dif =  time_dif * last_me_msg_.twist.twist.angular.z;
+   if (last_me_msg_.holo_robot) {
+     x_dif = time_dif * last_me_msg_.twist.twist.linear.x;
+     y_dif = time_dif * last_me_msg_.twist.twist.linear.y;
+   }
+   else {
+     x_dif = time_dif * last_me_msg_.twist.twist.linear.x * cos(yaw + th_dif/2.0);
+     y_dif = time_dif * last_me_msg_.twist.twist.linear.x * sin(yaw + th_dif/2.0);
+   }
+   me_marker.markers[0].pose.position.x = last_me_msg_.pose.pose.position.x + x_dif;
+   me_marker.markers[0].pose.position.y = last_me_msg_.pose.pose.position.y + y_dif;
+   me_marker.markers[0].pose.position.z = 0.2;
+
+
+   me_marker.markers[1].header.frame_id = global_frame_;
+   me_marker.markers[1].header.stamp = timestamp;
+   me_marker.markers[1].ns = robot_base_frame_;
+   me_marker.markers[1].action = visualization_msgs::Marker::ADD;
+   me_marker.markers[1].pose.orientation.w = 1.0;//tf::createQuaternionMsgFromYaw(yaw+th_dif);
+   me_marker.markers[1].type = visualization_msgs::Marker::ARROW;
+   me_marker.markers[1].scale.x = 0.1;
+   me_marker.markers[1].scale.y = 0.2;
+   me_marker.markers[1].scale.z = 0.1;
+   me_marker.markers[1].color.r = 1.0;
+   me_marker.markers[1].color.a = 1.0;
+   me_marker.markers[1].id = 1; 
+   //me_marker.markers[1].pose.position.x = last_me_msg_.pose.pose.position.x + x_dif;
+   //me_marker.markers[1].pose.position.y = last_me_msg_.pose.pose.position.y + y_dif;
+   //me_marker.markers[1].pose.position.z = 0.2;
+   
+   geometry_msgs::Point p;
+   p.x = last_me_msg_.pose.pose.position.x + x_dif;
+   p.y = last_me_msg_.pose.pose.position.y + y_dif;
+   p.z = 0.1;
+   me_marker.markers[1].points.push_back(p);
+   
+   p.x += last_me_msg_.radius * 1.25 * cos(yaw + th_dif); 
+   p.y += last_me_msg_.radius * 1.25 * sin(yaw + th_dif);
+   me_marker.markers[1].points.push_back(p);
+   me_pub_.publish(sphere_list);
 
 }
 
@@ -307,7 +375,7 @@ void PoseTwistAggregator::setRadius(double radius){
 
 double PoseTwistAggregator::getRadius(){
   if (rad_unc_ != -1.0)
-    return radius_ + rad_unc_;  //TODO maybe add scaling factor in front..
+    return std::min(radius_ + rad_unc_, 2.0* radius_);  //TODO maybe add scaling factor in front..
   else 
     return radius_;
 }

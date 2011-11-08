@@ -47,6 +47,7 @@ class PoseTwistAggregator{
   void publishPoseTwist();
   void setMaxRadiusCov(double max_rad_unc);
   void publishNeighborPositions();
+  void publishMePosition();
 
 
   tf::TransformListener* tf_; 
@@ -62,7 +63,7 @@ class PoseTwistAggregator{
   double radius_, rad_unc_;
   bool holo_robot_;
   nav_msgs::Odometry base_odom_,ground_truth_;
-  ros::Publisher position_share_pub_, init_guess_pub_, neighbors_pub_;
+  ros::Publisher position_share_pub_, init_guess_pub_, neighbors_pub_, me_pub_;
   ros::Subscriber odom_sub_, position_share_sub_, base_pose_ground_truth_sub_, amcl_pose_sub_;
   geometry_msgs::Vector3 holo_velocity_;
   ros::ServiceServer init_guess_srv_;

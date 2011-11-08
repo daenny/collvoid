@@ -94,6 +94,7 @@ namespace collvoid_local_planner {
 
       getParam(private_nh,"max_vel_th", &max_vel_th_);
       getParam(private_nh,"min_vel_th", &min_vel_th_);
+      getParam(private_nh,"min_vel_theta_inplace", &min_vel_theta_inplace_);
 
       
       double radius;
@@ -188,8 +189,8 @@ namespace collvoid_local_planner {
     double ang_diff = angles::shortest_angular_distance(yaw, goal_th);
 
     double v_theta_samp = ang_diff > 0.0 ? std::min(max_vel_th_,
-						    std::max(min_vel_th_, ang_diff)) : std::max(-1.0 * max_vel_th_,
-													 std::min(-1.0 * min_vel_th_, ang_diff));
+						    std::max(min_vel_theta_inplace_, ang_diff)) : std::max(-1.0 * max_vel_th_,
+													 std::min(-1.0 * min_vel_theta_inplace_, ang_diff));
 
     //take the acceleration limits of the robot into account
     double max_acc_vel = fabs(vel_yaw) + acc_lim_theta_ * sim_period_;
@@ -201,7 +202,10 @@ namespace collvoid_local_planner {
     double max_speed_to_stop = sqrt(2 * acc_lim_theta_ * fabs(ang_diff)); 
 
     v_theta_samp = sign(v_theta_samp) * std::min(max_speed_to_stop, fabs(v_theta_samp));
-
+    if (fabs(v_thet_samp) <= 0.5 * min_vel_theta_inplace_)
+      v_thet_samp  = 0.0;
+    else
+      v_thet_samp = sign(v_thet_samp) * max(min_vel_theta_inplace_,fabs(v_thet_samp))
     //we still want to lay down the footprint of the robot and check if the action is legal
     bool valid_cmd = true; //TODO tc_->checkTrajectory(global_pose.getOrigin().getX(), global_pose.getOrigin().getY(), yaw, robot_vel.getOrigin().getX(), robot_vel.getOrigin().getY(), vel_yaw, 0.0, 0.0, v_theta_samp);
 

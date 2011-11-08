@@ -65,7 +65,7 @@ namespace collvoid_local_planner {
     double sim_period_;
     double max_vel_x_, min_vel_x_;
     double max_vel_y_, min_vel_y_;
-    double max_vel_th_, min_vel_th_;
+    double max_vel_th_, min_vel_th_, min_vel_theta_inplace_;
     double acc_lim_x_, acc_lim_y_, acc_lim_theta_;
     double xy_goal_tolerance_, yaw_goal_tolerance_;
     double rot_stopped_velocity_, trans_stopped_velocity_;
