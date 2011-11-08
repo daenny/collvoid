@@ -287,7 +287,7 @@ void PoseTwistAggregator::publishMePosition(){
    p.x += last_me_msg_.radius * 1.25 * cos(yaw + th_dif); 
    p.y += last_me_msg_.radius * 1.25 * sin(yaw + th_dif);
    me_marker.markers[1].points.push_back(p);
-   me_pub_.publish(sphere_list);
+   me_pub_.publish(me_marker);
 
 }
 
