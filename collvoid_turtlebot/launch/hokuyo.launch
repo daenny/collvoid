@@ -5,7 +5,7 @@
     <param name="frame_id" value="/base_laser_link"/>
     <param name="min_ang" value="-2.086213"/>
     <param name="max_ang" value="2.086213"/>
-    <remap from="scan" to="narrow_scan"/>
+    <remap from="scan" to="base_scan"/>
   </node>
 </launch>
 

@@ -4,7 +4,7 @@
   <include file="$(find turtlebot_bringup)/base.launch" />
 
   <!--- Run the kinect -->
-<!--  <include file="$(find turtlebot_bringup)/kinect.launch" /> -->
+  <include file="$(find collvoid_turtlebot)/kinect.launch" /> 
 
   <!-- Run the map server -->
 <!--  <arg name="map_file" default="$(find turtlebot_navigation)/maps/willow-2010-02-18-0.10.yaml"/> -->
@@ -20,17 +20,21 @@
  
 
 
-  <rosparam command="load" file="$(find collvoid_turtlebot)/goals.yaml"/>
+<!--  <rosparam command="load" file="$(find collvoid_turtlebot)/goals.yaml"/>
 
   <rosparam command="load" file="$(find collvoid_turtlebot)/paramsRobots.yaml"/>
   <rosparam command="load" file="$(find collvoid_turtlebot)/orca_lines_greenroom.yaml"/>
+-->
+  <!--- Run collvoid -->
+  <rosparam command="load" file="$(find collvoid_turtlebot)/params_created.yaml"/>
 
-  <!--- Run ORCA -->
-  <node pkg="orca_planner" type="ROSAgent" name="ROSAgent" output="screen">
-    <remap from="/cmd_vel" to="/turtlebot_node/cmd_vel"/>
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <rosparam command="load" file="$(find collvoid_turtlebot)/params/params_turtle.yaml"/>
+   <!---  <param name="base_local_planner" value="pose_follower/PoseFollower" /> -->  
+       <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
+       <remap from="/cmd_vel" to="/turtlebot_node/cmd_vel"/>
   </node>
 
-  <node pkg="orca_planner" type="controllerWaypoints.py" name="controllerWaypoints" output="screen"/>
 
 
 </launch>
