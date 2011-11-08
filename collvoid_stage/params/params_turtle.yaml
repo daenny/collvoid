@@ -50,8 +50,8 @@ TrajectoryPlannerROS:
   dwa: false
  
 local_costmap:
-  global_frame: /odom
-  robot_base_frame: /base_link
+  global_frame: odom
+  robot_base_frame: base_link
   update_frequency: 3.0
   publish_frequency: 2.0
   static_map: false
@@ -68,12 +68,14 @@ local_costmap:
 #  footprint: []#[[0.17, 0.17], [-0.17, 0.17], [-0.17, -0.17], [0.17, -0.17]]
   inflation_radius: 0.18
   observation_sources: laser_scan_sensor
-  laser_scan_sensor: {sensor_frame: /base_laser_link, data_type: LaserScan, topic: /base_scan, marking: true, clearing: true}
+  laser_scan_sensor: {sensor_frame: base_laser_link, data_type: LaserScan, topic: base_scan, marking: true, clearing: true}
+  #observation_persistence: 0.0, marking: true, clearing: true, min_obstacle_height: -0.10, max_obstacle_height: 2.0}
+
   #point_cloud_sensor: {sensor_frame: frame_name, data_type: PointCloud, topic: topic_name, marking: true, clearing: true}
 
 global_costmap:
   global_frame: /map
-  robot_base_frame: /base_link
+  robot_base_frame: base_link
   update_frequency: 3.0
   publish_frequency: 2.0
   static_map: true
@@ -88,4 +90,4 @@ global_costmap:
  # footprint: []#[[0.17, 0.17], [-0.17, 0.17], [-0.17, -0.17], [0.17, -0.17]]
   inflation_radius: 0.20
   observation_sources: laser_scan_sensor
-  laser_scan_sensor: {sensor_frame: /base_laser_link, data_type: LaserScan, topic: /base_scan, marking: true, clearing: true}
+  laser_scan_sensor: {sensor_frame: base_laser_link, data_type: LaserScan, topic: base_scan, marking: true, clearing: true}

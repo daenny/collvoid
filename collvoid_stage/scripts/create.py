@@ -154,7 +154,8 @@ def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,
 #        s += "/robot_%d/debug "%(x)
     if useBagFile:
         launchWrite.write('  <node pkg="rosbag" type="record" name="rosbag" args="record {0} /stall /stall_resolved /exceeded -O $(find collvoid_stage)/{1}" output="screen"/>\n'.format(s,bagFilename))
-
+    
+    launchWrite.write('  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find collvoid_stage)/double_view.vcg" output="screen" />\n')
     launchWrite.write("</launch>\n")
     launchWrite.close()
 

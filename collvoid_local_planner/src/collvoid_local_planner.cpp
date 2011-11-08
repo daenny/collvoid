@@ -38,8 +38,6 @@ T getParamDef (const ros::NodeHandle nh, const string& name, const T& default_va
   return val;
 }
 
-
-
 namespace collvoid_local_planner {
   
   CollvoidLocalPlanner::CollvoidLocalPlanner():
@@ -430,7 +428,7 @@ namespace collvoid_local_planner {
     if (base_local_planner::goalPositionReached(global_pose, target_pose.getOrigin().x(), target_pose.getOrigin().y(),xy_goal_tolerance_)) {
       geometry_msgs::PoseStamped target_pose_msg;
       findBestWaypoint(target_pose_msg, global_pose);
-      //    current_waypoint_ = transformed_plan_.size()-1;
+      current_waypoint_ = transformed_plan_.size()-1;
       ROS_DEBUG("Cur waypoint = %d, of %d", current_waypoint_, transformed_plan_.size());
 
       tf::poseStampedMsgToTF(transformed_plan_[current_waypoint_], target_pose);
@@ -460,7 +458,7 @@ namespace collvoid_local_planner {
 
     double min_dist =  addAllNeighbors(); //closest neighbor TODO: keep in mind for obstacles..
     double T = time_to_holo_; //in how much time I want to be on the holonomic track
-    
+    double old_radius = pt_agg_->getRadius();
     if (!me_->isHoloRobot()) {
     
       double min_error = min_error_holo_;
@@ -469,8 +467,8 @@ namespace collvoid_local_planner {
       //double speed = RVO::abs(me_->velocity_);
       
       double error = max_error;
-      if (min_dist < me_->getRadius()){
-	  error = min_error + (max_error-min_error) * min_dist / me_->getRadius(); // how much error do i allow?
+      if (min_dist < old_radius){
+	  error = min_error + (max_error-min_error) * min_dist / old_radius; // how much error do i allow?
 	  if (error<0) {
 	    error = min_error;
 	    ROS_WARN("%s I think I am in collision", me_->getId().c_str());
@@ -482,7 +480,8 @@ namespace collvoid_local_planner {
 	//double max_track_speed = me_->calculateMaxTrackSpeedAngle(T,M_PI/2.0, error, max_vel_x_, max_vel_th_);
 	//me_->setMaxTrackSpeed(max_track_speed);
 	//}      //  ROS_ERROR("error %6.4f", error);
-      pt_agg_->setRadius(circumscribed_radius_ + error);
+      
+      pt_agg_->setRadius((circumscribed_radius_ + error)/2.0 + old_radius / 2.0);
     }
     
     me_->addAccelerationConstraintsXY(max_vel_x_,acc_lim_x_, max_vel_y_, acc_lim_y_, sim_period_);
@@ -556,7 +555,7 @@ namespace collvoid_local_planner {
       }
     //ROS_DEBUG("waypoint = %d, of %d", current_waypoint_, transformed_plan_.size());
 
-    if (min_dist > me_->getRadius()) //lets first get to the begin pose of the plan
+    if (min_dist > pt_agg_->getRadius()) //lets first get to the begin pose of the plan
       return;
     
     if (current_waypoint_ == transformed_plan_.size()-1) //I am at the end of the plan
@@ -571,8 +570,8 @@ namespace collvoid_local_planner {
 
     //ROS_DEBUG("dif = %f,%f of %f",dif_x,dif_y, dif_ang );
     
-    size_t look_ahead_ind = 0;
-    bool look_ahead = false;
+    //size_t look_ahead_ind = 0;
+    //bool look_ahead = false;
 
     for (size_t i=current_waypoint_+1; i<transformed_plan_.size(); i++) {
       dif_x = transformed_plan_[i].pose.position.x - target_pose.pose.position.x;
@@ -581,7 +580,7 @@ namespace collvoid_local_planner {
       dif_ang = atan2(dif_y, dif_x);
       target_pose = transformed_plan_[current_waypoint_];
 
-      if(fabs(plan_dir - dif_ang) > 2.0* yaw_goal_tolerance_) {
+      if(fabs(plan_dir - dif_ang) > 1.0* yaw_goal_tolerance_) {
 	  target_pose = transformed_plan_[i-1];
 	  current_waypoint_ = i-1;
 	  //ROS_DEBUG("waypoint = %d, of %d", current_waypoint_, transformed_plan_.size());
@@ -653,7 +652,10 @@ namespace collvoid_local_planner {
     agent->setPosition(msg->pose.pose.position.x + x_dif, msg->pose.pose.position.y + y_dif);   
    
     RVO::Vector2 vel = rotateVectorByAngle(msg->twist.twist.linear.x, msg->twist.twist.linear.y, agent->getHeading());
+    if (RVO::abs(vel) < RVO_EPSILON)
+      vel = rotateVectorByAngle(0.01, 0.0, agent->getHeading());
     agent->setVelocity(vel.x(),vel.y());
+   
     //ROS_INFO("%s Position of robot i =%s at: [%f, %f] with vel = [%f, %f], timeDif = %f", me_->getId().c_str(), agent->getId().c_str(), agent->position_.x(), agent->position_.y(),agent->velocity_.x(),agent->velocity_.y(),time_dif);
 	
   }
@@ -691,38 +693,38 @@ namespace collvoid_local_planner {
       double sq_dist_threshold = dist_threshold * dist_threshold;
       double sq_dist = DBL_MAX;
 
-      //unsigned int cur_waypoint = 0;
-      //for (size_t i=0; i < transformed_plan_.size(); i++) 
-      //{
-      //  double y = robot_pose.getOrigin().y();
-      //  double x = robot_pose.getOrigin().x();
-      //  double dist = base_local_planner::distance(x, y, global_plan_[i].pose.position.x, global_plan_[i].pose.position.y);
-      //  if (dist < sqrt(sq_dist)) {
-      //    sq_dist = dist * dist;
-      //    cur_waypoint = i;
-      //
-      //  }
-      //}
-
-      unsigned int i =0;// cur_waypoint;
-
-      //we need to loop to a point on the plan that is within a certain distance of the robot
-      while(i < (unsigned int)global_plan.size() && sq_dist > sq_dist_threshold){
-       double x_diff = robot_pose.getOrigin().x() - global_plan[i].pose.position.x;
-       double y_diff = robot_pose.getOrigin().y() - global_plan[i].pose.position.y;
-       sq_dist = x_diff * x_diff + y_diff * y_diff;
-       ++i;
+      unsigned int cur_waypoint = 0;
+      for (size_t i=0; i < global_plan_.size(); i++) 
+      {
+        double y = robot_pose.getOrigin().y();
+        double x = robot_pose.getOrigin().x();
+        double dist = base_local_planner::distance(x, y, global_plan_[i].pose.position.x, global_plan_[i].pose.position.y);
+        if (dist < sqrt(sq_dist)) {
+          sq_dist = dist * dist;
+          cur_waypoint = i;
+	  
+        }
       }
 
+      unsigned int i = cur_waypoint;
+
+      //we need to loop to a point on the plan that is within a certain distance of the robot
+      // while(i < (unsigned int)global_plan.size() && sq_dist > sq_dist_threshold){
+      //  double x_diff = robot_pose.getOrigin().x() - global_plan[i].pose.position.x;
+      //  double y_diff = robot_pose.getOrigin().y() - global_plan[i].pose.position.y;
+      //  sq_dist = x_diff * x_diff + y_diff * y_diff;
+      //  ++i;
+      // }
+
       //make sure not to count the first point that is too far away
-      if(i > 0)
-        --i;
+      // if(i > 0)
+      //   --i;
 
       tf::Stamped<tf::Pose> tf_pose;
       geometry_msgs::PoseStamped newer_pose;
 
       //now we'll transform until points are outside of our distance threshold
-      while(i < (unsigned int)global_plan.size() && sq_dist < sq_dist_threshold){
+      while(i < (unsigned int)global_plan.size()) {// && sq_dist < sq_dist_threshold){
         double x_diff = robot_pose.getOrigin().x() - global_plan[i].pose.position.x;
         double y_diff = robot_pose.getOrigin().y() - global_plan[i].pose.position.y;
         sq_dist = x_diff * x_diff + y_diff * y_diff;

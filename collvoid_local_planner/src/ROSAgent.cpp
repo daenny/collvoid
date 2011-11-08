@@ -477,7 +477,7 @@ void ROSAgent::calculateObstacleLines(){
     double dist = RVO::abs(position_ - obstacle_points_[i]);
     Line line;
     Vector2 relative_position = obstacle_points_[i] - position_;
-    line.point = normalize(relative_position) * (dist - radius_);
+    line.point = normalize(relative_position) * (dist - radius_ + 0.05);
 
     line.direction = Vector2 (-normalize(relative_position).y(),normalize(relative_position).x()) ; 
     

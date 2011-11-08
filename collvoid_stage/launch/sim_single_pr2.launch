@@ -10,5 +10,7 @@
    <!---  <param name="base_local_planner" value="pose_follower/PoseFollower" /> -->  
        <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
   </node>
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find collvoid_stage)/single_view.vcg" output="screen" />
+
 </launch>
   
