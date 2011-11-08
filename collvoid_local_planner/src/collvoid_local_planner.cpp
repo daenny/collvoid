@@ -375,6 +375,7 @@ namespace collvoid_local_planner {
         cmd_vel.linear.x = 0.0;
         cmd_vel.linear.y = 0.0;
         cmd_vel.angular.z = 0.0;
+	pt_agg_->setRadius(circumscribed_radius_);
         rotating_to_goal_ = false;
         xy_tolerance_latch_ = false;
       }
@@ -429,7 +430,7 @@ namespace collvoid_local_planner {
       geometry_msgs::PoseStamped target_pose_msg;
       findBestWaypoint(target_pose_msg, global_pose);
       current_waypoint_ = transformed_plan_.size()-1;
-      ROS_DEBUG("Cur waypoint = %d, of %d", current_waypoint_, transformed_plan_.size());
+      //ROS_DEBUG("Cur waypoint = %d, of %d", current_waypoint_, transformed_plan_.size());
 
       tf::poseStampedMsgToTF(transformed_plan_[current_waypoint_], target_pose);
     }
@@ -443,7 +444,7 @@ namespace collvoid_local_planner {
     res.linear.x = target_pose.getOrigin().x() - global_pose.getOrigin().x();
     res.linear.y = target_pose.getOrigin().y() - global_pose.getOrigin().y();
     res.angular.z = angles::shortest_angular_distance(tf::getYaw(global_pose.getRotation()),atan2(res.linear.y, res.linear.x));
-    double dif_ang_goal = res.angular.z;
+    //double dif_ang_goal = res.angular.z;
     //angles::shortest_angular_distance(tf::getYaw(global_pose.getRotation()),tf::getYaw(target_pose.getRotation()));
    
     RVO::Vector2 goal_dir = RVO::Vector2(res.linear.x,res.linear.y);
@@ -652,8 +653,14 @@ namespace collvoid_local_planner {
     agent->setPosition(msg->pose.pose.position.x + x_dif, msg->pose.pose.position.y + y_dif);   
    
     RVO::Vector2 vel = rotateVectorByAngle(msg->twist.twist.linear.x, msg->twist.twist.linear.y, agent->getHeading());
-    if (RVO::abs(vel) < RVO_EPSILON)
-      vel = rotateVectorByAngle(0.01, 0.0, agent->getHeading());
+    if (RVO::abs(vel) < RVO_EPSILON){
+      if (agent != me_) {
+       	vel = rotateVectorByAngle(0.01, 0.0, me_->getHeading()+sampleNormal(0.0, 2.0));
+      }
+      else {
+	vel = rotateVectorByAngle(0.01, 0.0, me_->getHeading()+sampleNormal(0.0, 0.1));
+      }
+    }
     agent->setVelocity(vel.x(),vel.y());
    
     //ROS_INFO("%s Position of robot i =%s at: [%f, %f] with vel = [%f, %f], timeDif = %f", me_->getId().c_str(), agent->getId().c_str(), agent->position_.x(), agent->position_.y(),agent->velocity_.x(),agent->velocity_.y(),time_dif);
@@ -688,9 +695,9 @@ namespace collvoid_local_planner {
       tf.transformPose(plan_pose.header.frame_id, robot_pose, robot_pose);
 
       //we'll keep points on the plan that are within the window that we're looking at
-      double dist_threshold = std::max(costmap.getSizeInCellsX() * costmap.getResolution() / 2.0, costmap.getSizeInCellsY() * costmap.getResolution() / 2.0);
+      //double dist_threshold = std::max(costmap.getSizeInCellsX() * costmap.getResolution() / 2.0, costmap.getSizeInCellsY() * costmap.getResolution() / 2.0);
 
-      double sq_dist_threshold = dist_threshold * dist_threshold;
+      //      double sq_dist_threshold = dist_threshold * dist_threshold;
       double sq_dist = DBL_MAX;
 
       unsigned int cur_waypoint = 0;

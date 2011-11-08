@@ -263,9 +263,9 @@ void ROSAgent::computeNewVelocity()
     orcaLines_.push_back(new_line);
     }*/
 
-  orcaLines_.insert(orcaLines_.end(), additional_orca_lines_.begin(), additional_orca_lines_.end());
 
   calculateObstacleLines();
+  orcaLines_.insert(orcaLines_.end(), additional_orca_lines_.begin(), additional_orca_lines_.end());
 
   const size_t numObstLines = orcaLines_.size();
   const float invTimeHorizon = 1.0f / timeHorizon_;
@@ -353,7 +353,7 @@ void ROSAgent::publishOrcaLines(){
   line_list.action = visualization_msgs::Marker::ADD;
   line_list.pose.orientation.w = 1.0;
   line_list.type = visualization_msgs::Marker::LINE_LIST;
-  line_list.scale.x = 0.05;
+  line_list.scale.x = 0.02;
   line_list.color.r = 1.0;
   line_list.color.a = 1.0;
   geometry_msgs::Point p;
