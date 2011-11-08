@@ -283,8 +283,8 @@ void PoseTwistAggregator::publishNeighborPositions(){
    p.z = 0.1;
    sphere_list.markers[2*i+1].points.push_back(p);
    
-   p.x += neighbors_[i].radius * 1.1 * cos(yaw + th_dif); 
-   p.y += neighbors_[i].radius * 1.1 * sin(yaw + th_dif);
+   p.x += neighbors_[i].radius * 1.25 * cos(yaw + th_dif); 
+   p.y += neighbors_[i].radius * 1.25 * sin(yaw + th_dif);
    sphere_list.markers[2*i+1].points.push_back(p);
    
 

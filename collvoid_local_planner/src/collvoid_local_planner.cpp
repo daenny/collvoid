@@ -764,11 +764,17 @@ namespace collvoid_local_planner {
     size_t num_obst = msg->cells.size();
     boost::mutex::scoped_lock lock(me_->obstacle_lock_);
     me_->obstacle_points_.clear();
+    
     for (size_t i = 0; i < num_obst; i++) {
+      geometry_msgs::PointStamped in, result;
+      in.header = msg->header;
+      in.point = msg->cells[i];
       //ROS_DEBUG("obstacle at %f %f",msg->cells[i].x,msg->cells[i].y);
-      me_->obstacle_points_.push_back(RVO::Vector2(msg->cells[i].x,msg->cells[i].y));
+      tf_->transformPoint(global_frame_, in, result);
+      me_->obstacle_points_.push_back(RVO::Vector2(result.point.x,result.point.y));
     }
-    //ROS_DEBUG("obstacle size befor unique %d",me_->obstacle_points_.size());
+   
+    // ROS_DEBUG("obstacle size befor unique %d",me_->obstacle_points_.size());
     //me_->obstacle_points_.erase(unique(me_->obstacle_points_.begin(),me_->obstacle_points_.end()), me_->obstacle_points_.end());
     //ROS_DEBUG("obstacle size after unique %d",me_->obstacle_points_.size());
 
