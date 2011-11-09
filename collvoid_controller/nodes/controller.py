@@ -29,7 +29,7 @@ class controller(wx.Frame):
 
 
 #        self.subCommands = rospy.Subscriber("/commands_robot", String, self.cbCommands)
-        self.subCommonPositions = rospy.Subscriber("/positions_share", PoseTwistWithCovariance, self.cbCommonPositions)
+        self.subCommonPositions = rospy.Subscriber("/position_share", PoseTwistWithCovariance, self.cbCommonPositions)
         self.pub = rospy.Publisher('/commands_robot', String)
 
         self.robotList = []
@@ -93,12 +93,12 @@ class controller(wx.Frame):
         self.Show(True)
 
     def setWPon(self,event):
-        str = "%s WP On"%self.choiceBox.GetStringSelection()
-        self.pub.publish(String(str))
+        string = "%s WP On"%self.choiceBox.GetStringSelection()
+        self.pub.publish(str(string))
 
     def setWPoff(self,event):
-        str = "%s WP Off"%self.choiceBox.GetStringSelection()
-        self.pub.publish(String(str))
+        string = "%s WP Off"%self.choiceBox.GetStringSelection()
+        self.pub.publish(str(string))
         
                
     def sendInitGuess(self,event):
@@ -123,16 +123,16 @@ class controller(wx.Frame):
 
     def setCircleOn(self,event):
         string = "%s Circle On"%self.choiceBox.GetStringSelection()
-        self.pub.publish(String(string))
+        self.pub.publish(str(string))
     
     def setCircleOff(self,event):
         string = "%s Circle Off"%self.choiceBox.GetStringSelection()
-        self.pub.publish(String(string))
+        self.pub.publish(str(string))
 
 
     def sendInitGuess(self,event):
-        str = "%s init Guess"%self.choiceBox.GetStringSelection()
-        self.pub.publish(String(str))
+        string = "%s init Guess"%self.choiceBox.GetStringSelection()
+        self.pub.publish(str(string))
 
     def cbGoal(self,msg):
         self.goalX.SetValue(str(msg.pose.position.x))
@@ -146,12 +146,12 @@ class controller(wx.Frame):
     
  
     def stop(self,event):
-        str = "%s Stop"%self.choiceBox.GetStringSelection()
-        self.pub.publish(String(str))
+        string = "%s Stop"%self.choiceBox.GetStringSelection()
+        self.pub.publish(str(string))
 
     def start(self,event):
-        str = "%s Start"%self.choiceBox.GetStringSelection()
-        self.pub.publish(String(str))
+        string = "%s Start"%self.choiceBox.GetStringSelection()
+        self.pub.publish(str(string))
 
     def reset(self,event):
         self.pub.publish("all Stop")
