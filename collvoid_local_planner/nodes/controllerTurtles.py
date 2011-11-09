@@ -35,7 +35,7 @@ class ControllerTurtles():
         self.client.wait_for_server()
        
     
-        self.pub_goal = rospy.Publisher("move_base/goal", MoveBaseActionGoal)
+        #self.pub_goal = rospy.Publisher("move_base/goal", MoveBaseActionGoal)
      
         self.init_guess_srv = rospy.ServiceProxy("init_guess_pub", Empty)
 
@@ -124,7 +124,8 @@ class ControllerTurtles():
             if (self.cur_goal == self.num_goals):
                 self.cur_goal = 0
             self.cur_goal_msg = self.return_cur_goal()
-            self.pub_goal.publish(self.cur_goal_msg)
+            self.client.send_goal(self.cur_goal_msg)
+
             rospy.loginfo("Send new Goal")            
 
         if msg.data == "all Circle On" or msg.data == "%s Circle On"%self.hostname:
