@@ -1,0 +1,7 @@
+<library path="lib/libcollvoid_simple_global_planner">
+  <class name="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" type="collvoid_simple_global_planner::CollvoidSimpleGlobalPlanner" base_class_type="nav_core::BaseGlobalPlanner">
+    <description>
+     
+    </description>
+  </class>
+</library>
