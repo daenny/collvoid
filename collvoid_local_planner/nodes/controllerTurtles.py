@@ -43,9 +43,9 @@ class ControllerTurtles():
 #        self.sub_common_position = rospy.Subscriber("/position_share", PoseTwistWithCovariance, self.cb_common_positions)
         self.sub_commands_robot = rospy.Subscriber("/commands_robot", String, self.cb_commands_robot)
 
-        self.name = rospy.get_namespace()
-        if (self.name == "/"):
-            self.name = gethostname()
+        self.hostname = rospy.get_namespace()
+        if (self.hostname == "/"):
+            self.hostname = gethostname()
 
         self.goals = rospy.get_param("/%s/goals"%self.hostname)
         rospy.loginfo("goals: %s"%str(self.goals))
@@ -55,7 +55,7 @@ class ControllerTurtles():
 #        rospy.loginfo("Cur Goal %s"%str(self.return_cur_goal()))
         self.cur_goal_msg = self.return_cur_goal()
         self.circle = False
-        rospy.loginfo("Name: %s",self.name)
+        rospy.loginfo("Name: %s",self.hostname)
         self.circle = False
 
 
@@ -100,11 +100,11 @@ class ControllerTurtles():
 
 
     def cb_commands_robot(self,msg):
-        if msg.data == "all WP On" or msg.data == "%s WP On"%self.name:
+        if msg.data == "all WP On" or msg.data == "%s WP On"%self.hostname:
             rospy.loginfo("I am ON")
             self.stopped = False
 
-        if msg.data == "all WP Off" or msg.data == "%s WP Off"%self.name:
+        if msg.data == "all WP Off" or msg.data == "%s WP Off"%self.hostname:
             self.stopped = True
             rospy.loginfo("I am Off")
 
