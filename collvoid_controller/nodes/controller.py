@@ -76,6 +76,11 @@ class controller(wx.Frame):
         sendInitGuess = wx.Button(self,-1,label="Send init Guess")
         grid_sizer.Add(sendInitGuess, (5,0))
         self.Bind(wx.EVT_BUTTON, self.sendInitGuess, sendInitGuess)
+
+        sendNextGoal = wx.Button(self,-1,label="Send next Goal")
+        grid_sizer.Add(sendNextGoal, (5,1))
+        self.Bind(wx.EVT_BUTTON, self.sendNextGoal, sendNextGoal)
+
         
         setCircleOn = wx.Button(self,-1,label="Circle On")
         grid_sizer.Add(setCircleOn, (6,0))
@@ -127,6 +132,10 @@ class controller(wx.Frame):
     
     def setCircleOff(self,event):
         string = "%s Circle Off"%self.choiceBox.GetStringSelection()
+        self.pub.publish(str(string))
+
+    def sendNextGoal(self,event):
+        string = "%s next Goal"%self.choiceBox.GetStringSelection()
         self.pub.publish(str(string))
 
 

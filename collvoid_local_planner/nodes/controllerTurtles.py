@@ -51,12 +51,11 @@ class ControllerTurtles():
         rospy.loginfo("goals: %s"%str(self.goals))
         self.cur_goal = 0
         self.num_goals = len(self.goals["x"])
-        rospy.loginfo("num Goals %d"%self.num_goals)
-#        rospy.loginfo("Cur Goal %s"%str(self.return_cur_goal()))
+#        rospy.loginfo("num Goals %d"%self.num_goals)
+       rospy.loginfo("Cur Goal %s"%str(self.return_cur_goal()))
         self.cur_goal_msg = self.return_cur_goal()
         self.circle = False
         rospy.loginfo("Name: %s",self.hostname)
-        self.circle = False
 
 
 
@@ -111,7 +110,7 @@ class ControllerTurtles():
         if (msg.data == "all init Guess"):
             self.init_guess_srv()
         
-        if (msg.data == "all Stop"):
+        if msg.data == "all Stop" or msg.data == "%s Stop"%self.hostname:
             self.client.cancel_all_goals()
           
         if self.stopped:
@@ -120,7 +119,7 @@ class ControllerTurtles():
         if msg.data == "all Start" or msg.data == "%s Start"%self.hostname:
             self.client.send_goal(self.cur_goal_msg)
         
-        if msg.data == "all New Goal" or msg.data == "%s New Goal"%self.hostname:
+        if msg.data == "all next Goal" or msg.data == "%s next Goal"%self.hostname:
             self.cur_goal += 1
             if (self.cur_goal == self.num_goals):
                 self.cur_goal = 0
