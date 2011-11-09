@@ -20,7 +20,7 @@
  
   <!--- Run Controller -->
   <rosparam command="load" file="$(find collvoid_turtlebot)/goals.yaml"/>
-  <node pkg="collvoid_local_planner" type="controllerTurtlebots.py" name="controller_turtles" output="screen" />
+  <node pkg="collvoid_local_planner" type="controllerTurtles.py" name="controller_turtles" output="screen" />
 
   <!--- Run collvoid -->
   <rosparam command="load" file="$(find collvoid_turtlebot)/params/params_created.yaml"/>
