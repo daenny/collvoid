@@ -2,18 +2,22 @@ turtlebot4:
   goals:
     x: [ 3.6, 1.2]
     y: [ 2.4, 0.0]
+    ang: [0.0, 0.0]
 
 turtlebot5:
   goals:
     x: [ 3.6,  1.2]
     y: [ 0.0,  2.4]
+    ang: [0.0, 0.0]
 
 turtlebot6:
   goals:
     x: [ 1.2, 3.6]
     y: [ 2.4, 0.0]
+    ang: [0.0, 0.0]
 
 turtlebot7:
   goals:
     x: [ 1.2, 3.6]
     y: [ 0.0, 2.4]
+    ang: [0.0, 0.0]
