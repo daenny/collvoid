@@ -88,6 +88,8 @@ void PoseTwistAggregator::publishPoseTwist(){
   last_me_msg_.radius = this-> getRadius();
   last_me_msg_.robot_id = my_id_;
   position_share_pub_.publish(last_me_msg_);
+  publishMePosition();
+
 }
 
 void PoseTwistAggregator::publishInitialGuess(double noise_std){
@@ -220,7 +222,6 @@ void PoseTwistAggregator::positionShareCallback(const collvoid_msgs::PoseTwistWi
   neighbors_[i].holonomic_velocity.y = msg->holonomic_velocity.y;
   neighbors_[i].radius = msg->radius;
   publishNeighborPositions();
-  publishMePosition();
   //  ROS_DEBUG("Neighbor %s updated with position %f, %f and speed x %f, y %f, z%f",cur_id.c_str(),neighbors_[i].pose.pose.position.x, neighbors_[i].pose.pose.position.y, neighbors_[i].twist.twist.linear.x, neighbors_[i].twist.twist.linear.y,neighbors_[i].twist.twist.angular.z);
 
 }
