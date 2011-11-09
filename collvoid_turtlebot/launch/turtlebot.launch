@@ -1,6 +1,9 @@
 <launch>
+  <arg name="master" />
 
-  <include file="$(find multimaster)/master.launch"/>
+  <include file="$(find multimaster)/master.launch">
+    <arg name="master" value="(arg master)">
+  </include>
 
   <!--- Run Robot Pose EKF -->
   <include file="$(find turtlebot_bringup)/base.launch" />
