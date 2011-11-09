@@ -52,7 +52,7 @@ class ControllerTurtles():
         self.cur_goal = 0
         self.num_goals = len(self.goals["x"])
 #        rospy.loginfo("num Goals %d"%self.num_goals)
-       rospy.loginfo("Cur Goal %s"%str(self.return_cur_goal()))
+        rospy.loginfo("Cur Goal %s"%str(self.return_cur_goal()))
         self.cur_goal_msg = self.return_cur_goal()
         self.circle = False
         rospy.loginfo("Name: %s",self.hostname)
