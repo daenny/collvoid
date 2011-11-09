@@ -199,12 +199,12 @@ namespace collvoid_local_planner {
     v_theta_samp = sign(v_theta_samp) * std::min(std::max(fabs(v_theta_samp), min_acc_vel), max_acc_vel);
 
     //we also want to make sure to send a velocity that allows us to stop when we reach the goal given our acceleration limits
-    double max_speed_to_stop = sqrt(2 * acc_lim_theta_ * fabs(ang_diff)); 
+    //double max_speed_to_stop = sqrt(2 * acc_lim_theta_ * fabs(ang_diff)); 
 
-    v_theta_samp = sign(v_theta_samp) * std::min(max_speed_to_stop, fabs(v_theta_samp));
+    //    v_theta_samp = sign(v_theta_samp) * std::min(max_speed_to_stop, fabs(v_theta_samp));
     if (fabs(v_theta_samp)<=0.5 * min_vel_theta_inplace_)
       v_theta_samp  = 0.0;
-    else
+    else if (fabs(v_theta_samp) < min_vel_theta_inplace_)
       v_theta_samp = sign(v_theta_samp) * max(min_vel_theta_inplace_,fabs(v_theta_samp));
     //we still want to lay down the footprint of the robot and check if the action is legal
     bool valid_cmd = true; //TODO tc_->checkTrajectory(global_pose.getOrigin().getX(), global_pose.getOrigin().getY(), yaw, robot_vel.getOrigin().getX(), robot_vel.getOrigin().getY(), vel_yaw, 0.0, 0.0, v_theta_samp);
