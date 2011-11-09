@@ -18,13 +18,10 @@
   <!--- Run AMCL -->
   <include file="$(find collvoid_turtlebot)/launch/amcl_turtlebot.launch"/> 
  
+  <!--- Run Controller -->
+  <rosparam command="load" file="$(find collvoid_turtlebot)/goals.yaml"/>
+  <node pkg="collvoid_local_planner" type="controllerTurtlebots.py" name="controller_turtles" output="screen" />
 
-
-<!--  <rosparam command="load" file="$(find collvoid_turtlebot)/goals.yaml"/>
-
-  <rosparam command="load" file="$(find collvoid_turtlebot)/paramsRobots.yaml"/>
-  <rosparam command="load" file="$(find collvoid_turtlebot)/orca_lines_greenroom.yaml"/>
--->
   <!--- Run collvoid -->
   <rosparam command="load" file="$(find collvoid_turtlebot)/params/params_created.yaml"/>
 

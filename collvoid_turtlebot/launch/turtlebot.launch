@@ -5,43 +5,6 @@
     <arg name="master" value="$(arg master)"/>
   </include>
 
-  <!--- Run Robot Pose EKF -->
-  <include file="$(find turtlebot_bringup)/base.launch" />
-
-  <!--- Run the kinect -->
-<!--  <include file="$(find turtlebot_bringup)/kinect.launch" /> -->
-
-  <!-- Run the map server -->
-<!--
-
-  <arg name="map_file" default="$(find turtlebot_navigation)/maps/willow-2010-02-18-0.10.yaml"/>
-  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
--->
-
-  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_turtlebot)/world/greenroom.yaml" output="screen"/>
-
-
-  <!-- Run the laser -->
-  <include file="$(find collvoid_turtlebot)/launch/hokuyo.launch" />
-
-  <!--- Run AMCL -->
-  <include file="$(find collvoid_turtlebot)/launch/amcl_turtlebot.launch"/> 
- 
-
-
-<!--  <rosparam command="load" file="$(find collvoid_turtlebot)/goals.yaml"/>
-
-  <rosparam command="load" file="$(find collvoid_turtlebot)/paramsRobots.yaml"/>
-  <rosparam command="load" file="$(find collvoid_turtlebot)/orca_lines_greenroom.yaml"/>
--->
-  <!--- Run collvoid -->
-  <rosparam command="load" file="$(find collvoid_turtlebot)/params/params_created.yaml"/>
-
-  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
-    <rosparam command="load" file="$(find collvoid_turtlebot)/params/params_turtle.yaml"/>
-   <!---  <param name="base_local_planner" value="pose_follower/PoseFollower" /> -->  
-       <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
-       <remap from="/cmd_vel" to="/turtlebot_node/cmd_vel"/>
-  </node>
+  <include file="$(find collvoid_turtlebot)/launch/turtlebot_master.launch" />
 
 </launch>

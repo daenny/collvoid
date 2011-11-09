@@ -1,14 +1,13 @@
 /controller_frequency: 10
 
 CollvoidLocalPlanner:
-  simulation_mode: true
   max_neighbors: 10
   neighbor_dist: 3.0
   time_horizon: 10.0
   time_horizon_obst: 10.0
   threshold_last_seen: 1.0
 
-  yaw_goal_tolerance: 0.05
+  yaw_goal_tolerance: 0.15
   xy_goal_tolerance: 0.10
 #  latch_xy_goal_tolerance: true
   global_frame: /map
@@ -21,13 +20,14 @@ CollvoidLocalPlanner:
   max_vel_th: 1.5
   min_vel_x: 0.1
   min_vel_th: 0.1
+  min_vel_theta_inplace: 0.3
   min_vel_y: 0.01
   max_vel_y: 0.1
   acc_lim_x: 1.0
   acc_lim_y: 0.0
   acc_lim_th: 1.0
-  radius: 0.17
-  inscribed_radius: 0.17
+  radius: 0.20
+  inscribed_radius: 0.20
 
 TrajectoryPlannerROS:
   max_vel_x: 0.50
@@ -65,7 +65,7 @@ local_costmap:
   obstacle_range: 2.5
   raytrace_range: 3.0
   robot_radius: 0.17
-#  footprint: []#[[0.17, 0.17], [-0.17, 0.17], [-0.17, -0.17], [0.17, -0.17]]
+ # footprint: [[0.17, 0.17], [-0.17, 0.17], [-0.17, -0.17], [0.17, -0.17]]
   inflation_radius: 0.18
   observation_sources: laser_scan_sensor
   laser_scan_sensor: {sensor_frame: base_laser_link, data_type: LaserScan, topic: base_scan, marking: true, clearing: true}
@@ -87,7 +87,7 @@ global_costmap:
   obstacle_range: 2.5
   raytrace_range: 3.0
   robot_radius: 0.17
- # footprint: []#[[0.17, 0.17], [-0.17, 0.17], [-0.17, -0.17], [0.17, -0.17]]
+ # footprint: [[0.17, 0.17], [-0.17, 0.17], [-0.17, -0.17], [0.17, -0.17]]
   inflation_radius: 0.20
   observation_sources: laser_scan_sensor
   laser_scan_sensor: {sensor_frame: base_laser_link, data_type: LaserScan, topic: base_scan, marking: true, clearing: true}
