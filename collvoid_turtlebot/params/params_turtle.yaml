@@ -16,6 +16,8 @@ CollvoidLocalPlanner:
   min_error_holo: 0.01
   max_error_holo: 0.15
   holo_robot: false
+  delete_observations: true
+
   max_vel_x: 0.5
   max_vel_th: 1.5
   min_vel_x: 0.1
@@ -26,8 +28,8 @@ CollvoidLocalPlanner:
   acc_lim_x: 1.0
   acc_lim_y: 0.0
   acc_lim_th: 1.0
-  radius: 0.20
-  inscribed_radius: 0.20
+  radius: 0.17
+  inscribed_radius: 0.17
 
 TrajectoryPlannerROS:
   max_vel_x: 0.50
