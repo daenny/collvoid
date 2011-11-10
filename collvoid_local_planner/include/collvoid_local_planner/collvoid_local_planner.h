@@ -60,7 +60,7 @@ namespace collvoid_local_planner {
     
     PoseTwistAggregator* pt_agg_;
 
-    bool initialized_;
+    bool initialized_, skip_next_;
 
     double sim_period_;
     double max_vel_x_, min_vel_x_;

@@ -171,7 +171,7 @@ namespace collvoid_local_planner {
 
       state_ = INIT;
       initialized_ = true;
-
+      skip_next_ = false;
       g_plan_pub_ = private_nh.advertise<nav_msgs::Path>("global_plan", 1);
       l_plan_pub_ = private_nh.advertise<nav_msgs::Path>("local_plan", 1);
 
@@ -435,7 +435,7 @@ namespace collvoid_local_planner {
       geometry_msgs::PoseStamped target_pose_msg;
       findBestWaypoint(target_pose_msg, global_pose);
       //current_waypoint_ = transformed_plan_.size()-1;
-      //ROS_DEBUG("Cur waypoint = %d, of %d", current_waypoint_, transformed_plan_.size());
+      ROS_DEBUG("Cur waypoint = %d, of %d", current_waypoint_, transformed_plan_.size());
     }
 
     tf::poseStampedMsgToTF(transformed_plan_[current_waypoint_], target_pose);
@@ -458,6 +458,10 @@ namespace collvoid_local_planner {
     if (RVO::abs(goal_dir) > max_vel_x_) {
       goal_dir = max_vel_x_ * RVO::normalize(goal_dir);
     }
+    else if (RVO::abs(goal_dir) < min_vel_x_) {
+      goal_dir = min_vel_x_ * 1.1 * RVO::normalize(goal_dir);
+    }
+  
 
     me_->setPosition(global_pose.getOrigin().x(), global_pose.getOrigin().y());
     me_->setHeading(tf::getYaw(global_pose.getRotation()));
@@ -499,6 +503,7 @@ namespace collvoid_local_planner {
     me_->setRadius(pt_agg_->getRadius());
 
     me_->computeNewVelocity(); // compute ORCA velocity
+
     me_->setVelocity(me_->newVelocity_.x(), me_->newVelocity_.y());
     double speed_ang = atan2(me_->newVelocity_.y(), me_->newVelocity_.x());
     double dif_ang = angles::shortest_angular_distance(me_->getHeading(), speed_ang);
@@ -539,9 +544,20 @@ namespace collvoid_local_planner {
       cmd_vel.linear.x = 0.0;
     if(std::abs(cmd_vel.linear.y)<min_vel_y_)
       cmd_vel.linear.y = 0.0;
+    if (cmd_vel.linear.x == 0.0 && cmd_vel.angular.z == 0.0 && cmd_vel.linear.y == 0.0) {
+      
+      ROS_WARN("Did not find a good vel, calculated holo was: %f, %f, cur wp %d of %d trying next waypoint", me_->velocity_.x(),me_->velocity_.y(), current_waypoint_, transformed_plan_.size());
+      if (current_waypoint_ < transformed_plan_.size()-1){
+	current_waypoint_++;
+	skip_next_= true;
+      }
+    }
+    else {
+      skip_next_ = false;
+    }
 
-    if (current_waypoint_ < transformed_plan_.size()-1)
-      transformed_plan_.erase(transformed_plan_.begin()+current_waypoint_,transformed_plan_.end());
+    // if (current_waypoint_ < transformed_plan_.size()-1)
+    //   transformed_plan_.erase(transformed_plan_.begin()+current_waypoint_,transformed_plan_.end());
     //ROS_DEBUG("%s cmd_vel.x %6.4f, cmd_vel.y %6.4f, cmd_vel_z %6.4f", me_->getId().c_str(), cmd_vel.linear.x, cmd_vel.linear.y, cmd_vel.angular.z); 
     base_local_planner::publishPlan(transformed_plan_, g_plan_pub_, 0.0, 1.0, 0.0, 0.0);
     me_->publishOrcaLines();
@@ -549,6 +565,8 @@ namespace collvoid_local_planner {
   }
   
   void CollvoidLocalPlanner::findBestWaypoint(geometry_msgs::PoseStamped& target_pose, const tf::Stamped<tf::Pose>& global_pose){
+    if (skip_next_)
+      return;
     current_waypoint_ = 0;
     double min_dist = DBL_MAX;
     for (size_t i=0; i < transformed_plan_.size(); i++) 
@@ -588,7 +606,7 @@ namespace collvoid_local_planner {
       dif_y = transformed_plan_[i].pose.position.y - target_pose.pose.position.y;
     
       dif_ang = atan2(dif_y, dif_x);
-      target_pose = transformed_plan_[current_waypoint_];
+      //target_pose = transformed_plan_[current_waypoint_];
 
       if(fabs(plan_dir - dif_ang) > 1.0* yaw_goal_tolerance_) {
 	  target_pose = transformed_plan_[i-1];
