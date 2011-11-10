@@ -25,7 +25,7 @@ CollvoidLocalPlanner:
   min_vel_theta_inplace: 0.3
   min_vel_y: 0.01
   max_vel_y: 0.1
-  acc_lim_x: 1.0
+  acc_lim_x: 2.0
   acc_lim_y: 0.0
   acc_lim_th: 1.0
   radius: 0.17
