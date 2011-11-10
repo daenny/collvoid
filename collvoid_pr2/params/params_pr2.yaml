@@ -10,7 +10,7 @@ CollvoidLocalPlanner:
 
   yaw_goal_tolerance: 0.05
   xy_goal_tolerance: 0.10
-#  latch_xy_goal_tolerance: true
+  #  latch_xy_goal_tolerance: true
   global_frame: /map
 
   holo_robot: true
@@ -90,7 +90,7 @@ local_costmap:
   observation_persistence: 4.6, marking: true, clearing: false, min_obstacle_height: -0.10, max_obstacle_height: 2.0}
   # END VOXEL STUFF
 
-  
+      
 global_costmap:
   global_frame: map
   robot_base_frame: base_footprint
@@ -129,32 +129,3 @@ global_costmap:
   ground_object_cloud: {sensor_frame: laser_tilt_link, topic: /ground_object_cloud, data_type: PointCloud, expected_update_rate: 0.2,
   observation_persistence: 4.6, marking: true, clearing: false, min_obstacle_height: -0.10, max_obstacle_height: 2.0}
   # END VOXEL STUFF
-
-
-recovery_behaviors:
-  - name: 'super_conservative_reset'
-    type: 'clear_costmap_recovery/ClearCostmapRecovery'
-  - name: 'conservative_reset'
-    type: 'clear_costmap_recovery/ClearCostmapRecovery'
-  - name: 'aggressive_reset'
-    type: 'clear_costmap_recovery/ClearCostmapRecovery'
-  - name: 'move_slow_and_clear'
-    type: 'move_slow_and_clear/MoveSlowAndClear'
-
-super_conservative_reset:
-  reset_distance: 5.0
-
-conservative_reset:
-  reset_distance: 3.0
-
-aggressive_reset:
-  reset_distance: 1.84
-
-move_slow_and_clear:
-  clearing_distance: 0.5
-  limited_trans_speed: 0.25
-  limited_rot_speed: 0.45
-  limited_distance: 0.3
-
-DWAPlannerROS:
-  
