@@ -1,0 +1,10 @@
+<launch>
+  <arg name="master" />
+
+  <include file="$(find multimaster)/master.launch">
+    <arg name="master" value="$(arg master)"/>
+  </include>
+
+  <include file="$(find collvoid_pr2)/launch/pr2_master.launch" />
+
+</launch>

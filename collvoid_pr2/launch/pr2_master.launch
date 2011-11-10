@@ -1,0 +1,52 @@
+<launch>
+  <include file="$(find pr2_machine)/$(env ROBOT).machine" />
+
+  <!-- Bring up the tilt_laser aware version of move_base -->
+  <node pkg="pr2_move_base" name="pr2_move_base_node" type="pr2_move_base.py" machine="c2" />
+
+  <!-- Trajectory generator -->
+  <node pkg="joint_trajectory_generator" type="joint_trajectory_generator" output="screen"
+        name="joint_trajectory_generator" ns="r_arm_controller" >
+    <param name="max_acc" value="2.0" />
+    <param name="max_vel" value="2.5" />
+  </node>
+  <node pkg="joint_trajectory_generator" type="joint_trajectory_generator" output="screen"
+        name="joint_trajectory_generator" ns="l_arm_controller" >
+    <param name="max_acc" value="2.0" />
+    <param name="max_vel" value="2.5" />
+  </node>
+
+  <!-- tuckarm action -->
+  <node pkg="pr2_tuck_arms_action" type="tuck_arms.py" name="tuck_arms_action" output="screen">
+    <param name="r_joint_trajectory_action" value="r_arm_controller/joint_trajectory_generator" />
+    <param name="l_joint_trajectory_action" value="l_arm_controller/joint_trajectory_generator" />
+    <param name="move_duration" value="0.0" />
+  </node>
+
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_pr2)/world/greenroom.yaml" output="screen" machine="c2" />
+
+  <!--- Run AMCL -->
+  <include file="$(find collvoid_pr2)/launch/amcl_pr2.launch"/> 
+ 
+  <!--- Run Controller -->
+  <rosparam command="load" file="$(find collvoid_turtlebot)/goals.yaml"/>
+  <node pkg="collvoid_local_planner" type="controllerTurtles.py" name="controller_turtles" output="screen" machine="c2" />
+
+
+  <!-- Throttle the voxel grid that is being published for rviz -->
+  <node ns="move_base_node/local_costmap" name="voxel_grid_throttle" pkg="topic_tools" type="throttle" machine="c2" args="messages voxel_grid 3.0 voxel_grid_throttled" />
+
+
+  <!--- Run collvoid -->
+  <rosparam command="load" file="$(find collvoid_pr2)/params/params_created.yaml"/>
+  <node pkg="move_base" type="move_base" name="move_base_node" machine="c2">
+    <remap from="odom" to="base_odometry/odom" />
+    <remap from="cmd_vel" to="navigation/cmd_vel" />
+
+    <rosparam command="load" file="$(find collvoid_pr2)/params/params_pr2.yaml"/>
+   <!---  <param name="base_local_planner" value="pose_follower/PoseFollower" /> -->  
+   <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
+   <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" />
+       
+  </node>
+</launch>
