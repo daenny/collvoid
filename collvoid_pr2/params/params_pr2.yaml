@@ -19,6 +19,7 @@ CollvoidLocalPlanner:
   max_vel_th: 1.0
   min_vel_x: 0.01
   min_vel_th: 0.1
+  min_vel_theta_inplace: 0.1
   min_vel_y: 0.01
   max_vel_y: 0.2
   acc_lim_x: 2.5
@@ -46,7 +47,7 @@ TrajectoryPlannerROS:
 
 
 local_costmap:
-  global_frame: /odom
+  global_frame: /odom_combined
   robot_base_frame: /base_footprint
   update_frequency: 3.0
   publish_frequency: 2.0
