@@ -1,7 +1,7 @@
 <launch>
 
   <!--- Run Robot Pose EKF -->
-  <include file="$(find turtlebot_bringup)/base.launch" />
+  <include file="$(find collvoid_turtlebot)/launch/base.launch" />
 
   <!--- Run the kinect 
   <include file="$(find collvoid_turtlebot)/launch/kinect.launch" /> 
@@ -20,7 +20,7 @@
  
   <!--- Run Controller -->
   <rosparam command="load" file="$(find collvoid_controller)/goals.yaml"/>
-  <node pkg="collvoid_local_planner" type="controllerRobots.py" name="controller_robots" output="screen" />
+  <node pkg="collvoid_controller" type="controllerRobots.py" name="controller_robots" output="screen" />
 
   <!--- Run collvoid -->
   <rosparam command="load" file="$(find collvoid_turtlebot)/params/params_created.yaml"/>
