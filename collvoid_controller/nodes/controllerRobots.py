@@ -147,7 +147,9 @@ if __name__ == '__main__':
         
     rospy.init_node('controller_robots')
     controller_waypoints = ControllerRobots()
-    rospy.spin()
-#    r = rospy.Rate(100)
-#    while not rospy.is_shutdown():
-#        r.sleep()
+    #rospy.spin()
+
+    r = rospy.Rate(20)
+    while not rospy.is_shutdown():
+        r.sleep()
+    rospy.delete_param("/move_base/")
