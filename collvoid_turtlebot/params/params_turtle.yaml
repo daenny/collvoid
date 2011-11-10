@@ -8,7 +8,7 @@ CollvoidLocalPlanner:
   threshold_last_seen: 1.0
 
   yaw_goal_tolerance: 0.15
-  xy_goal_tolerance: 0.10
+  xy_goal_tolerance: 0.15
 #  latch_xy_goal_tolerance: true
   global_frame: /map
   wheel_base: 0.25
@@ -22,7 +22,7 @@ CollvoidLocalPlanner:
   max_vel_th: 1.5
   min_vel_x: 0.1
   min_vel_th: 0.1
-  min_vel_theta_inplace: 0.3
+  min_vel_theta_inplace: 0.4
   min_vel_y: 0.01
   max_vel_y: 0.1
   acc_lim_x: 2.0
