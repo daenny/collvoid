@@ -273,7 +273,12 @@ void ROSAgent::computeNewVelocity()
   /* Create agent ORCA lines. */
   for (size_t i = 0; i < agentNeighbors_.size(); ++i) {
     const Agent* const other = agentNeighbors_[i].second;
-
+    if (RVO::abs(other->velocity_) < RVO_EPSILON){
+      insertStationaryAgent(agentNeighbors_[i].second);
+      continue;
+    }
+   
+    
     const Vector2 relativePosition = other->position_ - position_;
     const Vector2 relativeVelocity = velocity_ - other->velocity_;
     const float distSq = absSq(relativePosition);
@@ -467,17 +472,34 @@ bool ROSAgent::compareObstacles(const RVO::Vector2& v1, const RVO::Vector2& v2){
   return RVO::absSq(position_ - v1) <= RVO::absSq(position_ - v2);
 }
 
-void ROSAgent::calculateObstacleLines(){
-  boost::mutex::scoped_lock lock(obstacle_lock_);
 
+void ROSAgent::insertStationaryAgent(const Agent* agent) {
+    double dist = RVO::abs(position_ - agent->position_);
+    Line line;
+    Vector2 relative_position = agent->position_ - position_;
+    line.point = normalize(relative_position) * (dist - radius_ - agent->radius_ - 0.05);
+
+    line.direction = Vector2 (-normalize(relative_position).y(),normalize(relative_position).x()) ; 
+    
+    orcaLines_.push_back(line);
+  
+}
+
+void ROSAgent::sortObstacleLines(){
+  boost::mutex::scoped_lock lock(obstacle_lock_);
   std::sort(obstacle_points_.begin(),obstacle_points_.end(), boost::bind(&ROSAgent::compareObstacles,this,_1,_2));
+}
+
+void ROSAgent::calculateObstacleLines(){
   
   for(size_t i = 0; i< obstacle_points_.size(); i++){
     //ROS_DEBUG("obstacle at %f %f dist %f",obstacle_points_[i].x(),obstacle_points_[i].y(),RVO::abs(position_-obstacle_points_[i]));
+    if (delete_observations_ && pointInNeighbor(obstacle_points_[i]))
+      continue;
     double dist = RVO::abs(position_ - obstacle_points_[i]);
     Line line;
     Vector2 relative_position = obstacle_points_[i] - position_;
-    line.point = normalize(relative_position) * (dist - radius_ + 0.05);
+    line.point = normalize(relative_position) * (dist - radius_ - 0.05);
 
     line.direction = Vector2 (-normalize(relative_position).y(),normalize(relative_position).x()) ; 
     
@@ -487,6 +509,14 @@ void ROSAgent::calculateObstacleLines(){
       return;
   }
 
+}
+
+bool ROSAgent::pointInNeighbor(RVO::Vector2& point) {
+  for (size_t i = 0; i<agentNeighbors_.size();i++){
+    if (RVO::abs(point - agentNeighbors_[i].second->position_) <= agentNeighbors_[i].second->radius_)
+      return true;
+  }
+  return false;
 }
 
 void ROSAgent::setMaxTrackSpeed(float max_track_speed) {
@@ -633,6 +663,11 @@ void ROSAgent::setTimeHorizon(float time_horizon){
 }
 void ROSAgent::setTimeHorizonObst(float time_horizon_obst){
   this->timeHorizonObst_ = time_horizon_obst;
+}
+
+
+void ROSAgent::setDeleteObservations(bool delete_observations){
+  this->delete_observations_ = delete_observations;
 }
 
 void ROSAgent::clearNeighbors(){

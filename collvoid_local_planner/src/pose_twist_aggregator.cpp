@@ -101,8 +101,8 @@ void PoseTwistAggregator::publishInitialGuess(double noise_std){
   init_guess.header.frame_id = global_frame_;
     
   //set covariance to 0.2 in x and y and 0.068 in ang
-  init_guess.pose.covariance[0] = 0.2;
-  init_guess.pose.covariance[7] = 0.2;
+  init_guess.pose.covariance[0] = 0.1;
+  init_guess.pose.covariance[7] = 0.1;
   init_guess.pose.covariance[35] = 0.068;
 
   init_guess_pub_.publish(init_guess);

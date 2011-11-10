@@ -136,7 +136,9 @@ namespace collvoid_local_planner {
       time_to_holo_ = getParamDef(private_nh,"time_to_holo", 0.4);
       min_error_holo_ = getParamDef(private_nh,"min_error_holo", 0.01);
       max_error_holo_ = getParamDef(private_nh, "max_error_holo", 0.15);
-	
+      bool delete_observations;
+      delete_observations = getParamDef(private_nh, "delete_observations", true);
+
       THRESHOLD_LAST_SEEN_ = getParamDef(private_nh,"threshold_last_seen",1.0);
       
       ros::NodeHandle nh;
@@ -164,7 +166,7 @@ namespace collvoid_local_planner {
       me_->setTimeHorizon(time_horizon_);
       me_->setTimeHorizonObst(time_horizon_obst_);
       me_->setTimeStep(sim_period_);
-
+      me_->setDeleteObservations(delete_observations);
       me_->setWheelBase(wheel_base_);
 
       state_ = INIT;
@@ -199,17 +201,17 @@ namespace collvoid_local_planner {
     v_theta_samp = sign(v_theta_samp) * std::min(std::max(fabs(v_theta_samp), min_acc_vel), max_acc_vel);
 
     //we also want to make sure to send a velocity that allows us to stop when we reach the goal given our acceleration limits
-    //double max_speed_to_stop = sqrt(2 * acc_lim_theta_ * fabs(ang_diff)); 
+    double max_speed_to_stop = sqrt(2 * acc_lim_theta_ * fabs(ang_diff)); 
 
-    //    v_theta_samp = sign(v_theta_samp) * std::min(max_speed_to_stop, fabs(v_theta_samp));
-    if (fabs(v_theta_samp)<=0.5 * min_vel_theta_inplace_)
+    v_theta_samp = sign(v_theta_samp) * std::min(max_speed_to_stop, fabs(v_theta_samp));
+    if (fabs(v_theta_samp)<=0.2 * min_vel_theta_inplace_)
       v_theta_samp  = 0.0;
     else if (fabs(v_theta_samp) < min_vel_theta_inplace_)
       v_theta_samp = sign(v_theta_samp) * max(min_vel_theta_inplace_,fabs(v_theta_samp));
     //we still want to lay down the footprint of the robot and check if the action is legal
     bool valid_cmd = true; //TODO tc_->checkTrajectory(global_pose.getOrigin().getX(), global_pose.getOrigin().getY(), yaw, robot_vel.getOrigin().getX(), robot_vel.getOrigin().getY(), vel_yaw, 0.0, 0.0, v_theta_samp);
 
-    //ROS_DEBUG("Moving to desired goal orientation, th cmd: %.2f, valid_cmd: %d", v_theta_samp, valid_cmd);
+    ROS_DEBUG("Moving to desired goal orientation, th cmd: %.2f", v_theta_samp);
 
     if(valid_cmd){
       cmd_vel.angular.z = v_theta_samp;
@@ -272,8 +274,11 @@ namespace collvoid_local_planner {
     xy_tolerance_latch_ = false;
     //transformed_plan = global_plan;
     //get the global plan in our frame
-    
-
+    if(!transformGlobalPlan(*tf_, global_plan_, *costmap_ros_, global_frame_, transformed_plan_)){
+	ROS_WARN("Could not transform the global plan to the frame of the controller");
+	return false;
+    }
+     
     return true;
   }
 
@@ -302,11 +307,6 @@ namespace collvoid_local_planner {
       return false;
     }
 
-    if(!transformGlobalPlan(*tf_, global_plan_, *costmap_ros_, global_frame_, transformed_plan_)){
-      ROS_WARN("Could not transform the global plan to the frame of the controller");
-      return false;
-    }
-
     //  tf::Stamped<tf::Pose> global_pose;
     //if(!costmap_ros_->getRobotPose(global_pose))
     //  return false;
@@ -314,7 +314,6 @@ namespace collvoid_local_planner {
     //interpolate own position
     collvoid_msgs::PoseTwistWithCovariance me_msg = pt_agg_->getLastMeMsg();
     updateROSAgentWithMsg(me_, &me_msg);
-
     
     tf::Stamped<tf::Pose> global_pose;
      //let's get the pose of the robot in the frame of the plan
@@ -322,11 +321,9 @@ namespace collvoid_local_planner {
     global_pose.frame_id_ = robot_base_frame_;
     global_pose.stamp_ = ros::Time();
     tf_->transformPose(global_frame_, global_pose, global_pose);
-    
-
 
     //we also want to clear the robot footprint from the costmap we're using
-    costmap_ros_->clearRobotFootprint();
+    //costmap_ros_->clearRobotFootprint();
 
     //make sure to update the costmap we'll use for this cycle
     //costmap_ros_->getCostmapCopy(costmap_);
@@ -431,13 +428,18 @@ namespace collvoid_local_planner {
     tf::poseStampedMsgToTF(transformed_plan_[current_waypoint_], target_pose);
    
     if (base_local_planner::goalPositionReached(global_pose, target_pose.getOrigin().x(), target_pose.getOrigin().y(),xy_goal_tolerance_)) {
+      if(!transformGlobalPlan(*tf_, global_plan_, *costmap_ros_, global_frame_, transformed_plan_)){
+	ROS_WARN("Could not transform the global plan to the frame of the controller");
+	return false;
+      }
       geometry_msgs::PoseStamped target_pose_msg;
       findBestWaypoint(target_pose_msg, global_pose);
-      current_waypoint_ = transformed_plan_.size()-1;
+      //current_waypoint_ = transformed_plan_.size()-1;
       //ROS_DEBUG("Cur waypoint = %d, of %d", current_waypoint_, transformed_plan_.size());
-
-      tf::poseStampedMsgToTF(transformed_plan_[current_waypoint_], target_pose);
     }
+
+    tf::poseStampedMsgToTF(transformed_plan_[current_waypoint_], target_pose);
+    
     //tf::poseStampedMsgToTF(global_plan_.back(), target_pose);
       
     //ROS_DEBUG("Collvoid: current robot pose %f %f ==> %f", global_pose.getOrigin().x(), global_pose.getOrigin().y(), tf::getYaw(global_pose.getRotation()));
@@ -464,6 +466,7 @@ namespace collvoid_local_planner {
     double min_dist =  addAllNeighbors(); //closest neighbor TODO: keep in mind for obstacles..
     double T = time_to_holo_; //in how much time I want to be on the holonomic track
     double old_radius = pt_agg_->getRadius();
+    me_->sortObstacleLines();
     if (!me_->isHoloRobot()) {
     
       double min_error = min_error_holo_;
@@ -472,6 +475,8 @@ namespace collvoid_local_planner {
       //double speed = RVO::abs(me_->velocity_);
       
       double error = max_error;
+      double min_dist_obst = RVO::abs(me_->obstacle_points_[0] - me_->position_) - old_radius;
+      min_dist = std::min(min_dist, min_dist_obst);
       if (min_dist < old_radius){
 	  error = min_error + (max_error-min_error) * min_dist / old_radius; // how much error do i allow?
 	  if (error<0) {
@@ -658,12 +663,12 @@ namespace collvoid_local_planner {
    
     RVO::Vector2 vel = rotateVectorByAngle(msg->twist.twist.linear.x, msg->twist.twist.linear.y, agent->getHeading());
     if (RVO::abs(vel) < RVO_EPSILON){
-      if (agent != me_) {
-       	vel = rotateVectorByAngle(0.01, 0.0, me_->getHeading()+sampleNormal(0.0, 2.0));
-      }
-      else {
-	vel = rotateVectorByAngle(0.01, 0.0, me_->getHeading()+sampleNormal(0.0, 0.1));
-      }
+      // if (agent != me_) {
+      //  	vel = rotateVectorByAngle(0.01, 0.0, me_->getHeading()+sampleNormal(0.0, 2.0));
+      // }
+      // else {
+      // 	vel = rotateVectorByAngle(0.01, 0.0, me_->getHeading()+sampleNormal(0.0, 0.1));
+      // }
     }
     agent->setVelocity(vel.x(),vel.y());
    

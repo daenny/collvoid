@@ -25,7 +25,10 @@ class ROSAgent : public RVO::Agent {
   }
 
   void calculateObstacleLines();
+  void insertStationaryAgent(const Agent*  agent);
   bool compareObstacles(const RVO::Vector2& v1, const RVO::Vector2& v2);
+  bool pointInNeighbor(RVO::Vector2& point);
+
 
   float timestep_;
   float heading_;
@@ -36,6 +39,7 @@ class ROSAgent : public RVO::Agent {
   float wheel_base_;
 
   bool holo_robot_;
+  bool delete_observations_;
 
   RVO::Vector2 holo_velocity_;
   ros::Time last_seen_;
@@ -78,6 +82,8 @@ class ROSAgent : public RVO::Agent {
   void setTimeHorizon(float time_horizon);
   void setTimeHorizonObst(float time_horizon_obst);
 
+  void setDeleteObservations(bool delete_observations);
+
   void clearNeighbors();
 
   void computeNewVelocity();
@@ -92,7 +98,7 @@ class ROSAgent : public RVO::Agent {
   void addAccelerationConstraintsXY(double max_vel_x, double acc_lim_x, double max_vel_y, double acc_lim_y, double sim_period);
 
   void addMovementConstraintsDiff(double error,double T,  double max_vel_x, double max_vel_th);
-
+  void sortObstacleLines();
   boost::mutex odom_lock_, obstacle_lock_;
   nav_msgs::Odometry base_odom_; ///< @brief Used to get the velocity of the robot
   std::vector<RVO::Vector2> obstacle_points_;
