@@ -1,4 +1,4 @@
 /simulation_mode: false
 /use_ground_truth: false
-/scale_radius: false
+/scale_radius: true
 /init_guess_noise_std: 0.0
