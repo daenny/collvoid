@@ -19,8 +19,8 @@
   <include file="$(find collvoid_turtlebot)/launch/amcl_turtlebot.launch"/> 
  
   <!--- Run Controller -->
-  <rosparam command="load" file="$(find collvoid_turtlebot)/goals.yaml"/>
-  <node pkg="collvoid_local_planner" type="controllerTurtles.py" name="controller_turtles" output="screen" />
+  <rosparam command="load" file="$(find collvoid_controller)/goals.yaml"/>
+  <node pkg="collvoid_local_planner" type="controllerRobots.py" name="controller_robots" output="screen" />
 
   <!--- Run collvoid -->
   <rosparam command="load" file="$(find collvoid_turtlebot)/params/params_created.yaml"/>

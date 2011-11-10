@@ -29,8 +29,8 @@
   <include file="$(find collvoid_pr2)/launch/amcl_pr2.launch"/> 
  
   <!--- Run Controller -->
-  <rosparam command="load" file="$(find collvoid_turtlebot)/goals.yaml"/>
-  <node pkg="collvoid_local_planner" type="controllerTurtles.py" name="controller_turtles" output="screen" machine="c2" />
+  <rosparam command="load" file="$(find collvoid_controller)/goals.yaml"/>
+  <node pkg="collvoid_local_planner" type="controllerRobots.py" name="controller_robots" output="screen" machine="c2" />
 
 
   <!-- Throttle the voxel grid that is being published for rviz -->

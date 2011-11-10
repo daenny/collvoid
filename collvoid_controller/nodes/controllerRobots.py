@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import roslib; roslib.load_manifest('collvoid_local_planner')
+import roslib; roslib.load_manifest('collvoid_controller')
 import rospy
 import commands
 import string
@@ -22,7 +22,7 @@ def dist(a, b):
     return math.sqrt(math.pow(a.position.x - b.position.x, 2) + math.pow(a.position.y - b.position.y, 2))
 
 
-class ControllerTurtles():
+class ControllerRobots():
 
     def __init__(self):
         self.initialize()
@@ -145,8 +145,8 @@ if __name__ == '__main__':
  #   hostname = argv = sys.argv[1]
 
         
-    rospy.init_node('controller_turtles')
-    controller_waypoints = ControllerTurtles()
+    rospy.init_node('controller_robots')
+    controller_waypoints = ControllerRobots()
     rospy.spin()
 #    r = rospy.Rate(100)
 #    while not rospy.is_shutdown():
