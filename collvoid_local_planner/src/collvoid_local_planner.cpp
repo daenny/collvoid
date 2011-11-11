@@ -174,8 +174,9 @@ namespace collvoid_local_planner {
       skip_next_ = false;
       g_plan_pub_ = private_nh.advertise<nav_msgs::Path>("global_plan", 1);
       l_plan_pub_ = private_nh.advertise<nav_msgs::Path>("local_plan", 1);
-
-      obstacles_sub_ = nh.subscribe("local_costmap/obstacles",1,&CollvoidLocalPlanner::obstaclesCallback,this);
+      std::string move_base_name = ros::this_node::getName();
+      //ROS_ERROR("%s name of node", thisname.c_str());
+      obstacles_sub_ = nh.subscribe(move_base_name + "/local_costmap/obstacles",1,&CollvoidLocalPlanner::obstaclesCallback,this);
     }
     else
       ROS_WARN("This planner has already been initialized, you can't call it twice, doing nothing");

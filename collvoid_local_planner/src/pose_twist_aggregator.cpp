@@ -149,7 +149,7 @@ void PoseTwistAggregator::odomCallback(const nav_msgs::Odometry::ConstPtr& msg){
   if (tf_->frameExists(global_frame_) && tf_->frameExists(robot_base_frame_)) {
     try {
       tf::StampedTransform transform;
-      tf_->waitForTransform(global_frame_, robot_base_frame_, msg->header.stamp, ros::Duration(0.1));
+      tf_->waitForTransform(global_frame_, robot_base_frame_, msg->header.stamp, ros::Duration(0.2));
       tf_->lookupTransform(global_frame_, robot_base_frame_, msg->header.stamp, transform);
       geometry_msgs::Pose pose;
       tf::poseTFToMsg(transform, pose);
