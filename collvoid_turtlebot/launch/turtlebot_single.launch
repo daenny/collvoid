@@ -29,7 +29,7 @@
     <rosparam command="load" file="$(find collvoid_turtlebot)/params/params_turtle.yaml"/>
    <!---  <param name="base_local_planner" value="pose_follower/PoseFollower" /> -->  
        <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
-<!---       <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" /> -->
+       <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" />
 
        <remap from="/cmd_vel" to="/turtlebot_node/cmd_vel"/>
   </node>
