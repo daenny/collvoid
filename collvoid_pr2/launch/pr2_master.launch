@@ -9,6 +9,7 @@
 <!---  <include file="$(find collvoid_pr2)/launch/amcl_pr2.launch"/> 
 --> 
 
+  <include file="$(find pr2_navigation_teleop)/teleop.xml"/>
   <include file="$(find pr2_navigation_perception)/lasers_and_filters.xml"/>
   <include file="$(find pr2_navigation_perception)/ground_plane.xml"/>
 
