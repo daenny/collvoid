@@ -1,4 +1,11 @@
 /controller_frequency: 10
+footprint: [[-0.325, -0.325], [-0.325, 0.325], [0.325, 0.325], [0.46, 0.0], [0.325, -0.325]]
+controller_frequency: 10.0
+controller_patience: 15.0
+clearing_radius: 0.59
+footprint_padding: 0.015
+
+
 
 CollvoidLocalPlanner:
   simulation_mode: true
@@ -59,35 +66,20 @@ local_costmap:
   height: 6.0
   resolution: 0.05
 
-  #BEGIN VOXEL STUFF
-  map_type: voxel
-  origin_z: 0.0
-  z_voxels: 16
-  z_resolution: 0.1125
-  unknown_cost_value: 0
-  unknown_threshold: 8
-  mark_threshold: 0
-  #END VOXEL STUFF
-
-  transform_tolerance: 0.2
-  obstacle_range: 2.5
-  raytrace_range: 3.0
-  inflation_radius: 0.55
-
   # BEGIN VOXEL STUFF
-  observation_sources: base_scan 
+  observation_sources: base_scan_marking base_scan tilt_scan ground_object_cloud
 
-#  base_scan_marking: {sensor_frame: base_laser_link, topic: /base_scan_marking, data_type: PointCloud, expected_update_rate: 0.2,
-#  observation_persistence: 0.0, marking: true, clearing: false, min_obstacle_height: 0.08, max_obstacle_height: 2.0}
+  base_scan_marking: {sensor_frame: base_laser_link, topic: /base_scan_marking, data_type: PointCloud, expected_update_rate: 0.2,
+    observation_persistence: 0.0, marking: true, clearing: false, min_obstacle_height: 0.08, max_obstacle_height: 2.0}
 
   base_scan: {sensor_frame: base_laser_link, topic: /base_scan, data_type: LaserScan, expected_update_rate: 0.2,
-  observation_persistence: 0.0, marking: false, clearing: true, min_obstacle_height: -0.10, max_obstacle_height: 2.0}
+               observation_persistence: 0.0, marking: false, clearing: true, min_obstacle_height: -0.10, max_obstacle_height: 2.0}
 
-#  tilt_scan: {sensor_frame: laser_tilt_link, topic: /tilt_scan, data_type: LaserScan, expected_update_rate: 0.2,
-#  observation_persistence: 0.2, marking: false, clearing: true, min_obstacle_height: -20.00, max_obstacle_height: 40.0}
+  tilt_scan: {sensor_frame: laser_tilt_link, topic: /tilt_scan, data_type: LaserScan, expected_update_rate: 0.2,
+               observation_persistence: 0.2, marking: false, clearing: true, min_obstacle_height: -20.00, max_obstacle_height: 40.0}
 
-#  ground_object_cloud: {sensor_frame: laser_tilt_link, topic: /ground_object_cloud, data_type: PointCloud, expected_update_rate: 0.2,
-#  observation_persistence: 4.6, marking: true, clearing: false, min_obstacle_height: -0.10, max_obstacle_height: 2.0}
+  ground_object_cloud: {sensor_frame: laser_tilt_link, topic: /ground_object_cloud, data_type: PointCloud, expected_update_rate: 0.2,
+                         observation_persistence: 4.6, marking: true, clearing: false, min_obstacle_height: -0.10, max_obstacle_height: 2.0}
   # END VOXEL STUFF
 
       
@@ -113,19 +105,44 @@ global_costmap:
   obstacle_range: 2.5
   raytrace_range: 3.0
   inflation_radius: 0.55
-
   # BEGIN VOXEL STUFF
-  observation_sources: base_scan
+  observation_sources: base_scan_marking base_scan tilt_scan ground_object_cloud
 
-#  base_scan_marking: {sensor_frame: base_laser_link, topic: /base_scan_marking, data_type: PointCloud, expected_update_rate: 0.2,
-#  observation_persistence: 0.0, marking: true, clearing: false, min_obstacle_height: 0.08, max_obstacle_height: 2.0}
+  base_scan_marking: {sensor_frame: base_laser_link, topic: /base_scan_marking, data_type: PointCloud, expected_update_rate: 0.2,
+    observation_persistence: 0.0, marking: true, clearing: false, min_obstacle_height: 0.08, max_obstacle_height: 2.0}
 
   base_scan: {sensor_frame: base_laser_link, topic: /base_scan, data_type: LaserScan, expected_update_rate: 0.2,
-  observation_persistence: 0.0, marking: false, clearing: true, min_obstacle_height: -0.10, max_obstacle_height: 2.0}
+               observation_persistence: 0.0, marking: false, clearing: true, min_obstacle_height: -0.10, max_obstacle_height: 2.0}
 
-#  tilt_scan: {sensor_frame: laser_tilt_link, topic: /tilt_scan, data_type: LaserScan, expected_update_rate: 0.2,
-#  observation_persistence: 0.2, marking: false, clearing: true, min_obstacle_height: -20.00, max_obstacle_height: 40.0}
+  tilt_scan: {sensor_frame: laser_tilt_link, topic: /tilt_scan, data_type: LaserScan, expected_update_rate: 0.2,
+               observation_persistence: 0.2, marking: false, clearing: true, min_obstacle_height: -20.00, max_obstacle_height: 40.0}
 
-#  ground_object_cloud: {sensor_frame: laser_tilt_link, topic: /ground_object_cloud, data_type: PointCloud, expected_update_rate: 0.2,
-#  observation_persistence: 4.6, marking: true, clearing: false, min_obstacle_height: -0.10, max_obstacle_height: 2.0}
+  ground_object_cloud: {sensor_frame: laser_tilt_link, topic: /ground_object_cloud, data_type: PointCloud, expected_update_rate: 0.2,
+                         observation_persistence: 4.6, marking: true, clearing: false, min_obstacle_height: -0.10, max_obstacle_height: 2.0}
   # END VOXEL STUFF
+
+
+recovery_behaviors:
+  - name: 'super_conservative_reset'
+    type: 'clear_costmap_recovery/ClearCostmapRecovery'
+  - name: 'conservative_reset'
+    type: 'clear_costmap_recovery/ClearCostmapRecovery'
+  - name: 'aggressive_reset'
+    type: 'clear_costmap_recovery/ClearCostmapRecovery'
+  - name: 'move_slow_and_clear'
+    type: 'move_slow_and_clear/MoveSlowAndClear'
+
+super_conservative_reset:
+  reset_distance: 5.0
+
+conservative_reset:
+  reset_distance: 3.0
+
+aggressive_reset:
+  reset_distance: 1.84
+
+move_slow_and_clear:
+  clearing_distance: 0.5
+  limited_trans_speed: 0.25
+  limited_rot_speed: 0.45
+  limited_distance: 0.3
