@@ -16,7 +16,7 @@
   <include file="$(find collvoid_turtlebot)/launch/hokuyo.launch" />
 
   <!--- Run AMCL -->
-  <include file="$(find collvoid_turtlebot)/launch/amcl_turtlebot.launch"/> 
+  <include file="$(find collvoid_turtlebot)/launch/amcl_turtlebot_map_from_topic.launch" />
  
   <!--- Run Controller -->
   <rosparam command="load" file="$(find collvoid_controller)/goals.yaml"/>
