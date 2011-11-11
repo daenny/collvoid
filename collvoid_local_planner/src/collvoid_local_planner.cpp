@@ -805,7 +805,16 @@ namespace collvoid_local_planner {
       in.header = msg->header;
       in.point = msg->cells[i];
       //ROS_DEBUG("obstacle at %f %f",msg->cells[i].x,msg->cells[i].y);
-      tf_->transformPoint(global_frame_, in, result);
+      try {
+	tf_->waitForTransform(global_frame_, robot_base_frame_, msg->header.stamp, ros::Duration(0.3));
+
+	tf_->transformPoint(global_frame_, in, result);
+      }
+      catch (tf::TransformException ex){
+	ROS_ERROR("%s",ex.what());
+	return;
+      };
+
       me_->obstacle_points_.push_back(RVO::Vector2(result.point.x,result.point.y));
     }
    
