@@ -46,8 +46,9 @@ class ControllerRobots():
         self.hostname = rospy.get_namespace()
         if (self.hostname == "/"):
             self.hostname = gethostname()
-
-        self.goals = rospy.get_param("/%s/goals"%self.hostname)
+            self.goals = rospy.get_param("/%s/goals"%self.hostname)
+        else:
+            self.goals = rospy.get_param("%sgoals"%self.hostname)
         rospy.loginfo("goals: %s"%str(self.goals))
         self.cur_goal = 0
         self.num_goals = len(self.goals["x"])

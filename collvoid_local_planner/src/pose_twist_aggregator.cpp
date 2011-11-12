@@ -17,10 +17,11 @@ initialized_(false)
 {
 }
 
-void PoseTwistAggregator::initialize(ros::NodeHandle private_nh, tf::TransformListener* tf, bool use_ground_truth, bool scale_radius, double radius, bool holo_robot, std::string robot_base_frame, std::string global_frame, std::string my_id ){
+void PoseTwistAggregator::initialize(ros::NodeHandle private_nh, tf::TransformListener* tf, bool use_ground_truth, bool scale_radius, double radius, double scale_radius_fac, bool holo_robot, std::string robot_base_frame, std::string global_frame, std::string my_id ){
   tf_ = tf;
   use_ground_truth_ = use_ground_truth;
   scale_radius_ = scale_radius;
+  scale_radius_fac_ = scale_radius_fac;
   radius_ = radius;
   holo_robot_= holo_robot;
   robot_base_frame_ = robot_base_frame;
@@ -36,10 +37,12 @@ void PoseTwistAggregator::initialize(ros::NodeHandle private_nh, tf::TransformLi
 void PoseTwistAggregator::initialize(ros::NodeHandle private_nh, tf::TransformListener* tf){
 
   tf_ = tf;
-  rad_unc_ = -1.0;
-
   private_nh.param("use_ground_truth",use_ground_truth_,false);
   private_nh.param("scale_radius",scale_radius_,true);
+  if (scale_radius_)
+    private_nh.param("scale_radius_factor",scale_radius_fac_,1.0);
+
+
   private_nh.param("radius",radius_, 0.5); 
   private_nh.param("holo_robot", holo_robot_, false);
   private_nh.param<std::string>("base_frame", robot_base_frame_, "/base_link");
@@ -285,8 +288,8 @@ void PoseTwistAggregator::publishMePosition(){
    p.z = 0.1;
    me_marker.markers[1].points.push_back(p);
    
-   p.x += last_me_msg_.radius * 1.25 * cos(yaw + th_dif); 
-   p.y += last_me_msg_.radius * 1.25 * sin(yaw + th_dif);
+   p.x += last_me_msg_.radius * 2.0 * cos(yaw + th_dif); 
+   p.y += last_me_msg_.radius * 2.0 * sin(yaw + th_dif);
    me_marker.markers[1].points.push_back(p);
    me_pub_.publish(me_marker);
 
@@ -352,8 +355,8 @@ void PoseTwistAggregator::publishNeighborPositions(){
    p.z = 0.1;
    sphere_list.markers[2*i+1].points.push_back(p);
    
-   p.x += neighbors_[i].radius * 1.25 * cos(yaw + th_dif); 
-   p.y += neighbors_[i].radius * 1.25 * sin(yaw + th_dif);
+   p.x += neighbors_[i].radius * 2.0 * cos(yaw + th_dif); 
+   p.y += neighbors_[i].radius * 2.0 * sin(yaw + th_dif);
    sphere_list.markers[2*i+1].points.push_back(p);
    
 
@@ -375,10 +378,19 @@ void PoseTwistAggregator::setRadius(double radius){
 }
 
 double PoseTwistAggregator::getRadius(){
-  if (rad_unc_ != -1.0)
-    return std::min(radius_ + rad_unc_, 2.0* radius_);  //TODO maybe add scaling factor in front..
-  else 
+  if (rad_unc_ != -1.0) {
+    ROS_DEBUG("radius scaled = %f cov %f, rad = %f",std::min(radius_ + scale_radius_fac_ * rad_unc_, 2.0 * radius_), rad_unc_,radius_);
+    return std::min(radius_ + scale_radius_fac_ * rad_unc_, 2.0 * radius_);
+  }
+  else {
+    //ROS_DEBUG("radius = %f", radius_);
+
     return radius_;
+  }
+}
+
+void PoseTwistAggregator::setScaleRadiusFactor(double scale_radius_factor){
+  scale_radius_fac_ = scale_radius_factor;
 }
 
 void PoseTwistAggregator::setMaxRadiusCov(double rad_unc){

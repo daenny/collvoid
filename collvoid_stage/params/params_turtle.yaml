@@ -7,6 +7,8 @@ CollvoidLocalPlanner:
   time_horizon_obst: 10.0
   threshold_last_seen: 1.0
 
+  scale_radius_factor: 1.0
+
   yaw_goal_tolerance: 0.15
   xy_goal_tolerance: 0.10
 #  latch_xy_goal_tolerance: true
@@ -28,8 +30,8 @@ CollvoidLocalPlanner:
   acc_lim_x: 1.0
   acc_lim_y: 0.0
   acc_lim_th: 1.0
-  radius: 0.20
-  inscribed_radius: 0.20
+  radius: 0.17
+  inscribed_radius: 0.17
 
 TrajectoryPlannerROS:
   max_vel_x: 0.50

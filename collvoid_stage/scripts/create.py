@@ -107,10 +107,10 @@ def create_yaml_file(circleSize, numRobots,omni,simulation,localization,centerX,
         posY = circleSize*math.sin(angleX/360*2*math.pi)
   
         yamlWrite.write('robot_{0}:\n'.format(x))
-        yamlWrite.write('    goal:\n')
-        yamlWrite.write('        x: {0:f}\n'.format(centerX-posY))
-        yamlWrite.write('        y: {0:f}\n'.format(centerY+posX))
-        yamlWrite.write('        ang: {0:f}\n'.format((angleX+90) / 360.0 * 2 * math.pi))
+        yamlWrite.write('    goals:\n')
+        yamlWrite.write('        x: [{0:f}]\n'.format(centerX-posY))
+        yamlWrite.write('        y: [{0:f}]\n'.format(centerY+posX))
+        yamlWrite.write('        ang: [{0:f}]\n'.format((angleX+90) / 360.0 * 2 * math.pi))
     
     yamlWrite.close()
     
@@ -147,7 +147,7 @@ def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,
         launchWrite.write('    <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" />\n')
 
         launchWrite.write('  </node> \n')
-        launchWrite.write('  <node pkg="collvoid_local_planner" type="controllerWaypoints.py" name="controllerWP" ns="robot_{0}" output="screen" />\n'.format(x))
+        launchWrite.write('  <node pkg="collvoid_controller" type="controllerRobots.py" name="controllerRobots" ns="robot_{0}" output="screen" />\n'.format(x))
     launchWrite.write('  <node pkg="collvoid_controller" type="controller.py" name="controller" output="screen" />\n')
   
     s = ""

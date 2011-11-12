@@ -81,10 +81,11 @@ namespace collvoid_local_planner {
 
       getParam(private_nh, "holo_robot",&holo_robot_);
       
-      if (!holo_robot_)
+      if (!holo_robot_) 
 	getParam(private_nh,"wheel_base", &wheel_base_);
       else
 	wheel_base_ = 0.0;
+
 
       getParam(private_nh,"max_vel_x", &max_vel_x_);
       getParam(private_nh,"min_vel_x", &min_vel_x_);
@@ -111,22 +112,26 @@ namespace collvoid_local_planner {
       if(!private_nh.searchParam("controller_frequency", controller_frequency_param_name))
         sim_period_ = 0.05;
       else
-      {
-        double controller_frequency = 0;
-        private_nh.param(controller_frequency_param_name, controller_frequency, 20.0);
-        if(controller_frequency > 0)
-          sim_period_ = 1.0 / controller_frequency;
-        else
-        {
-          ROS_WARN("A controller_frequency less than 0 has been set. Ignoring the parameter, assuming a rate of 20Hz");
-          sim_period_ = 0.05;
-        }
-      }
+	{
+	  double controller_frequency = 0;
+	  private_nh.param(controller_frequency_param_name, controller_frequency, 20.0);
+	  if(controller_frequency > 0)
+	    sim_period_ = 1.0 / controller_frequency;
+	  else
+	    {
+	      ROS_WARN("A controller_frequency less than 0 has been set. Ignoring the parameter, assuming a rate of 20Hz");
+	      sim_period_ = 0.05;
+	    }
+	}
       ROS_INFO("Sim period is set to %.2f", sim_period_);
 
       
       use_ground_truth_ = getParamDef(private_nh,"/use_ground_truth",false);
       scale_radius_ = getParamDef(private_nh,"/scale_radius",true);
+      double scale_radius_factor = 0.0;
+      if (scale_radius_)
+	getParam(private_nh,"scale_radius_factor",&scale_radius_factor);
+      
   
       max_neighbors_ = getParamDef(private_nh,"max_neighbors",10);
       neighbor_dist_ = getParamDef(private_nh,"neighbor_dist",15.0);
@@ -153,7 +158,7 @@ namespace collvoid_local_planner {
       ROS_INFO("My name is: %s",my_id.c_str());
       
       pt_agg_ = new PoseTwistAggregator();
-      pt_agg_->initialize(nh,tf,use_ground_truth_, scale_radius_, radius, holo_robot_, robot_base_frame_, global_frame_, my_id);
+      pt_agg_->initialize(nh,tf,use_ground_truth_, scale_radius_, radius, scale_radius_factor, holo_robot_, robot_base_frame_, global_frame_, my_id);
 
 
       me_ = new ROSAgent();
@@ -193,7 +198,7 @@ namespace collvoid_local_planner {
 
     double v_theta_samp = ang_diff > 0.0 ? std::min(max_vel_th_,
 						    std::max(min_vel_theta_inplace_, ang_diff)) : std::max(-1.0 * max_vel_th_,
-													 std::min(-1.0 * min_vel_theta_inplace_, ang_diff));
+													   std::min(-1.0 * min_vel_theta_inplace_, ang_diff));
 
     //take the acceleration limits of the robot into account
     double max_acc_vel = fabs(vel_yaw) + acc_lim_theta_ * sim_period_;
@@ -223,7 +228,7 @@ namespace collvoid_local_planner {
     return false;
   }
 
-    bool CollvoidLocalPlanner::stopWithAccLimits(const tf::Stamped<tf::Pose>& global_pose, const tf::Stamped<tf::Pose>& robot_vel, geometry_msgs::Twist& cmd_vel){
+  bool CollvoidLocalPlanner::stopWithAccLimits(const tf::Stamped<tf::Pose>& global_pose, const tf::Stamped<tf::Pose>& robot_vel, geometry_msgs::Twist& cmd_vel){
     //slow down with the maximum possible acceleration... we should really use the frequency that we're running at to determine what is feasible
     //but we'll use a tenth of a second to be consistent with the implementation of the local planner.
     double vx = sign(robot_vel.getOrigin().x()) * std::max(0.0, (fabs(robot_vel.getOrigin().x()) - acc_lim_x_ * sim_period_));
@@ -276,8 +281,8 @@ namespace collvoid_local_planner {
     //transformed_plan = global_plan;
     //get the global plan in our frame
     if(!transformGlobalPlan(*tf_, global_plan_, *costmap_ros_, global_frame_, transformed_plan_)){
-	ROS_WARN("Could not transform the global plan to the frame of the controller");
-	return false;
+      ROS_WARN("Could not transform the global plan to the frame of the controller");
+      return false;
     }
      
     return true;
@@ -317,7 +322,7 @@ namespace collvoid_local_planner {
     updateROSAgentWithMsg(me_, &me_msg);
     
     tf::Stamped<tf::Pose> global_pose;
-     //let's get the pose of the robot in the frame of the plan
+    //let's get the pose of the robot in the frame of the plan
     global_pose.setIdentity();
     global_pose.frame_id_ = robot_base_frame_;
     global_pose.stamp_ = ros::Time();
@@ -344,9 +349,9 @@ namespace collvoid_local_planner {
     robot_vel.stamp_ = ros::Time();
 
     /* For timing uncomment
-    struct timeval start, end;
-    double start_t, end_t, t_diff;
-    gettimeofday(&start, NULL);
+       struct timeval start, end;
+       double start_t, end_t, t_diff;
+       gettimeofday(&start, NULL);
     */
 
     //if the global plan passed in is empty... we won't do anything
@@ -382,12 +387,6 @@ namespace collvoid_local_planner {
         xy_tolerance_latch_ = false;
       }
       else {
-        //we need to call the next two lines to make sure that the trajectory
-        //planner updates its path distance and goal distance grids
-        //tc_->updatePlan(transformed_plan);
-	//        Trajectory path = tc_->findBestPath(global_pose, robot_vel, drive_cmds);
-        //map_viz_.publishCostCloud();
-
         //copy over the odometry information
         nav_msgs::Odometry base_odom;
         {
@@ -411,8 +410,9 @@ namespace collvoid_local_planner {
       }
 
       //publish an empty plan because we've reached our goal position
-      //publishPlan(transformed_plan, g_plan_pub_, 0.0, 1.0, 0.0, 0.0);
-      //publishPlan(local_plan, l_plan_pub_, 0.0, 0.0, 1.0, 0.0);
+      //transformed_plan_.clear();
+      //base_local_planner::publishPlan(transformed_plan_, g_plan_pub_, 0.0, 1.0, 0.0, 0.0);
+      //base_local_planner::publishPlan(transformed_plan_, l_plan_pub_, 0.0, 0.0, 1.0, 0.0);
 
       //we don't actually want to run the controller when we're just rotating to goal
       return true;
@@ -441,8 +441,6 @@ namespace collvoid_local_planner {
 
     tf::poseStampedMsgToTF(transformed_plan_[current_waypoint_], target_pose);
     
-    //tf::poseStampedMsgToTF(global_plan_.back(), target_pose);
-      
     //ROS_DEBUG("Collvoid: current robot pose %f %f ==> %f", global_pose.getOrigin().x(), global_pose.getOrigin().y(), tf::getYaw(global_pose.getRotation()));
     //ROS_DEBUG("Collvoid: target robot pose %f %f ==> %f", target_pose.getOrigin().x(), target_pose.getOrigin().y(), tf::getYaw(target_pose.getRotation()));
    
@@ -451,7 +449,7 @@ namespace collvoid_local_planner {
     res.linear.x = target_pose.getOrigin().x() - global_pose.getOrigin().x();
     res.linear.y = target_pose.getOrigin().y() - global_pose.getOrigin().y();
     res.angular.z = angles::shortest_angular_distance(tf::getYaw(global_pose.getRotation()),atan2(res.linear.y, res.linear.x));
-    //double dif_ang_goal = res.angular.z;
+    double dif_ang_goal = res.angular.z;
     //angles::shortest_angular_distance(tf::getYaw(global_pose.getRotation()),tf::getYaw(target_pose.getRotation()));
    
     RVO::Vector2 goal_dir = RVO::Vector2(res.linear.x,res.linear.y);
@@ -460,7 +458,7 @@ namespace collvoid_local_planner {
       goal_dir = max_vel_x_ * RVO::normalize(goal_dir);
     }
     else if (RVO::abs(goal_dir) < min_vel_x_) {
-      goal_dir = min_vel_x_ * 1.1 * RVO::normalize(goal_dir);
+      goal_dir = min_vel_x_ * 1.2* RVO::normalize(goal_dir);
     }
   
 
@@ -468,10 +466,15 @@ namespace collvoid_local_planner {
     me_->setHeading(tf::getYaw(global_pose.getRotation()));
     me_->prefVelocity_ = RVO::Vector2(goal_dir.x(),goal_dir.y());
 
-    double min_dist =  addAllNeighbors(); //closest neighbor TODO: keep in mind for obstacles..
     double T = time_to_holo_; //in how much time I want to be on the holonomic track
     double old_radius = pt_agg_->getRadius();
     me_->sortObstacleLines();
+   
+    double min_dist_neigh =  addAllNeighbors(); //closest neighbor 
+    RVO::Vector2 min_obst_vec = me_->obstacle_points_[0] - me_->position_;
+    double min_dist_obst = RVO::abs(min_obst_vec) - old_radius;
+    double min_dist = std::min(min_dist_neigh, min_dist_obst);
+
     if (!me_->isHoloRobot()) {
     
       double min_error = min_error_holo_;
@@ -480,23 +483,24 @@ namespace collvoid_local_planner {
       //double speed = RVO::abs(me_->velocity_);
       
       double error = max_error;
-      double min_dist_obst = RVO::abs(me_->obstacle_points_[0] - me_->position_) - old_radius;
-      min_dist = std::min(min_dist, min_dist_obst);
-      if (min_dist < old_radius){
-	  error = min_error + (max_error-min_error) * min_dist / old_radius; // how much error do i allow?
-	  if (error<0) {
-	    error = min_error;
-	    ROS_WARN("%s I think I am in collision", me_->getId().c_str());
-	  }
+      if (min_dist < 2*old_radius){
+	//error = min_error + (max_error-min_error) * min_dist / old_radius; // how much error do i allow?
+	error = (max_error-min_error) / (RVO::sqr(2*old_radius)) * RVO::sqr(min_dist) + min_error; // how much error do i allow?
+	
+	//ROS_DEBUG("Error = %f", error);
+	if (min_dist<0) {
+	  error = min_error;
+	  ROS_WARN("%s I think I am in collision", me_->getId().c_str());
+	}
       }
-      //if (fabs(dif_ang_goal) <= M_PI/2.0)
-      me_->addMovementConstraintsDiff(error, T, max_vel_x_,max_vel_th_);
-	// else {
-	//double max_track_speed = me_->calculateMaxTrackSpeedAngle(T,M_PI/2.0, error, max_vel_x_, max_vel_th_);
-	//me_->setMaxTrackSpeed(max_track_speed);
-	//}      //  ROS_ERROR("error %6.4f", error);
+      if (fabs(dif_ang_goal) <= M_PI/2.0)
+	me_->addMovementConstraintsDiff(error, T, max_vel_x_,max_vel_th_);
+      else {
+	double max_track_speed = me_->calculateMaxTrackSpeedAngle(T,M_PI/2.0, error, max_vel_x_, max_vel_th_);
+	me_->setMaxTrackSpeed(max_track_speed);
+      }      //  ROS_ERROR("error %6.4f", error);
       
-      pt_agg_->setRadius((circumscribed_radius_ + error)/2.0 + old_radius / 2.0);
+      pt_agg_->setRadius((circumscribed_radius_ + error)*2.0/3.0 + old_radius / 3.0);
     }
     
     me_->addAccelerationConstraintsXY(max_vel_x_,acc_lim_x_, max_vel_y_, acc_lim_y_, sim_period_);
@@ -536,7 +540,25 @@ namespace collvoid_local_planner {
 
       cmd_vel.linear.x = rotated_vel.x();
       cmd_vel.linear.y = rotated_vel.y();
-      cmd_vel.angular.z = sign(dif_ang) * std::min(std::abs(dif_ang),max_vel_th_);  //TODO add max acc theta
+      if (min_dist < 1.0/2.0 * inscribed_radius_) {
+	if (min_dist == min_dist_neigh) {
+	  dif_ang = dif_ang;
+	}
+	else {
+	  double ang_obst = atan2(min_obst_vec.y(), min_obst_vec.x());
+	  double diff = angles::shortest_angular_distance(me_->getHeading(), ang_obst);
+	  
+	  
+	  //if (fabs(diff)>= M_PI *3.0 / 4.0) //back 
+	  //  dif_ang = angles::shortest_angular_distance(0.0, diff + M_PI);
+	  //else if(fabs(diff) >= M_PI / 4.0 ) { //left right
+	  dif_ang = angles::shortest_angular_distance(0.0, diff - sign(diff) * M_PI / 2.0);
+	  // }
+	  // else
+	  //   dif_ang = diff;
+	}
+      }
+      cmd_vel.angular.z = sign(dif_ang) * std::min(std::abs(dif_ang),max_vel_th_);
     }
 
     if(std::abs(cmd_vel.angular.z)<min_vel_th_)
@@ -610,11 +632,11 @@ namespace collvoid_local_planner {
       //target_pose = transformed_plan_[current_waypoint_];
 
       if(fabs(plan_dir - dif_ang) > 1.0* yaw_goal_tolerance_) {
-	  target_pose = transformed_plan_[i-1];
-	  current_waypoint_ = i-1;
-	  //ROS_DEBUG("waypoint = %d, of %d", current_waypoint_, transformed_plan_.size());
+	target_pose = transformed_plan_[i-1];
+	current_waypoint_ = i-1;
+	//ROS_DEBUG("waypoint = %d, of %d", current_waypoint_, transformed_plan_.size());
 
-	  return;
+	return;
       }
     }
     target_pose = transformed_plan_.back();
@@ -697,23 +719,23 @@ namespace collvoid_local_planner {
 
 
   bool CollvoidLocalPlanner::transformGlobalPlan(const tf::TransformListener& tf, const std::vector<geometry_msgs::PoseStamped>& global_plan, 
-      const costmap_2d::Costmap2DROS& costmap, const std::string& global_frame, 
-      std::vector<geometry_msgs::PoseStamped>& transformed_plan){
+						 const costmap_2d::Costmap2DROS& costmap, const std::string& global_frame, 
+						 std::vector<geometry_msgs::PoseStamped>& transformed_plan){
     const geometry_msgs::PoseStamped& plan_pose = global_plan[0];
 
     transformed_plan.clear();
 
     try{
       if (!global_plan.size() > 0)
-      {
-        ROS_ERROR("Recieved plan with zero length");
-        return false;
-      }
+	{
+	  ROS_ERROR("Recieved plan with zero length");
+	  return false;
+	}
 
       tf::StampedTransform transform;
       tf.lookupTransform(global_frame, ros::Time(), 
-          plan_pose.header.frame_id, plan_pose.header.stamp, 
-          plan_pose.header.frame_id, transform);
+			 plan_pose.header.frame_id, plan_pose.header.stamp, 
+			 plan_pose.header.frame_id, transform);
 
       //let's get the pose of the robot in the frame of the plan
       tf::Stamped<tf::Pose> robot_pose;
@@ -730,16 +752,16 @@ namespace collvoid_local_planner {
 
       unsigned int cur_waypoint = 0;
       for (size_t i=0; i < global_plan_.size(); i++) 
-      {
-        double y = robot_pose.getOrigin().y();
-        double x = robot_pose.getOrigin().x();
-        double dist = base_local_planner::distance(x, y, global_plan_[i].pose.position.x, global_plan_[i].pose.position.y);
-        if (dist < sqrt(sq_dist)) {
-          sq_dist = dist * dist;
-          cur_waypoint = i;
+	{
+	  double y = robot_pose.getOrigin().y();
+	  double x = robot_pose.getOrigin().x();
+	  double dist = base_local_planner::distance(x, y, global_plan_[i].pose.position.x, global_plan_[i].pose.position.y);
+	  if (dist < sqrt(sq_dist)) {
+	    sq_dist = dist * dist;
+	    cur_waypoint = i;
 	  
-        }
-      }
+	  }
+	}
 
       unsigned int i = cur_waypoint;
 
@@ -760,20 +782,20 @@ namespace collvoid_local_planner {
 
       //now we'll transform until points are outside of our distance threshold
       while(i < (unsigned int)global_plan.size()) {// && sq_dist < sq_dist_threshold){
-        double x_diff = robot_pose.getOrigin().x() - global_plan[i].pose.position.x;
-        double y_diff = robot_pose.getOrigin().y() - global_plan[i].pose.position.y;
-        sq_dist = x_diff * x_diff + y_diff * y_diff;
+	double x_diff = robot_pose.getOrigin().x() - global_plan[i].pose.position.x;
+	double y_diff = robot_pose.getOrigin().y() - global_plan[i].pose.position.y;
+	sq_dist = x_diff * x_diff + y_diff * y_diff;
 
-        const geometry_msgs::PoseStamped& pose = global_plan[i];
-        poseStampedMsgToTF(pose, tf_pose);
-        tf_pose.setData(transform * tf_pose);
-        tf_pose.stamp_ = transform.stamp_;
-        tf_pose.frame_id_ = global_frame;
-        poseStampedTFToMsg(tf_pose, newer_pose);
+	const geometry_msgs::PoseStamped& pose = global_plan[i];
+	poseStampedMsgToTF(pose, tf_pose);
+	tf_pose.setData(transform * tf_pose);
+	tf_pose.stamp_ = transform.stamp_;
+	tf_pose.frame_id_ = global_frame;
+	poseStampedTFToMsg(tf_pose, newer_pose);
 
-        transformed_plan.push_back(newer_pose);
+	transformed_plan.push_back(newer_pose);
 
-        ++i;
+	++i;
       }
     }
     catch(tf::LookupException& ex) {
@@ -787,7 +809,7 @@ namespace collvoid_local_planner {
     catch(tf::ExtrapolationException& ex) {
       ROS_ERROR("Extrapolation Error: %s\n", ex.what());
       if (global_plan.size() > 0)
-        ROS_ERROR("Global Frame: %s Plan Frame size %d: %s\n", global_frame.c_str(), (unsigned int)global_plan.size(), global_plan[0].header.frame_id.c_str());
+	ROS_ERROR("Global Frame: %s Plan Frame size %d: %s\n", global_frame.c_str(), (unsigned int)global_plan.size(), global_plan[0].header.frame_id.c_str());
 
       return false;
     }

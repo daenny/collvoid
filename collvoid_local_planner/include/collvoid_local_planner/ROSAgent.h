@@ -29,7 +29,6 @@ class ROSAgent : public RVO::Agent {
   bool compareObstacles(const RVO::Vector2& v1, const RVO::Vector2& v2);
   bool pointInNeighbor(RVO::Vector2& point);
 
-
   float timestep_;
   float heading_;
   float max_track_speed_;

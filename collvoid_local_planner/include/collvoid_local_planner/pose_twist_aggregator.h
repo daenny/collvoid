@@ -23,13 +23,15 @@ class PoseTwistAggregator{
 
  public:
   PoseTwistAggregator();
-  void initialize(ros::NodeHandle private_nh, tf::TransformListener* tf, bool use_ground_truth, bool scale_radius, double radius, bool holo_robot, std::string robot_base_frame, std::string global_frame, std::string my_id );
+  void initialize(ros::NodeHandle private_nh, tf::TransformListener* tf, bool use_ground_truth, bool scale_radius, double radius, double scale_radius_fac, bool holo_robot, std::string robot_base_frame, std::string global_frame, std::string my_id );
 
   void initialize(ros::NodeHandle private_nh, tf::TransformListener* tf);
   std::vector<collvoid_msgs::PoseTwistWithCovariance> getNeighbors();
   collvoid_msgs::PoseTwistWithCovariance getLastMeMsg();
   void setRadius(double radius);
   double getRadius();
+  void setScaleRadiusFactor(double scale_rad_factor);
+
   void setHoloVelocity(double x, double y);
   void publishInitialGuess(double noise_std);
   // Service callback for intguess
@@ -60,14 +62,14 @@ class PoseTwistAggregator{
   collvoid_msgs::PoseTwistWithCovariance last_me_msg_;
   std::vector<collvoid_msgs::PoseTwistWithCovariance> neighbors_;
   std::string my_id_;
-  double radius_, rad_unc_;
+  double radius_, rad_unc_, scale_radius_fac_;
   bool holo_robot_;
   nav_msgs::Odometry base_odom_,ground_truth_;
   ros::Publisher position_share_pub_, init_guess_pub_, neighbors_pub_, me_pub_;
   ros::Subscriber odom_sub_, position_share_sub_, base_pose_ground_truth_sub_, amcl_pose_sub_;
   geometry_msgs::Vector3 holo_velocity_;
   ros::ServiceServer init_guess_srv_;
-
+  
 
 
 };

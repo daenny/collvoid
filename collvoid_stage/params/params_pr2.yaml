@@ -7,7 +7,9 @@ CollvoidLocalPlanner:
   time_horizon: 10.0
   time_horizon_obst: 10.0
   threshold_last_seen: 1.0
-
+  
+  scale_radius_factor: 0.5
+  
   yaw_goal_tolerance: 0.05
   xy_goal_tolerance: 0.10
 #  latch_xy_goal_tolerance: true
@@ -26,8 +28,9 @@ CollvoidLocalPlanner:
   acc_lim_x: 2.5
   acc_lim_y: 2.5
   acc_lim_th: 3.2
-  radius: 0.45
+  radius: 0.36
   inscribed_radius: 0.33
+  
 
 TrajectoryPlannerROS:
   transform_tolerance: 0.2
@@ -71,7 +74,7 @@ local_costmap:
   transform_tolerance: 0.2
   obstacle_range: 2.5
   raytrace_range: 3.0
-  inflation_radius: 0.45
+  inflation_radius: 0.55
 
   observation_sources: base_scan
 
@@ -102,7 +105,7 @@ global_costmap:
   transform_tolerance: 0.2
   obstacle_range: 2.5
   raytrace_range: 3.0
-  inflation_radius: 0.47
+  inflation_radius: 0.55
 
   observation_sources: base_scan
 
