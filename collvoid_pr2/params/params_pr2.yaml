@@ -15,6 +15,8 @@ CollvoidLocalPlanner:
   time_horizon_obst: 10.0
   threshold_last_seen: 1.0
 
+  scale_radius_factor: 0.5
+
   yaw_goal_tolerance: 0.05
   xy_goal_tolerance: 0.10
   #  latch_xy_goal_tolerance: true
