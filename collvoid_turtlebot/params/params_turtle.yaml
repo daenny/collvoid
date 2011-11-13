@@ -10,7 +10,7 @@ CollvoidLocalPlanner:
   scale_radius_factor: 0.5
 
   yaw_goal_tolerance: 0.15
-  xy_goal_tolerance: 0.15
+  xy_goal_tolerance: 0.2
 #  latch_xy_goal_tolerance: true
   global_frame: /map
   wheel_base: 0.25
@@ -52,7 +52,7 @@ TrajectoryPlannerROS:
   vx_samples: 6
   vtheta_samples: 20
   dwa: false
- 
+
 local_costmap:
   global_frame: odom
   robot_base_frame: base_link
@@ -92,7 +92,7 @@ global_costmap:
   z_voxels: 10
   unknown_threshold: 8
   transform_tolerance: 0.5
- 
+
   obstacle_range: 2.5
   raytrace_range: 3.0
   robot_radius: 0.17
