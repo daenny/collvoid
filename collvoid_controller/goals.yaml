@@ -19,7 +19,7 @@ turtlebot6:
 turtlebot7:
   goals:
     x: [ -1.2, 1.2]
-    y: [ -1.2, -1.2]
+    y: [ -1.2, 1.2]
     ang: [0.785, -2.356]
 
 prm1:
