@@ -9,7 +9,7 @@
   <!-- Run the map server -->
 <!--  <arg name="map_file" default="$(find turtlebot_navigation)/maps/willow-2010-02-18-0.10.yaml"/> -->
 
-  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_turtlebot)/world/greenroom_ext.yaml" output="screen"/>
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_turtlebot)/world/maplarge.yaml" output="screen"/>
 
 
   <!-- Run the laser -->
