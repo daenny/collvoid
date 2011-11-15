@@ -30,8 +30,8 @@ CollvoidLocalPlanner:
   acc_lim_x: 1.0
   acc_lim_y: 0.0
   acc_lim_th: 1.0
-  radius: 0.17
-  inscribed_radius: 0.17
+  radius: 0.2
+  inscribed_radius: 0.2
 
 TrajectoryPlannerROS:
   max_vel_x: 0.50
