@@ -11,7 +11,6 @@ except ImportError:
 from std_msgs.msg import String
 from geometry_msgs.msg import PoseWithCovarianceStamped,PoseStamped
 from std_srvs.srv import Empty
-from collvoid_local_planner.srv import StateSrv
 from collvoid_msgs.msg import PoseTwistWithCovariance
 
 import tf

@@ -75,6 +75,8 @@ namespace collvoid_local_planner {
       xy_goal_tolerance_  = getParamDef(private_nh,"xy_goal_tolerance", 0.10);
       latch_xy_goal_tolerance_ = getParamDef(private_nh,"latch_xy_goal_tolerance", false);
 
+      ignore_goal_yaw_ = getParamDef(private_nh, "ignore_goal_jaw", false);
+
       getParam(private_nh,"acc_lim_x", &acc_lim_x_ );
       getParam(private_nh,"acc_lim_y", &acc_lim_y_ );
       getParam(private_nh,"acc_lim_th", &acc_lim_theta_ );
@@ -155,6 +157,9 @@ namespace collvoid_local_planner {
 	gethostname(hostname,1023); 
 	my_id = std::string(hostname);
       }
+
+      my_id = getParamDef<std::string>(private_nh,"name",my_id);
+
       ROS_INFO("My name is: %s",my_id.c_str());
       
       pt_agg_ = new PoseTwistAggregator();
@@ -190,6 +195,10 @@ namespace collvoid_local_planner {
 
 
   bool CollvoidLocalPlanner::rotateToGoal(const tf::Stamped<tf::Pose>& global_pose, const tf::Stamped<tf::Pose>& robot_vel, double goal_th, geometry_msgs::Twist& cmd_vel){
+    if (ignore_goal_yaw_) {
+      cmd_vel.angular.z = 0.0;
+      return true;
+    }
     double yaw = tf::getYaw(global_pose.getRotation());
     double vel_yaw = tf::getYaw(robot_vel.getRotation());
     cmd_vel.linear.x = 0;
