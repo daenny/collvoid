@@ -511,10 +511,18 @@ namespace collvoid_local_planner {
       
       pt_agg_->setRadius((circumscribed_radius_ + error)*2.0/3.0 + old_radius / 3.0);
     }
-    
+    else {
+
+      if (fabs(dif_ang_goal) > M_PI/2.0)
+	  me_->setMaxSpeedLinear(min_vel_x_ + 0.1);
+      else
+	 me_->setMaxSpeedLinear(max_vel_x_);
+    }
+
     me_->addAccelerationConstraintsXY(max_vel_x_,acc_lim_x_, max_vel_y_, acc_lim_y_, sim_period_);
 
     me_->setRadius(pt_agg_->getRadius());
+
 
     me_->computeNewVelocity(); // compute ORCA velocity
 
@@ -556,6 +564,7 @@ namespace collvoid_local_planner {
 	else {
 	  double ang_obst = atan2(min_obst_vec.y(), min_obst_vec.x());
 	  double diff = angles::shortest_angular_distance(me_->getHeading(), ang_obst);
+	  //	  double diff = angles::shortest_angular_distance(speed_ang, ang_obst);
 	  
 	  
 	  //if (fabs(diff)>= M_PI *3.0 / 4.0) //back 
