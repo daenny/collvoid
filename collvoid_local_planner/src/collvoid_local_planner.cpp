@@ -109,6 +109,7 @@ namespace collvoid_local_planner {
       
       robot_base_frame_ = costmap_ros_->getBaseFrameID();
       //private_nh.param<std::string>("global_frame", global_frame_ , "/map");
+      
       global_frame_ = getParamDef<std::string>(private_nh,"global_frame", "/map");
       std::string controller_frequency_param_name;
       if(!private_nh.searchParam("controller_frequency", controller_frequency_param_name))
@@ -179,7 +180,12 @@ namespace collvoid_local_planner {
       me_->setDeleteObservations(delete_observations);
       me_->setWheelBase(wheel_base_);
 
-      state_ = INIT;
+      std::vector<geometry_msgs::Point> footprint;
+      footprint = costmap_ros_->getRobotFootprint();
+      me_->setFootprintRadius(radius);
+      if (footprint.size()>2)
+	me_->setFootprint(footprint);
+      
       initialized_ = true;
       skip_next_ = false;
       g_plan_pub_ = private_nh.advertise<nav_msgs::Path>("global_plan", 1);

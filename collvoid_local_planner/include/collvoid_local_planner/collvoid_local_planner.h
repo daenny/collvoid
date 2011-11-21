@@ -17,15 +17,6 @@
 
 namespace collvoid_local_planner {
 
-  enum State
-  {
-    INIT,
-    RUNNING,
-    STOPPED,
-    AT_GOAL // implies stopped
-  };
-
-
   class CollvoidLocalPlanner: public nav_core::BaseLocalPlanner {
   public:
     CollvoidLocalPlanner();
@@ -84,7 +75,7 @@ namespace collvoid_local_planner {
     double INIT_GUESS_NOISE_STD_,THRESHOLD_LAST_SEEN_;
     int MAX_INITIAL_GUESS_;
     int nr_initial_guess_;
-    State state_;
+
     ROSAgent* me_;
     //boost::unordered_map<std::string,ROSAgent> neighbors_;
 

@@ -28,6 +28,9 @@ class ROSAgent : public RVO::Agent {
   void insertStationaryAgent(const Agent*  agent);
   bool compareObstacles(const RVO::Vector2& v1, const RVO::Vector2& v2);
   bool pointInNeighbor(RVO::Vector2& point);
+  float getDistToFootprint(RVO::Vector2& point);
+  RVO::Vector2 LineSegmentToLineSegmentIntersection(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4);
+
 
   float timestep_;
   float heading_;
@@ -36,13 +39,17 @@ class ROSAgent : public RVO::Agent {
   float cur_allowed_error_;
   float max_radius_cov_,max_radius_uncertainty_;
   float wheel_base_;
+  float footprint_radius_;
 
   bool holo_robot_;
   bool delete_observations_;
+  bool has_footprint_;
 
   RVO::Vector2 holo_velocity_;
   ros::Time last_seen_;
   std::vector<RVO::Line> additional_orca_lines_;
+  std::vector< std::pair< RVO::Vector2,RVO::Vector2 > > footprint_lines_;
+  std::vector<geometry_msgs::Point> footprint_;
   ros::Publisher line_pub_,neighbors_pub_;
   
  public:
@@ -51,6 +58,9 @@ class ROSAgent : public RVO::Agent {
 
   bool isHoloRobot();
   void setIsHoloRobot(bool holo_robot);
+
+  void setFootprint(std::vector<geometry_msgs::Point> footprint);
+  void setFootprintRadius(float radius);
 
   void setWheelBase(float wheel_base);
   void setTimeStep(float timestep);

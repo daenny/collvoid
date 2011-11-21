@@ -205,6 +205,33 @@ void ROSAgent::publishNeighborPositions(){
 
 }
 
+void ROSAgent::setFootprint(std::vector<geometry_msgs::Point> footprint ){
+  if (footprint.size() < 2) {
+    ROS_ERROR("The footprint specified has less than two nodes");
+    return;
+  }
+  footprint_ = footprint;
+  footprint_lines_.clear();
+  geometry_msgs::Point p = footprint_[0];
+  RVO::Vector2 first = RVO::Vector2(p.x, p.y);
+  RVO::Vector2 old = RVO::Vector2(p.x, p.y);
+  //add linesegments for footprint
+  for (size_t i = 0; i<footprint_.size(); i++) {
+    geometry_msgs::Point p = footprint_[i];
+    RVO::Vector2 point = RVO::Vector2(p.x, p.y);
+    footprint_lines_.push_back(std::make_pair(old, point));
+    old = point;
+  }
+  //add last segment
+  footprint_lines_.push_back(std::make_pair(old, first));
+  has_footprint_ = true;
+}
+
+void ROSAgent::setFootprintRadius(float radius){
+  footprint_radius_ = radius;
+  has_footprint_ = false;
+}
+
 
 bool ROSAgent::isHoloRobot() {
   return holo_robot_;
@@ -268,6 +295,42 @@ void ROSAgent::sortObstacleLines(){
   std::sort(obstacle_points_.begin(),obstacle_points_.end(), boost::bind(&ROSAgent::compareObstacles,this,_1,_2));
 }
 
+
+RVO::Vector2 ROSAgent::LineSegmentToLineSegmentIntersection(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4){
+  float r, s, d;
+  RVO::Vector2 res;
+  //Make sure the lines aren't parallel
+  if ((y2 - y1) / (x2 - x1) != (y4 - y3) / (x4 - x3)){
+    d = (((x2 - x1) * (y4 - y3)) - (y2 - y1) * (x4 - x3));
+    if (d != 0){
+      r = (((y1 - y3) * (x4 - x3)) - (x1 - x3) * (y4 - y3)) / d;
+      s = (((y1 - y3) * (x2 - x1)) - (x1 - x3) * (y2 - y1)) / d;
+      if (r >= 0 && r <= 1){
+	if (s >= 0 && s <= 1){
+	  return RVO::Vector2(x1 + r * (x2 - x1), y1 + r * (y2 - y1));
+	}
+      }
+    }
+  } 
+  return res;
+}
+
+float ROSAgent::getDistToFootprint(RVO::Vector2& point){
+  RVO::Vector2 result, null;
+  for (size_t i = 0; i < footprint_lines_.size(); i++){
+    RVO::Vector2 first = footprint_lines_[i].first;
+    RVO::Vector2 second = footprint_lines_[i].second;
+          
+    result = LineSegmentToLineSegmentIntersection(first.x(),first.y(),second.x(),second.y(), 0.0, 0.0, point.x(),point.y());
+    if (result != null) {
+      ROS_DEBUG("Result = %f, %f, dist %f", result.x(), result.y(), RVO::abs(result));
+      return RVO::abs(result);
+    }
+  }
+  ROS_DEBUG("Obstacle Point within Footprint. I am close to/in collision");
+  return -1;
+}
+
 void ROSAgent::calculateObstacleLines(){
   
   for(size_t i = 0; i< obstacle_points_.size(); i++){
@@ -277,8 +340,18 @@ void ROSAgent::calculateObstacleLines(){
     double dist = RVO::abs(position_ - obstacle_points_[i]);
     Line line;
     Vector2 relative_position = obstacle_points_[i] - position_;
-    line.point = normalize(relative_position) * (dist - radius_ - 0.01);
-
+    float dist_to_footprint;
+    if (!has_footprint_)
+      dist_to_footprint = footprint_radius_;
+    else {
+      dist_to_footprint = getDistToFootprint(relative_position);
+      if (dist_to_footprint == -1){
+	dist_to_footprint = footprint_radius_;
+      }
+    }
+    dist = std::min(dist - dist_to_footprint - 0.01, 0.3);
+    //    line.point = normalize(relative_position) * (dist - dist_to_footprint - 0.03);
+    line.point = normalize(relative_position) * (dist); 
     line.direction = Vector2 (-normalize(relative_position).y(),normalize(relative_position).x()) ; 
     
     orcaLines_.push_back(line);
