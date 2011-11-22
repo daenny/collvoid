@@ -40,6 +40,7 @@ class ROSAgent : public RVO::Agent {
   float max_radius_cov_,max_radius_uncertainty_;
   float wheel_base_;
   float footprint_radius_;
+  float max_vel_with_obstacles_;
 
   bool holo_robot_;
   bool delete_observations_;
@@ -58,6 +59,7 @@ class ROSAgent : public RVO::Agent {
 
   bool isHoloRobot();
   void setIsHoloRobot(bool holo_robot);
+  void setMaxVelWithObstacles(float max_vel_with_obstacles);
 
   void setFootprint(std::vector<geometry_msgs::Point> footprint);
   void setFootprintRadius(float radius);

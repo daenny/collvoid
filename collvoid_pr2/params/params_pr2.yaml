@@ -34,6 +34,8 @@ CollvoidLocalPlanner:
   acc_lim_x: 2.5
   acc_lim_y: 2.5
   acc_lim_th: 3.2
+  max_vel_with_obstacles: 0.3
+
   radius: 0.45
   inscribed_radius: 0.33
 

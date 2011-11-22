@@ -349,7 +349,7 @@ void ROSAgent::calculateObstacleLines(){
 	dist_to_footprint = footprint_radius_;
       }
     }
-    dist = std::min(dist - dist_to_footprint - 0.01, 0.3);
+    dist = std::min(dist - dist_to_footprint - 0.01, (double)max_vel_with_obstacles_);
     //    line.point = normalize(relative_position) * (dist - dist_to_footprint - 0.03);
     line.point = normalize(relative_position) * (dist); 
     line.direction = Vector2 (-normalize(relative_position).y(),normalize(relative_position).x()) ; 
@@ -360,6 +360,10 @@ void ROSAgent::calculateObstacleLines(){
       return;
   }
 
+}
+
+void ROSAgent::setMaxVelWithObstacles(float max_vel_with_obstacles){
+  max_vel_with_obstacles_ = max_vel_with_obstacles;
 }
 
 bool ROSAgent::pointInNeighbor(RVO::Vector2& point) {

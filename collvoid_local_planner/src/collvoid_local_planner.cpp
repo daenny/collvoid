@@ -88,6 +88,10 @@ namespace collvoid_local_planner {
       else
 	wheel_base_ = 0.0;
 
+      double max_vel_with_obstacles;
+
+      getParam(private_nh,"max_vel_with_obstacles", &max_vel_with_obstacles);
+      
 
       getParam(private_nh,"max_vel_x", &max_vel_x_);
       getParam(private_nh,"min_vel_x", &min_vel_x_);
@@ -179,6 +183,7 @@ namespace collvoid_local_planner {
       me_->setTimeStep(sim_period_);
       me_->setDeleteObservations(delete_observations);
       me_->setWheelBase(wheel_base_);
+      me_->setMaxVelWithObstacles(max_vel_with_obstacles);
 
       std::vector<geometry_msgs::Point> footprint;
       footprint = costmap_ros_->getRobotFootprint();
