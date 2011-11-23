@@ -333,30 +333,20 @@ namespace collvoid_local_planner {
       return false;
     }
 
-    //  tf::Stamped<tf::Pose> global_pose;
-    //if(!costmap_ros_->getRobotPose(global_pose))
-    //  return false;
-    
     //interpolate own position
     collvoid_msgs::PoseTwistWithCovariance me_msg = pt_agg_->getLastMeMsg();
     updateROSAgentWithMsg(me_, &me_msg);
     
     tf::Stamped<tf::Pose> global_pose;
+
     //let's get the pose of the robot in the frame of the plan
     global_pose.setIdentity();
     global_pose.frame_id_ = robot_base_frame_;
     global_pose.stamp_ = ros::Time();
     tf_->transformPose(global_frame_, global_pose, global_pose);
 
-    //we also want to clear the robot footprint from the costmap we're using
-    //costmap_ros_->clearRobotFootprint();
-
-    //make sure to update the costmap we'll use for this cycle
-    //costmap_ros_->getCostmapCopy(costmap_);
-
     // Set current velocities from odometry
     geometry_msgs::Twist global_vel;
-
     me_->odom_lock_.lock();
     global_vel.linear.x = me_->base_odom_.twist.twist.linear.x;
     global_vel.linear.y = me_->base_odom_.twist.twist.linear.y;
@@ -368,24 +358,18 @@ namespace collvoid_local_planner {
     robot_vel.frame_id_ = robot_base_frame_;
     robot_vel.stamp_ = ros::Time();
 
-    /* For timing uncomment
-       struct timeval start, end;
-       double start_t, end_t, t_diff;
-       gettimeofday(&start, NULL);
-    */
-
     //if the global plan passed in is empty... we won't do anything
     if(transformed_plan_.empty())
       return false;
 
+
     tf::Stamped<tf::Pose> goal_point;
     tf::poseStampedMsgToTF(global_plan_.back(), goal_point);
+
     //we assume the global goal is the last point in the global plan
     double goal_x = goal_point.getOrigin().getX();
     double goal_y = goal_point.getOrigin().getY();
-
     double yaw = tf::getYaw(goal_point.getRotation());
-
     double goal_th = yaw;
 
     //check to see if we've reached the goal position
@@ -433,7 +417,6 @@ namespace collvoid_local_planner {
       //transformed_plan_.clear();
       //base_local_planner::publishPlan(transformed_plan_, g_plan_pub_, 0.0, 1.0, 0.0, 0.0);
       //base_local_planner::publishPlan(transformed_plan_, l_plan_pub_, 0.0, 0.0, 1.0, 0.0);
-
       //we don't actually want to run the controller when we're just rotating to goal
       return true;
     } 
@@ -441,14 +424,10 @@ namespace collvoid_local_planner {
     tf::Stamped<tf::Pose> target_pose;
     target_pose.setIdentity();
     target_pose.frame_id_ = robot_base_frame_;
-    //target_pose.stamp_ = ros::Time();//transformed_plan_.back().header.stamp;
-
-  
-    //    tf::poseStampedMsgToTF(transformed_plan_[current_waypoint_], target_pose);
-
     tf::poseStampedMsgToTF(transformed_plan_[current_waypoint_], target_pose);
    
-    if (base_local_planner::goalPositionReached(global_pose, target_pose.getOrigin().x(), target_pose.getOrigin().y(),xy_goal_tolerance_)) {
+    //if (base_local_planner::goalPositionReached(global_pose, target_pose.getOrigin().x(), target_pose.getOrigin().y(),xy_goal_tolerance_)) {
+    if (base_local_planner::distance(global_pose.getOrigin().x(), global_pose.getOrigin().y(), target_pose.getOrigin().x(), target_pose.getOrigin().y()) < pt_agg_->getRadius()) {
       if(!transformGlobalPlan(*tf_, global_plan_, *costmap_ros_, global_frame_, transformed_plan_)){
 	ROS_WARN("Could not transform the global plan to the frame of the controller");
 	return false;
@@ -456,7 +435,7 @@ namespace collvoid_local_planner {
       geometry_msgs::PoseStamped target_pose_msg;
       findBestWaypoint(target_pose_msg, global_pose);
       //current_waypoint_ = transformed_plan_.size()-1;
-      ROS_DEBUG("Cur waypoint = %d, of %d", current_waypoint_, transformed_plan_.size());
+      //ROS_WARN("Cur waypoint = %d, of %d", current_waypoint_, transformed_plan_.size());
     }
 
     tf::poseStampedMsgToTF(transformed_plan_[current_waypoint_], target_pose);
@@ -598,7 +577,7 @@ namespace collvoid_local_planner {
       cmd_vel.linear.y = 0.0;
     if (cmd_vel.linear.x == 0.0 && cmd_vel.angular.z == 0.0 && cmd_vel.linear.y == 0.0) {
       
-      ROS_WARN("Did not find a good vel, calculated holo was: %f, %f, cur wp %d of %d trying next waypoint", me_->velocity_.x(),me_->velocity_.y(), current_waypoint_, transformed_plan_.size());
+      ROS_WARN("Did not find a good vel, calculated best holonomic velocity was: %f, %f, cur wp %d of %d trying next waypoint", me_->velocity_.x(),me_->velocity_.y(), current_waypoint_, transformed_plan_.size());
       if (current_waypoint_ < transformed_plan_.size()-1){
 	current_waypoint_++;
 	skip_next_= true;
@@ -608,8 +587,8 @@ namespace collvoid_local_planner {
       skip_next_ = false;
     }
 
-    // if (current_waypoint_ < transformed_plan_.size()-1)
-    //   transformed_plan_.erase(transformed_plan_.begin()+current_waypoint_,transformed_plan_.end());
+    //if (current_waypoint_ < transformed_plan_.size()-1)
+    //  transformed_plan_.erase(transformed_plan_.begin()+current_waypoint_,transformed_plan_.end());
     //ROS_DEBUG("%s cmd_vel.x %6.4f, cmd_vel.y %6.4f, cmd_vel_z %6.4f", me_->getId().c_str(), cmd_vel.linear.x, cmd_vel.linear.y, cmd_vel.angular.z); 
     base_local_planner::publishPlan(transformed_plan_, g_plan_pub_, 0.0, 1.0, 0.0, 0.0);
     me_->publishOrcaLines();
@@ -621,12 +600,12 @@ namespace collvoid_local_planner {
       return;
     current_waypoint_ = 0;
     double min_dist = DBL_MAX;
-    for (size_t i=0; i < transformed_plan_.size(); i++) 
+    for (size_t i=current_waypoint_; i < transformed_plan_.size(); i++) 
       {
 	double y = global_pose.getOrigin().y();
 	double x = global_pose.getOrigin().x();
 	double dist = base_local_planner::distance(x, y, transformed_plan_[i].pose.position.x, transformed_plan_[i].pose.position.y);
-	if (dist < min_dist) {
+	if (dist < pt_agg_->getRadius() || dist < min_dist) {
 	  min_dist = dist;
 	  target_pose = transformed_plan_[i];
 	  current_waypoint_ = i;
@@ -794,18 +773,6 @@ namespace collvoid_local_planner {
 
       unsigned int i = cur_waypoint;
 
-      //we need to loop to a point on the plan that is within a certain distance of the robot
-      // while(i < (unsigned int)global_plan.size() && sq_dist > sq_dist_threshold){
-      //  double x_diff = robot_pose.getOrigin().x() - global_plan[i].pose.position.x;
-      //  double y_diff = robot_pose.getOrigin().y() - global_plan[i].pose.position.y;
-      //  sq_dist = x_diff * x_diff + y_diff * y_diff;
-      //  ++i;
-      // }
-
-      //make sure not to count the first point that is too far away
-      // if(i > 0)
-      //   --i;
-
       tf::Stamped<tf::Pose> tf_pose;
       geometry_msgs::PoseStamped newer_pose;
 
@@ -868,11 +835,6 @@ namespace collvoid_local_planner {
 
       me_->obstacle_points_.push_back(RVO::Vector2(result.point.x,result.point.y));
     }
-   
-    // ROS_DEBUG("obstacle size befor unique %d",me_->obstacle_points_.size());
-    //me_->obstacle_points_.erase(unique(me_->obstacle_points_.begin(),me_->obstacle_points_.end()), me_->obstacle_points_.end());
-    //ROS_DEBUG("obstacle size after unique %d",me_->obstacle_points_.size());
-
   }
 
 

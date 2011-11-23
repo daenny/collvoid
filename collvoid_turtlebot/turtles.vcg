@@ -7,7 +7,7 @@ Axes.Enabled=0
 Axes.Length=1
 Axes.Radius=0.1
 Axes.Reference\ Frame=/base_link
-Axes2.Enabled=1
+Axes2.Enabled=0
 Axes2.Length=1
 Axes2.Radius=0.1
 Axes2.Reference\ Frame=/base_footprint
@@ -17,21 +17,6 @@ Footprint.ColorG=0.109804
 Footprint.ColorB=0
 Footprint.Enabled=1
 Footprint.Topic=/move_base/global_costmap/robot_footprint
-Grid.Alpha=0.5
-Grid.Cell\ Size=0.6
-Grid.ColorR=0.5
-Grid.ColorG=0.5
-Grid.ColorB=0.5
-Grid.Enabled=1
-Grid.Line\ Style=0
-Grid.Line\ Width=0.03
-Grid.Normal\ Cell\ Count=0
-Grid.OffsetX=0
-Grid.OffsetY=0
-Grid.OffsetZ=0
-Grid.Plane=0
-Grid.Plane\ Cell\ Count=20
-Grid.Reference\ Frame=<Fixed Frame>
 Inflated\ Obstacles.Alpha=1
 Inflated\ Obstacles.ColorR=0
 Inflated\ Obstacles.ColorG=0.105882
@@ -66,6 +51,34 @@ Laser\ Scan..IntensityMin\ ColorG=0
 Laser\ Scan..IntensityMin\ ColorB=0
 Laser\ Scan..IntensityMin\ Intensity=0
 Laser\ Scan..IntensityUse\ full\ RGB\ spectrum=0
+Laser\ Scan2.Alpha=1
+Laser\ Scan2.Billboard\ Size=0.01
+Laser\ Scan2.Color\ Transformer=Flat Color
+Laser\ Scan2.Decay\ Time=0
+Laser\ Scan2.Enabled=1
+Laser\ Scan2.Position\ Transformer=XYZ
+Laser\ Scan2.Selectable=1
+Laser\ Scan2.Style=1
+Laser\ Scan2.Topic=/scan
+Laser\ Scan2..AxisAutocompute\ Value\ Bounds=1
+Laser\ Scan2..AxisAxis=2
+Laser\ Scan2..AxisMax\ Value=10
+Laser\ Scan2..AxisMin\ Value=-10
+Laser\ Scan2..AxisUse\ Fixed\ Frame=1
+Laser\ Scan2..Flat\ ColorColorR=1
+Laser\ Scan2..Flat\ ColorColorG=0
+Laser\ Scan2..Flat\ ColorColorB=0.0235294
+Laser\ Scan2..IntensityAutocompute\ Intensity\ Bounds=1
+Laser\ Scan2..IntensityChannel\ Name=intensity
+Laser\ Scan2..IntensityMax\ ColorR=1
+Laser\ Scan2..IntensityMax\ ColorG=1
+Laser\ Scan2..IntensityMax\ ColorB=1
+Laser\ Scan2..IntensityMax\ Intensity=4096
+Laser\ Scan2..IntensityMin\ ColorR=0
+Laser\ Scan2..IntensityMin\ ColorG=0
+Laser\ Scan2..IntensityMin\ ColorB=0
+Laser\ Scan2..IntensityMin\ Intensity=0
+Laser\ Scan2..IntensityUse\ full\ RGB\ spectrum=0
 Local\ Path.Alpha=1
 Local\ Path.ColorR=0.803922
 Local\ Path.ColorG=0
@@ -78,10 +91,22 @@ Map.Enabled=1
 Map.Topic=/map
 Marker.Enabled=0
 Marker.Marker\ Topic=/orca_lines
+Marker2.Enabled=0
+Marker2.Marker\ Topic=visualization_marker
+Marker3.Enabled=0
+Marker3.Marker\ Topic=visualization_marker
+Marker4.Enabled=0
+Marker4.Marker\ Topic=visualization_marker
+Marker5.Enabled=0
+Marker5.Marker\ Topic=visualization_marker
 MarkerArray.Enabled=1
 MarkerArray.Marker\ Array\ Topic=/neighbors
 MarkerArray2.Enabled=1
 MarkerArray2.Marker\ Array\ Topic=/me
+MarkerArray3.Enabled=0
+MarkerArray3.Marker\ Array\ Topic=visualization_marker_array
+MarkerArray4.Enabled=0
+MarkerArray4.Marker\ Array\ Topic=visualization_marker_array
 Obstacles.Alpha=1
 Obstacles.ColorR=0.1
 Obstacles.ColorG=1
@@ -92,14 +117,32 @@ Path.Alpha=1
 Path.ColorR=0.0901961
 Path.ColorG=0.27451
 Path.ColorB=0.85098
-Path.Enabled=1
+Path.Enabled=0
 Path.Topic=/move_base/CollvoidLocalPlanner/global_plan
+Path2.Alpha=1
+Path2.ColorR=0.1
+Path2.ColorG=1
+Path2.ColorB=0
+Path2.Enabled=0
+Path2.Topic=
+Path3.Alpha=1
+Path3.ColorR=0.1
+Path3.ColorG=1
+Path3.ColorB=0
+Path3.Enabled=0
+Path3.Topic=
 Plan.Alpha=1
 Plan.ColorR=0.1
 Plan.ColorG=1
 Plan.ColorB=0
-Plan.Enabled=1
+Plan.Enabled=0
 Plan.Topic=/move_base/NavfnROS/plan
+Polygon.Alpha=1
+Polygon.ColorR=0.1
+Polygon.ColorG=1
+Polygon.ColorB=0
+Polygon.Enabled=0
+Polygon.Topic=
 Pose\ Array.ColorR=1
 Pose\ Array.ColorG=0.1
 Pose\ Array.ColorB=0
@@ -113,11 +156,11 @@ TF.Show\ Arrows=1
 TF.Show\ Axes=1
 TF.Show\ Names=1
 TF.Update\ Interval=0
-Tool\ 2D\ Nav\ GoalTopic=move_base_simple/goal
-Tool\ 2D\ Pose\ EstimateTopic=initialpose
-Camera\ Type=rviz::OrbitViewController
-Camera\ Config=0.306 0.586221 18.3851 -2.33554 -5.71934 -3.04229
-Property\ Grid\ State=selection=Grid.Enabled.Grid.Plane Cell Count;expanded=.Global Options,Axes.Enabled.Axes.StatusTopStatus,TF.Enabled.TF.StatusTopStatus,TF.Enabled.TF.Tree,Marker.Enabled,Marker.Enabled.Marker.StatusTopStatus,Marker.Enabled.Marker.Namespaces,MarkerArray.Enabled,MarkerArray.Enabled.MarkerArray.Namespaces,MarkerArray2.Enabled.MarkerArray2.Namespaces,Grid.Enabled;scrollpos=0,14;splitterpos=199,382;ispageselected=1
+Tool\ 2D\ Nav\ GoalTopic=/move_base_simple/goal
+Tool\ 2D\ Pose\ EstimateTopic=/initialpose
+Camera\ Type=rviz::XYOrbitViewController
+Camera\ Config=0.041 4.63357 16.8416 5.48017 1.43051e-06 -8.4665
+Property\ Grid\ State=selection=Local Path.Enabled;expanded=.Global Options,Footprint.Enabled,Inflated Obstacles.Enabled,Pose Array.Enabled,Laser Scan.Enabled,Axes2.Enabled.Axes2.StatusTopStatus,Axes.Enabled.Axes.StatusTopStatus,TF.Enabled.TF.StatusTopStatus,TF.Enabled.TF.Tree,Marker.Enabled.Marker.StatusTopStatus,Marker.Enabled.Marker.Namespaces,Laser Scan2.Enabled,Marker2.Enabled.Marker2.StatusTopStatus,Marker2.Enabled.Marker2.Namespaces,Marker3.Enabled.Marker3.StatusTopStatus,Marker3.Enabled.Marker3.Namespaces,MarkerArray.Enabled,MarkerArray.Enabled.MarkerArray.Namespaces,MarkerArray2.Enabled,MarkerArray2.Enabled.MarkerArray2.Namespaces,MarkerArray3.Enabled,MarkerArray3.Enabled.MarkerArray3.StatusTopStatus,MarkerArray3.Enabled.MarkerArray3.Namespaces,Marker4.Enabled,Marker4.Enabled.Marker4.StatusTopStatus,Marker4.Enabled.Marker4.Namespaces,Marker5.Enabled,Marker5.Enabled.Marker5.StatusTopStatus,Marker5.Enabled.Marker5.Namespaces,MarkerArray4.Enabled,MarkerArray4.Enabled.MarkerArray4.StatusTopStatus,MarkerArray4.Enabled.MarkerArray4.Namespaces;scrollpos=0,1;splitterpos=125,250;ispageselected=1
 [Display0]
 Name=Map
 Package=rviz
@@ -151,36 +194,72 @@ Name=Laser Scan
 Package=rviz
 ClassName=rviz::LaserScanDisplay
 [Display8]
-Name=Axes
-Package=rviz
-ClassName=rviz::AxesDisplay
-[Display9]
 Name=Axes2
 Package=rviz
 ClassName=rviz::AxesDisplay
-[Display10]
-Name=TF
-Package=rviz
-ClassName=rviz::TFDisplay
-[Display11]
+[Display9]
 Name=Path
 Package=rviz
 ClassName=rviz::PathDisplay
+[Display10]
+Name=Axes
+Package=rviz
+ClassName=rviz::AxesDisplay
+[Display11]
+Name=TF
+Package=rviz
+ClassName=rviz::TFDisplay
 [Display12]
 Name=Marker
 Package=rviz
 ClassName=rviz::MarkerDisplay
 [Display13]
+Name=Polygon
+Package=rviz
+ClassName=rviz::PolygonDisplay
+[Display14]
+Name=Path2
+Package=rviz
+ClassName=rviz::PathDisplay
+[Display15]
+Name=Laser Scan2
+Package=rviz
+ClassName=rviz::LaserScanDisplay
+[Display16]
+Name=Path3
+Package=rviz
+ClassName=rviz::PathDisplay
+[Display17]
+Name=Marker2
+Package=rviz
+ClassName=rviz::MarkerDisplay
+[Display18]
+Name=Marker3
+Package=rviz
+ClassName=rviz::MarkerDisplay
+[Display19]
 Name=MarkerArray
 Package=rviz
 ClassName=rviz::MarkerArrayDisplay
-[Display14]
+[Display20]
 Name=MarkerArray2
 Package=rviz
 ClassName=rviz::MarkerArrayDisplay
-[Display15]
-Name=Grid
+[Display21]
+Name=MarkerArray3
 Package=rviz
-ClassName=rviz::GridDisplay
+ClassName=rviz::MarkerArrayDisplay
+[Display22]
+Name=Marker4
+Package=rviz
+ClassName=rviz::MarkerDisplay
+[Display23]
+Name=Marker5
+Package=rviz
+ClassName=rviz::MarkerDisplay
+[Display24]
+Name=MarkerArray4
+Package=rviz
+ClassName=rviz::MarkerArrayDisplay
 [MarkerArray2.]
 base_link=1
