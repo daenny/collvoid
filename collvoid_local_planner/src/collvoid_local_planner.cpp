@@ -89,9 +89,7 @@ namespace collvoid_local_planner {
 	wheel_base_ = 0.0;
 
       double max_vel_with_obstacles;
-
       getParam(private_nh,"max_vel_with_obstacles", &max_vel_with_obstacles);
-      
 
       getParam(private_nh,"max_vel_x", &max_vel_x_);
       getParam(private_nh,"min_vel_x", &min_vel_x_);
@@ -105,7 +103,7 @@ namespace collvoid_local_planner {
 
       
       double radius;
-      getParam(private_nh,"radius",&radius);
+      getParam(private_nh,"footprint_radius",&radius);
       circumscribed_radius_ = radius;
       getParam(private_nh,"inscribed_radius",&inscribed_radius_);
 
@@ -198,11 +196,75 @@ namespace collvoid_local_planner {
       std::string move_base_name = ros::this_node::getName();
       //ROS_ERROR("%s name of node", thisname.c_str());
       obstacles_sub_ = nh.subscribe(move_base_name + "/local_costmap/obstacles",1,&CollvoidLocalPlanner::obstaclesCallback,this);
+      setup_= false;
+      dsrv_ = new dynamic_reconfigure::Server<collvoid_local_planner::CollvoidConfig>(private_nh);
+      dynamic_reconfigure::Server<collvoid_local_planner::CollvoidConfig>::CallbackType cb = boost::bind(&CollvoidLocalPlanner::reconfigureCB, this, _1, _2);
+      dsrv_->setCallback(cb);
+
     }
     else
       ROS_WARN("This planner has already been initialized, you can't call it twice, doing nothing");
     //end if init
   } // end init
+
+  
+  void CollvoidLocalPlanner::reconfigureCB(collvoid_local_planner::CollvoidConfig &config, uint32_t level){
+    boost::recursive_mutex::scoped_lock l(configuration_mutex_);
+
+    //The first time we're called, we just want to make sure we have the
+    //original configuration
+    if(!setup_)
+      {
+	last_config_ = config;
+	default_config_ = config;
+	setup_ = true;
+	return;
+      }
+    if(config.restore_defaults) {
+      config = default_config_;
+      //if someone sets restore defaults on the parameter server, prevent looping
+      config.restore_defaults = false;
+    }
+
+    acc_lim_x_ = config.acc_lim_x;
+    acc_lim_y_ = config.acc_lim_y;
+    acc_lim_theta_ = config.acc_lim_th;
+
+
+    max_vel_x_ = config.max_vel_x;
+    min_vel_x_ = config.min_vel_x;
+    max_vel_y_ = config.max_vel_y;
+    min_vel_y_ = config.min_vel_y;
+    max_vel_th_ = config.max_vel_th;
+    min_vel_th_ = config.min_vel_th;
+    min_vel_theta_inplace_ = config.min_vel_theta_inplace;
+
+    double radius, max_vel_with_obstacles;
+    radius = config.footprint_radius;
+    max_neighbors_ = config.max_neighbors;
+
+    neighbor_dist_ = config.neighbor_dist;
+    time_horizon_ = config.time_horizon;
+    max_vel_with_obstacles = config.max_vel_with_obstacles;
+
+    time_to_holo_ = config.time_to_holo;
+    min_error_holo_ = config.min_error_holo;
+    max_error_holo_ = config.max_error_holo;
+
+    me_->setFootprintRadius(radius);
+    me_->setMaxNeighbors(max_neighbors_);
+    me_->setMaxSpeedLinear(max_vel_x_);
+    me_->setNeighborDist(neighbor_dist_);
+
+    me_->setTimeHorizon(time_horizon_);
+
+    me_->setMaxVelWithObstacles(max_vel_with_obstacles);
+    
+    pt_agg_->setScaleRadiusFactor(config.scale_radius_factor);
+    pt_agg_->setScaleRadius(config.scale_radius);
+    
+    last_config_ = config;
+  }
 
 
   bool CollvoidLocalPlanner::rotateToGoal(const tf::Stamped<tf::Pose>& global_pose, const tf::Stamped<tf::Pose>& robot_vel, double goal_th, geometry_msgs::Twist& cmd_vel){
@@ -230,7 +292,7 @@ namespace collvoid_local_planner {
     double max_speed_to_stop = sqrt(2 * acc_lim_theta_ * fabs(ang_diff)); 
 
     v_theta_samp = sign(v_theta_samp) * std::min(max_speed_to_stop, fabs(v_theta_samp));
-    if (fabs(v_theta_samp)<=0.2 * min_vel_theta_inplace_)
+    if (fabs(v_theta_samp) <= 0.0 * min_vel_theta_inplace_)
       v_theta_samp  = 0.0;
     else if (fabs(v_theta_samp) < min_vel_theta_inplace_)
       v_theta_samp = sign(v_theta_samp) * max(min_vel_theta_inplace_,fabs(v_theta_samp));
@@ -358,11 +420,6 @@ namespace collvoid_local_planner {
     robot_vel.frame_id_ = robot_base_frame_;
     robot_vel.stamp_ = ros::Time();
 
-    //if the global plan passed in is empty... we won't do anything
-    if(transformed_plan_.empty())
-      return false;
-
-
     tf::Stamped<tf::Pose> goal_point;
     tf::poseStampedMsgToTF(global_plan_.back(), goal_point);
 
@@ -414,9 +471,9 @@ namespace collvoid_local_planner {
       }
 
       //publish an empty plan because we've reached our goal position
-      //transformed_plan_.clear();
-      //base_local_planner::publishPlan(transformed_plan_, g_plan_pub_, 0.0, 1.0, 0.0, 0.0);
-      //base_local_planner::publishPlan(transformed_plan_, l_plan_pub_, 0.0, 0.0, 1.0, 0.0);
+      transformed_plan_.clear();
+      base_local_planner::publishPlan(transformed_plan_, g_plan_pub_, 0.0, 1.0, 0.0, 0.0);
+      base_local_planner::publishPlan(transformed_plan_, l_plan_pub_, 0.0, 0.0, 1.0, 0.0);
       //we don't actually want to run the controller when we're just rotating to goal
       return true;
     } 
@@ -424,25 +481,18 @@ namespace collvoid_local_planner {
     tf::Stamped<tf::Pose> target_pose;
     target_pose.setIdentity();
     target_pose.frame_id_ = robot_base_frame_;
-    tf::poseStampedMsgToTF(transformed_plan_[current_waypoint_], target_pose);
-   
-    //if (base_local_planner::goalPositionReached(global_pose, target_pose.getOrigin().x(), target_pose.getOrigin().y(),xy_goal_tolerance_)) {
-    if (base_local_planner::distance(global_pose.getOrigin().x(), global_pose.getOrigin().y(), target_pose.getOrigin().x(), target_pose.getOrigin().y()) < pt_agg_->getRadius()) {
+    
+    if (!skip_next_){
       if(!transformGlobalPlan(*tf_, global_plan_, *costmap_ros_, global_frame_, transformed_plan_)){
 	ROS_WARN("Could not transform the global plan to the frame of the controller");
 	return false;
       }
       geometry_msgs::PoseStamped target_pose_msg;
       findBestWaypoint(target_pose_msg, global_pose);
-      //current_waypoint_ = transformed_plan_.size()-1;
-      //ROS_WARN("Cur waypoint = %d, of %d", current_waypoint_, transformed_plan_.size());
-    }
-
+    }    
     tf::poseStampedMsgToTF(transformed_plan_[current_waypoint_], target_pose);
-    
-    //ROS_DEBUG("Collvoid: current robot pose %f %f ==> %f", global_pose.getOrigin().x(), global_pose.getOrigin().y(), tf::getYaw(global_pose.getRotation()));
-    //ROS_DEBUG("Collvoid: target robot pose %f %f ==> %f", target_pose.getOrigin().x(), target_pose.getOrigin().y(), tf::getYaw(target_pose.getRotation()));
    
+    
     geometry_msgs::Twist res;
 
     res.linear.x = target_pose.getOrigin().x() - global_pose.getOrigin().x();
@@ -489,7 +539,7 @@ namespace collvoid_local_planner {
 	//ROS_DEBUG("Error = %f", error);
 	if (min_dist<0) {
 	  error = min_error;
-	  ROS_WARN("%s I think I am in collision", me_->getId().c_str());
+	  ROS_DEBUG("%s I think I am in collision", me_->getId().c_str());
 	}
       }
       if (fabs(dif_ang_goal) <= M_PI/2.0)
@@ -554,16 +604,8 @@ namespace collvoid_local_planner {
 	else {
 	  double ang_obst = atan2(min_obst_vec.y(), min_obst_vec.x());
 	  double diff = angles::shortest_angular_distance(me_->getHeading(), ang_obst);
-	  //	  double diff = angles::shortest_angular_distance(speed_ang, ang_obst);
-	  
-	  
-	  //if (fabs(diff)>= M_PI *3.0 / 4.0) //back 
-	  //  dif_ang = angles::shortest_angular_distance(0.0, diff + M_PI);
-	  //else if(fabs(diff) >= M_PI / 4.0 ) { //left right
+
 	  dif_ang = angles::shortest_angular_distance(0.0, diff - sign(diff) * M_PI / 2.0);
-	  // }
-	  // else
-	  //   dif_ang = diff;
 	}
       }
       cmd_vel.angular.z = sign(dif_ang) * std::min(std::abs(dif_ang),max_vel_th_);
@@ -577,27 +619,40 @@ namespace collvoid_local_planner {
       cmd_vel.linear.y = 0.0;
     if (cmd_vel.linear.x == 0.0 && cmd_vel.angular.z == 0.0 && cmd_vel.linear.y == 0.0) {
       
-      ROS_WARN("Did not find a good vel, calculated best holonomic velocity was: %f, %f, cur wp %d of %d trying next waypoint", me_->velocity_.x(),me_->velocity_.y(), current_waypoint_, transformed_plan_.size());
+      ROS_DEBUG("Did not find a good vel, calculated best holonomic velocity was: %f, %f, cur wp %d of %d trying next waypoint", me_->velocity_.x(),me_->velocity_.y(), current_waypoint_, (int)transformed_plan_.size());
       if (current_waypoint_ < transformed_plan_.size()-1){
 	current_waypoint_++;
 	skip_next_= true;
+      }
+      else {
+	transformed_plan_.clear();
+	base_local_planner::publishPlan(transformed_plan_, g_plan_pub_, 0.0, 1.0, 0.0, 0.0);
+	base_local_planner::publishPlan(transformed_plan_, l_plan_pub_, 0.0, 0.0, 1.0, 0.0);
+ 
+	return false;
       }
     }
     else {
       skip_next_ = false;
     }
 
-    //if (current_waypoint_ < transformed_plan_.size()-1)
-    //  transformed_plan_.erase(transformed_plan_.begin()+current_waypoint_,transformed_plan_.end());
+    //  if (!skip_next_ && current_waypoint_ < transformed_plan_.size()-1)
+    //transformed_plan_.erase(transformed_plan_.begin()+current_waypoint_,transformed_plan_.end());
     //ROS_DEBUG("%s cmd_vel.x %6.4f, cmd_vel.y %6.4f, cmd_vel_z %6.4f", me_->getId().c_str(), cmd_vel.linear.x, cmd_vel.linear.y, cmd_vel.angular.z); 
+    std::vector<geometry_msgs::PoseStamped> local_plan;
+    geometry_msgs::PoseStamped pos;
+    //pos.header.frame_id = robot_base_frame_;
+
+    tf::poseStampedTFToMsg(global_pose,pos);
+    local_plan.push_back(pos);
+    local_plan.push_back(transformed_plan_[current_waypoint_]);
     base_local_planner::publishPlan(transformed_plan_, g_plan_pub_, 0.0, 1.0, 0.0, 0.0);
+    base_local_planner::publishPlan(local_plan, l_plan_pub_, 0.0, 0.0, 1.0, 0.0);
     me_->publishOrcaLines();
     return true;
   }
   
   void CollvoidLocalPlanner::findBestWaypoint(geometry_msgs::PoseStamped& target_pose, const tf::Stamped<tf::Pose>& global_pose){
-    if (skip_next_)
-      return;
     current_waypoint_ = 0;
     double min_dist = DBL_MAX;
     for (size_t i=current_waypoint_; i < transformed_plan_.size(); i++) 
@@ -614,7 +669,7 @@ namespace collvoid_local_planner {
       }
     //ROS_DEBUG("waypoint = %d, of %d", current_waypoint_, transformed_plan_.size());
 
-    if (min_dist > pt_agg_->getRadius()) //lets first get to the begin pose of the plan
+    if (min_dist > pt_agg_->getRadius() && transformed_plan_.size()>2) //lets first get to the begin pose of the plan
       return;
     
     if (current_waypoint_ == transformed_plan_.size()-1) //I am at the end of the plan

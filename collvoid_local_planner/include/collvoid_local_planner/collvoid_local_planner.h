@@ -10,9 +10,12 @@
 #include <nav_msgs/GridCells.h>
 #include <ros/ros.h>
 #include <boost/unordered_map.hpp>
+#include <dynamic_reconfigure/server.h>
 
 #include "collvoid_local_planner/ROSAgent.h"
 #include "collvoid_local_planner/pose_twist_aggregator.h"
+#include "collvoid_local_planner/CollvoidConfig.h"
+
 
 
 namespace collvoid_local_planner {
@@ -44,6 +47,14 @@ namespace collvoid_local_planner {
       return x < 0.0 ? -1.0 : 1.0;
     }
 
+    //Dyn reconfigure
+    boost::recursive_mutex configuration_mutex_;
+    dynamic_reconfigure::Server<collvoid_local_planner::CollvoidConfig> *dsrv_;
+    void reconfigureCB(collvoid_local_planner::CollvoidConfig &config, uint32_t level);
+    collvoid_local_planner::CollvoidConfig last_config_;
+    collvoid_local_planner::CollvoidConfig default_config_;
+
+
 
     //Datatypes:
     costmap_2d::Costmap2DROS* costmap_ros_; 
@@ -51,7 +62,7 @@ namespace collvoid_local_planner {
     
     PoseTwistAggregator* pt_agg_;
 
-    bool initialized_, skip_next_;
+    bool initialized_, skip_next_, setup_;
 
     double sim_period_;
     double max_vel_x_, min_vel_x_;

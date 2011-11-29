@@ -16,10 +16,15 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
+# add dynamic reconfigure api
+rosbuild_find_ros_package(dynamic_reconfigure)
+include(${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake)
+gencfg()
+
 #uncomment if you have defined messages
 #rosbuild_genmsg()
 #uncomment if you have defined services
-#rosbuild_gensrv()
+rosbuild_gensrv()
 
 rosbuild_add_boost_directories()
 
@@ -31,4 +36,5 @@ rosbuild_add_boost_directories()
 #target_link_libraries(example ${PROJECT_NAME})
 
 rosbuild_add_library(collvoid_local_planner src/collvoid_local_planner.cpp src/pose_twist_aggregator.cpp src/ROSAgent.cpp src/Obstacle.cpp src/Agent.cpp)
-rosbuild_add_executable(pose_twist_aggregator src/pose_twist_aggregator.cpp src/ROSAgent.cpp src/Obstacle.cpp src/Agent.cpp)
+rosbuild_add_executable(pose_twist_aggregator src/pose_twist_aggregator.cpp)
+

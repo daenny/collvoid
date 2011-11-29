@@ -36,7 +36,7 @@ CollvoidLocalPlanner:
   acc_lim_th: 3.2
   max_vel_with_obstacles: 0.3
 
-  radius: 0.45
+  footprint_radius: 0.35
   inscribed_radius: 0.33
 
 TrajectoryPlannerROS:

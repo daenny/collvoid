@@ -104,17 +104,17 @@ void PoseTwistAggregator::publishInitialGuess(double noise_std){
   init_guess.header.frame_id = global_frame_;
     
   //set covariance to 0.2 in x and y and 0.068 in ang
-  init_guess.pose.covariance[0] = 0.1;
-  init_guess.pose.covariance[7] = 0.1;
-  init_guess.pose.covariance[35] = 0.068;
+  init_guess.pose.covariance[0] = noise_std;
+  init_guess.pose.covariance[7] = noise_std;
+  init_guess.pose.covariance[35] = noise_std / 3.0;
 
   init_guess_pub_.publish(init_guess);
  
 }
 
-bool PoseTwistAggregator::initGuessCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response){
+bool PoseTwistAggregator::initGuessCallback(collvoid_local_planner::InitGuess::Request& request, collvoid_local_planner::InitGuess::Response& response){
   ROS_INFO_NAMED("PoseTwistAggregator","Sending init guess from grount truth");
-  publishInitialGuess(0.0); //TODO: add own srvs with noise as request
+  publishInitialGuess(request.noise_std); //TODO: add own srvs with noise as request
   return true;
 
 }
@@ -182,7 +182,7 @@ void PoseTwistAggregator::amclPoseCallback(const geometry_msgs::PoseWithCovarian
     rad_unc = std::max(sqrt(cov_x),sqrt(cov_y));
     if (rad_unc == rad_unc){
       this->setMaxRadiusCov(rad_unc); // TODO: Filter radius changes!
-      ROS_DEBUG("%s, max radius covariance: %6.4f", my_id_.c_str(),rad_unc);
+      //ROS_DEBUG("%s, max radius covariance: %6.4f", my_id_.c_str(),rad_unc);
     }
     else 
       this->setMaxRadiusCov(0.0);
@@ -378,8 +378,8 @@ void PoseTwistAggregator::setRadius(double radius){
 }
 
 double PoseTwistAggregator::getRadius(){
-  if (rad_unc_ != -1.0) {
-    ROS_DEBUG("radius scaled = %f cov %f, rad = %f",std::min(radius_ + scale_radius_fac_ * rad_unc_, 2.0 * radius_), rad_unc_,radius_);
+  if (rad_unc_ != -1.0 && scale_radius_) {
+    //ROS_DEBUG("radius scaled = %f cov %f, rad = %f",std::min(radius_ + scale_radius_fac_ * rad_unc_, 2.0 * radius_), rad_unc_,radius_);
     return std::min(radius_ + scale_radius_fac_ * rad_unc_, 2.0 * radius_);
   }
   else {
@@ -392,6 +392,11 @@ double PoseTwistAggregator::getRadius(){
 void PoseTwistAggregator::setScaleRadiusFactor(double scale_radius_factor){
   scale_radius_fac_ = scale_radius_factor;
 }
+
+void PoseTwistAggregator::setScaleRadius(bool scale_radius){
+  scale_radius_ = scale_radius;
+}
+
 
 void PoseTwistAggregator::setMaxRadiusCov(double rad_unc){
   rad_unc_ = rad_unc;

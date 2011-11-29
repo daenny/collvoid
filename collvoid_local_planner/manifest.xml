@@ -19,6 +19,7 @@
   <depend package="actionlib"/>
   <depend package="move_base_msgs"/>
   <depend package="std_srvs"/>
+  <depend package="dynamic_reconfigure"/>
   
 
   <export>

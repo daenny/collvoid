@@ -16,7 +16,7 @@ define map model
   gui_grid 0
   gui_move 0
   gui_outline 0
-  obstacle_return 0
+  obstacle_return 1
   gripper_return 0
   fiducial_return 0
   laser_return 1

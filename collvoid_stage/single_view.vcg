@@ -78,7 +78,7 @@ Path.ColorR=0.0901961
 Path.ColorG=0.27451
 Path.ColorB=0.85098
 Path.Enabled=1
-Path.Topic=/move_base/CollvoidLocalPlanner/global_plan
+Path.Topic=/move_base/CollvoidLocalPlanner/local_plan
 Plan.Alpha=1
 Plan.ColorR=0.1
 Plan.ColorG=1
@@ -101,8 +101,8 @@ TF.Update\ Interval=0
 Tool\ 2D\ Nav\ GoalTopic=move_base_simple/goal
 Tool\ 2D\ Pose\ EstimateTopic=initialpose
 Camera\ Type=rviz::OrbitViewController
-Camera\ Config=0.306 0.586221 26.2783 -2.83022 -5.34182 -4.45748
-Property\ Grid\ State=selection=Marker.Enabled;expanded=.Global Options,Map.Enabled,Footprint.Enabled,Obstacles.Enabled,Inflated Obstacles.Enabled,Axes.Enabled.Axes.StatusTopStatus,TF.Enabled.TF.StatusTopStatus,TF.Enabled.TF.Tree,Marker.Enabled,Marker.Enabled.Marker.Namespaces,MarkerArray.Enabled,MarkerArray.Enabled.MarkerArray.Namespaces,MarkerArray2.Enabled,MarkerArray2.Enabled.MarkerArray2.Namespaces;scrollpos=0,29;splitterpos=199,382;ispageselected=1
+Camera\ Config=0.306 0.586221 28.5902 7.04866 -7.002 -9.83426
+Property\ Grid\ State=selection=MarkerArray2.Enabled;expanded=.Global Options,Map.Enabled,Footprint.Enabled,Obstacles.Enabled,Inflated Obstacles.Enabled,Axes.Enabled.Axes.StatusTopStatus,TF.Enabled.TF.StatusTopStatus,TF.Enabled.TF.Tree,Path.Enabled,Marker.Enabled,Marker.Enabled.Marker.StatusTopStatus,Marker.Enabled.Marker.Namespaces,MarkerArray.Enabled,MarkerArray.Enabled.MarkerArray.Namespaces,MarkerArray2.Enabled,MarkerArray2.Enabled.MarkerArray2.Namespaces;scrollpos=0,16;splitterpos=125,250;ispageselected=1
 [Display0]
 Name=Map
 Package=rviz
@@ -163,7 +163,5 @@ ClassName=rviz::MarkerArrayDisplay
 Name=MarkerArray2
 Package=rviz
 ClassName=rviz::MarkerArrayDisplay
-[MarkerArray.]
-base_link=1
 [MarkerArray2.]
-base_link=1
+base_footprint=1

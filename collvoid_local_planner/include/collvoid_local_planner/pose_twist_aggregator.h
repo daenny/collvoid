@@ -15,8 +15,8 @@
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Vector3.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
-#include <std_srvs/Empty.h>
-
+//#include <std_srvs/Empty.h>
+#include "collvoid_local_planner/InitGuess.h"
 #include "collvoid_msgs/PoseTwistWithCovariance.h"
 
 class PoseTwistAggregator{
@@ -31,11 +31,12 @@ class PoseTwistAggregator{
   void setRadius(double radius);
   double getRadius();
   void setScaleRadiusFactor(double scale_rad_factor);
+  void setScaleRadius(bool scale_rad);
 
   void setHoloVelocity(double x, double y);
   void publishInitialGuess(double noise_std);
   // Service callback for intguess
-  bool initGuessCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+  bool initGuessCallback(collvoid_local_planner::InitGuess::Request& request, collvoid_local_planner::InitGuess::Response& response);
   boost::mutex odom_lock_,neighbors_lock_;
   
  

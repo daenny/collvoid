@@ -6,7 +6,7 @@ import string
 import sys
 import math
 import actionlib
-from std_srvs.srv import Empty
+from collvoid_local_planner.srv import InitGuess
 from std_msgs.msg import String
 from geometry_msgs.msg import PoseWithCovarianceStamped,PoseStamped
 from socket import gethostname
@@ -37,7 +37,7 @@ class ControllerRobots():
     
         #self.pub_goal = rospy.Publisher("move_base/goal", MoveBaseActionGoal)
      
-        self.init_guess_srv = rospy.ServiceProxy("init_guess_pub", Empty)
+        self.init_guess_srv = rospy.ServiceProxy("init_guess_pub", InitGuess)
 
 #        self.pub_commands_robot = rospy.Publisher("/commands_robot", String)
 #        self.sub_common_position = rospy.Subscriber("/position_share", PoseTwistWithCovariance, self.cb_common_positions)
@@ -109,7 +109,7 @@ class ControllerRobots():
             rospy.loginfo("I am Off")
 
         if (msg.data == "all init Guess"):
-            self.init_guess_srv()
+            self.init_guess_srv(0.1)
         
         if msg.data == "all Stop" or msg.data == "%s Stop"%self.hostname:
             self.client.cancel_all_goals()

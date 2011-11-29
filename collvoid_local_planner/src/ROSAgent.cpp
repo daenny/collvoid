@@ -323,7 +323,7 @@ float ROSAgent::getDistToFootprint(RVO::Vector2& point){
           
     result = LineSegmentToLineSegmentIntersection(first.x(),first.y(),second.x(),second.y(), 0.0, 0.0, point.x(),point.y());
     if (result != null) {
-      ROS_DEBUG("Result = %f, %f, dist %f", result.x(), result.y(), RVO::abs(result));
+      //ROS_DEBUG("Result = %f, %f, dist %f", result.x(), result.y(), RVO::abs(result));
       return RVO::abs(result);
     }
   }
@@ -350,6 +350,9 @@ void ROSAgent::calculateObstacleLines(){
       }
     }
     dist = std::min(dist - dist_to_footprint - 0.01, (double)max_vel_with_obstacles_);
+    //if (dist < (double)max_vel_with_obstacles_){
+    //  dist *= dist;
+    //} 
     //    line.point = normalize(relative_position) * (dist - dist_to_footprint - 0.03);
     line.point = normalize(relative_position) * (dist); 
     line.direction = Vector2 (-normalize(relative_position).y(),normalize(relative_position).x()) ; 
