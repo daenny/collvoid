@@ -14,7 +14,6 @@
 #include <nav_msgs/Odometry.h>
 #include <boost/thread.hpp>
 #include "collvoid_local_planner/Agent.h"
-#include "collvoid_local_planner/Obstacle.h"
 
 class ROSAgent : public RVO::Agent {
  private:

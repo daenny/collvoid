@@ -101,15 +101,6 @@ namespace RVO
     void insertAgentNeighbor(const Agent* agent, float& rangeSq);
 
     /*!
-     *  @brief      Inserts a static obstacle neighbor into the set of neighbors
-     *              of this agent.
-     *  @param      obstacle        The number of the static obstacle to be
-     *                              inserted.
-     *  @param      rangeSq         The squared range around this agent.
-     */
-    void insertObstacleNeighbor(const Obstacle* obstacle, float rangeSq);
-
-    /*!
      *  @brief      Updates the two-dimensional position and two-dimensional
      *              velocity of this agent.
      */
@@ -120,7 +111,6 @@ namespace RVO
     float maxSpeed_;
     float neighborDist_;
     Vector2 newVelocity_;
-    std::vector<std::pair<float, const Obstacle*> > obstacleNeighbors_;
     std::vector<Line> orcaLines_;
     Vector2 position_;
     Vector2 prefVelocity_;

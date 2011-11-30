@@ -672,8 +672,8 @@ namespace collvoid_local_planner {
       }
     //ROS_DEBUG("waypoint = %d, of %d", current_waypoint_, transformed_plan_.size());
 
-    if (min_dist > pt_agg_->getRadius() && transformed_plan_.size()>2) //lets first get to the begin pose of the plan
-      return;
+    //if (min_dist > pt_agg_->getRadius() && transformed_plan_.size()>2) //lets first get to the begin pose of the plan
+    //  return;
     
     if (current_waypoint_ == transformed_plan_.size()-1) //I am at the end of the plan
       return;
@@ -752,7 +752,6 @@ namespace collvoid_local_planner {
     agent->base_odom_.twist = msg->twist;
     agent->base_odom_.header = msg->header;
     double time_dif = (ros::Time::now() - msg->header.stamp).toSec();
-    //ROS_DEBUG("time dif to last seen is: %6.4f", time_dif);
     double yaw, x_dif, y_dif, th_dif;
     yaw = tf::getYaw(msg->pose.pose.orientation);
     th_dif =  time_dif * msg->twist.twist.angular.z;
@@ -769,14 +768,6 @@ namespace collvoid_local_planner {
     agent->setPosition(msg->pose.pose.position.x + x_dif, msg->pose.pose.position.y + y_dif);   
    
     RVO::Vector2 vel = rotateVectorByAngle(msg->twist.twist.linear.x, msg->twist.twist.linear.y, agent->getHeading());
-    if (RVO::abs(vel) < RVO_EPSILON){
-      // if (agent != me_) {
-      //  	vel = rotateVectorByAngle(0.01, 0.0, me_->getHeading()+sampleNormal(0.0, 2.0));
-      // }
-      // else {
-      // 	vel = rotateVectorByAngle(0.01, 0.0, me_->getHeading()+sampleNormal(0.0, 0.1));
-      // }
-    }
     agent->setVelocity(vel.x(),vel.y());
    
     //ROS_INFO("%s Position of robot i =%s at: [%f, %f] with vel = [%f, %f], timeDif = %f", me_->getId().c_str(), agent->getId().c_str(), agent->position_.x(), agent->position_.y(),agent->velocity_.x(),agent->velocity_.y(),time_dif);
