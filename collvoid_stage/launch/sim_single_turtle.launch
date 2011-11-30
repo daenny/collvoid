@@ -1,7 +1,6 @@
 <launch>
-  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_stage)/world/maplarge.yaml"/>
-  <node pkg="stage" type="stageros" name="stageros" args="$(find collvoid_stage)/world/willow_full.world" respawn="false" output="screen" />
-
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_stage)/world/swarmlab_map.yaml"/>
+  <node pkg="stage" type="stageros" name="stageros" args="$(find collvoid_stage)/world/swarmlab_single_turtle.world" respawn="false" output="screen" />
   <include file="$(find collvoid_stage)/launch/amcl_diff_single.launch">
   </include>
   <rosparam command="load" file="$(find collvoid_stage)/params_created.yaml"/>

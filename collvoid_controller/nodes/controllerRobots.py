@@ -109,7 +109,7 @@ class ControllerRobots():
             rospy.loginfo("I am Off")
 
         if (msg.data == "all init Guess"):
-            self.init_guess_srv(0.1)
+            self.init_guess_srv(0.01)
         
         if msg.data == "all Stop" or msg.data == "%s Stop"%self.hostname:
             self.client.cancel_all_goals()

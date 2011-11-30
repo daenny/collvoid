@@ -15,7 +15,7 @@ CollvoidLocalPlanner:
   global_frame: /map
   wheel_base: 0.25
   time_to_holo: 0.4
-  min_error_holo: 0.01
+  min_error_holo: 0.05
   max_error_holo: 0.15
   holo_robot: false
   delete_observations: true
@@ -27,7 +27,7 @@ CollvoidLocalPlanner:
   min_vel_theta_inplace: 0.5
   min_vel_y: 0.01
   max_vel_y: 0.1
-  max_vel_with_obstacles: 0.3
+  max_vel_with_obstacles: 0.5
   acc_lim_x: 1.0
   acc_lim_y: 0.0
   acc_lim_th: 1.0

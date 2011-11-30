@@ -539,13 +539,16 @@ namespace collvoid_local_planner {
 	//ROS_DEBUG("Error = %f", error);
 	if (min_dist<0) {
 	  error = min_error;
-	  ROS_DEBUG("%s I think I am in collision", me_->getId().c_str());
+	  // ROS_DEBUG("%s I think I am in collision", me_->getId().c_str());
 	}
       }
-      if (fabs(dif_ang_goal) <= M_PI/2.0)
+      if (fabs(dif_ang_goal) <= M_PI/2.0 && error > 2.0 * min_error)
 	me_->addMovementConstraintsDiff(error, T, max_vel_x_,max_vel_th_);
       else {
 	double max_track_speed = me_->calculateMaxTrackSpeedAngle(T,M_PI/2.0, error, max_vel_x_, max_vel_th_);
+	//ROS_DEBUG("%s max_track_speed %f", me_->getId().c_str(), max_track_speed);
+	if (max_track_speed < min_error * 2.0)
+	  max_track_speed = min_error * 2.0;
 	me_->setMaxTrackSpeed(max_track_speed);
       }      //  ROS_ERROR("error %6.4f", error);
       
