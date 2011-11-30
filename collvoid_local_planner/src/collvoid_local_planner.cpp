@@ -146,8 +146,7 @@ namespace collvoid_local_planner {
       time_to_holo_ = getParamDef(private_nh,"time_to_holo", 0.4);
       min_error_holo_ = getParamDef(private_nh,"min_error_holo", 0.01);
       max_error_holo_ = getParamDef(private_nh, "max_error_holo", 0.15);
-      bool delete_observations;
-      delete_observations = getParamDef(private_nh, "delete_observations", true);
+      delete_observations_ = getParamDef(private_nh, "delete_observations", true);
 
       THRESHOLD_LAST_SEEN_ = getParamDef(private_nh,"threshold_last_seen",1.0);
       
@@ -179,7 +178,7 @@ namespace collvoid_local_planner {
       me_->setTimeHorizon(time_horizon_);
       me_->setTimeHorizonObst(time_horizon_obst_);
       me_->setTimeStep(sim_period_);
-      me_->setDeleteObservations(delete_observations);
+      me_->setDeleteObservations(delete_observations_);
       me_->setWheelBase(wheel_base_);
       me_->setMaxVelWithObstacles(max_vel_with_obstacles);
 
@@ -733,6 +732,25 @@ namespace collvoid_local_planner {
 	  if (dist < min_dist) {
 	    min_dist = dist;
 	  }
+	  if (delete_observations_){
+	    std::vector<geometry_msgs::Point> oriented_footprint;
+	    //we'll build an approximation of the circle as the footprint and clear that
+	    double angle = 0;
+	    double step = 2 * M_PI / 72;
+	    while(angle < 2 * M_PI){
+	      geometry_msgs::Point pt;
+	      pt.x = new_neighbor->getRadius() * cos(angle) + new_neighbor->position_.x();
+	      pt.y = new_neighbor->getRadius() * sin(angle) + new_neighbor->position_.y();
+	      pt.z = 0.0;
+	      oriented_footprint.push_back(pt);
+	      angle += step;
+	    }
+	    //double max_inflation_dist = 2 * (costmap_ros_->getInflationRadius() + costmap_ros_->getCircumscribedRadius());
+	    costmap_ros_->setConvexPolygonCost(oriented_footprint, costmap_2d::FREE_SPACE);
+	    //costmap_ros_->clearNonLethal(new_neighbor->position_.x(), new_neighbor->position_.y(), max_inflation_dist, max_inflation_dist);
+	    
+	  }
+
 	  me_->insertAgentNeighbor(new_neighbor,range_sq);
 	}
       }

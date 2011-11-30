@@ -75,7 +75,7 @@ namespace collvoid_local_planner {
 
     double wheel_base_;
 
-    bool latch_xy_goal_tolerance_, xy_tolerance_latch_, rotating_to_goal_, ignore_goal_yaw_;
+    bool latch_xy_goal_tolerance_, xy_tolerance_latch_, rotating_to_goal_, ignore_goal_yaw_, delete_observations_;
     
     unsigned int current_waypoint_;
     //params ORCA
