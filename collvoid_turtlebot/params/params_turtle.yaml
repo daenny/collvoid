@@ -1,4 +1,4 @@
-/controller_frequency: 10
+controller_frequency: 10
 
 CollvoidLocalPlanner:
   max_neighbors: 10
@@ -24,36 +24,16 @@ CollvoidLocalPlanner:
   max_vel_th: 1.5
   min_vel_x: 0.1
   min_vel_th: 0.1
-  min_vel_theta_inplace: 0.4
-  max_vel_with_obstacles: 0.3
+  min_vel_theta_inplace: 0.5
+  max_vel_with_obstacles: 0.5
 
   min_vel_y: 0.01
   max_vel_y: 0.1
   acc_lim_x: 2.0
   acc_lim_y: 0.0
   acc_lim_th: 1.0
-  footprint_radius: 0.17
+  footprint_radius: 0.18
   inscribed_radius: 0.16
-
-TrajectoryPlannerROS:
-  max_vel_x: 0.50
-  min_vel_x: 0.10
-  max_rotational_vel: 1.5
-  min_in_place_rotational_vel: 0.1
-  acc_lim_th: 0.75
-  acc_lim_x: 0.50
-  acc_lim_y: 0.50
-  holonomic_robot: false
-  yaw_goal_tolerance: 0.05
-  xy_goal_tolerance: 0.1
-  goal_distance_bias: 0.8
-  path_distance_bias: 0.6
-  sim_time: 1.5
-  heading_lookahead: 0.325
-  oscillation_reset_dist: 0.05
-  vx_samples: 6
-  vtheta_samples: 20
-  dwa: false
 
 local_costmap:
   global_frame: odom
@@ -73,8 +53,9 @@ local_costmap:
   robot_radius: 0.17
  # footprint: [[0.17, 0.17], [-0.17, 0.17], [-0.17, -0.17], [0.17, -0.17]]
   inflation_radius: 0.18
-  observation_sources: laser_scan_sensor
+  observation_sources: laser_scan_sensor kinect
   laser_scan_sensor: {sensor_frame: base_laser_link, data_type: LaserScan, topic: base_scan, observation_persistence: 0.0, marking: true, clearing: true, min_obstacle_height: -0.10, max_obstacle_height: 2.0}
+  kinect: {sensor_frame: kinect_depth_frame, data_type: LaserScan, topic: scan, observation_persistence: 0.0, marking: true, clearing: true, min_obstacle_height: -0.10, max_obstacle_height: 2.0}
 
   #point_cloud_sensor: {sensor_frame: frame_name, data_type: PointCloud, topic: topic_name, marking: true, clearing: true}
 
