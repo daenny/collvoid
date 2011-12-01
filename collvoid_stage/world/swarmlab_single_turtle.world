@@ -109,4 +109,3 @@ define omni_robot position
 
 # robots added here automatically
 roomba( pose [ -0.0 0.0 0 0.000000 ] name "robot_0" color "blue")
-#diff_robot( pose [ -0.0 0.0 0 90.000000 ] name "robot_1" color "SlateGray")

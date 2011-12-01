@@ -119,16 +119,13 @@ define pr2 position
   point[1] [ -0.325 -0.325 ]
   point[2] [ 0.325 -0.325 ]
   point[3] [ 0.46 0.0 ]
-
   point[4] [ 0.325 0.325 ]
-
   )
  	
   topurg( pose [0.275 0 0.1 0] )
   drive "omni"
 
 )
-
 
 # robots added here automatically
 pr2( pose [ 6.023 3.057 0 4.807 ] name "robot_0" color "dark slate blue")
