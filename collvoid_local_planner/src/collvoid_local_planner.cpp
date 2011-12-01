@@ -745,9 +745,9 @@ namespace collvoid_local_planner {
 	      oriented_footprint.push_back(pt);
 	      angle += step;
 	    }
-	    //double max_inflation_dist = 2 * (costmap_ros_->getInflationRadius() + costmap_ros_->getCircumscribedRadius());
+	    double max_inflation_dist = 2 * (costmap_ros_->getInflationRadius() + costmap_ros_->getCircumscribedRadius());
 	    costmap_ros_->setConvexPolygonCost(oriented_footprint, costmap_2d::FREE_SPACE);
-	    //costmap_ros_->clearNonLethal(new_neighbor->position_.x(), new_neighbor->position_.y(), max_inflation_dist, max_inflation_dist);
+	    costmap_ros_->clearNonLethalWindow(max_inflation_dist, max_inflation_dist);
 	    
 	  }
 
