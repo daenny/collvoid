@@ -1,7 +1,7 @@
 <launch>
   <include file="$(find pr2_machine)/$(env ROBOT).machine" />
 
-  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_turtlebot)/world/maplarge.yaml" output="screen" />
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_pr2)/world/maplarge.yaml" output="screen" />
 
   <!--- Run Navstack -->
   <include file="$(find pr2_navigation_global)/amcl_node.xml"/>

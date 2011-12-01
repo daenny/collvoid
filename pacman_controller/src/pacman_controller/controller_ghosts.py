@@ -172,6 +172,10 @@ class ControllerGhosts():
         
         while index < len(path)-1 and GE.dist(path[index], me) < me['radius'] + GE.THRESHOLD :
             index += 1;
+
+        while index < len(path)-1 and GE.dist(path[index], self.gameEngine.ghosts[self.ghostname]) < 2 * self.gameEngine.ghosts[self.ghostname]['radius'] + 2.0 * GE.THRESHOLD and self.gameEngine.positionBlocked(path[index], self.gameEngine.ghosts[self.ghostname]):
+            index +=1;
+
  
         return path[index]['id'], path[len(path)-1]['id']
 
@@ -229,8 +233,10 @@ if __name__ == '__main__':
     #ghostname = sys.argv[1]
     rospy.init_node('controller_ghosts')
     controller_ghosts = ControllerGhosts()
+    r = rospy.Rate(10)
     while not rospy.is_shutdown():
         controller_ghosts.update()
-        rospy.sleep(0.1)
+        r.sleep()
+    
 
 

@@ -9,7 +9,6 @@
  <!-- Run the map server -->
   <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_turtlebot)/world/maplarge.yaml" output="screen"/>
 
-
   <!-- Run the laser -->
   <include file="$(find collvoid_turtlebot)/launch/hokuyo.launch" />
 
