@@ -372,6 +372,8 @@ class GameEngine():
        minDist = dist(self.mapPoints[0], position)
        minPoint = self.mapPoints[0]
        for p in self.mapPoints:
+           if p["powerup"]:
+               continue;
            distNew = dist(p, position)
            if distNew < minDist:
                minDist = distNew
