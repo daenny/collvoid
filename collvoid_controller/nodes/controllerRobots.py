@@ -31,15 +31,14 @@ class ControllerRobots():
 
         if (self.hostname == "/"):
             self.hostname = gethostname()
-            self.goals = rospy.get_param("/%s/goals"%self.hostname)
+            self.goals = rospy.get_param("/%s/goals"%self.hostname,[])
         else:
-            self.goals = rospy.get_param("%sgoals"%self.hostname)
-
-        rospy.loginfo("goals: %s"%str(self.goals))
-        self.cur_goal = 0
-        self.num_goals = len(self.goals["x"])
-        self.cur_goal_msg = self.return_cur_goal()
-        self.circle = False
+            self.goals = rospy.get_param("%sgoals"%self.hostname,[])
+        if len(self.goals)>0:
+            rospy.loginfo("goals: %s"%str(self.goals))
+            self.cur_goal = 0
+            self.num_goals = len(self.goals["x"])
+            self.cur_goal_msg = self.return_cur_goal()
         rospy.loginfo("Name: %s",self.hostname)
 
     def return_cur_goal(self):
