@@ -1,5 +1,0 @@
-<launch>
-
-  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_turtlebot)/world/greenroom_ext.yaml" output="screen" />
-
-</launch>

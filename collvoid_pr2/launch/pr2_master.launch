@@ -3,12 +3,8 @@
 
   <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_turtlebot)/world/maplarge.yaml" output="screen" />
 
-  <!--- Run AMCL -->
+  <!--- Run Navstack -->
   <include file="$(find pr2_navigation_global)/amcl_node.xml"/>
-
-<!---  <include file="$(find collvoid_pr2)/launch/amcl_pr2.launch"/> 
---> 
-
   <include file="$(find pr2_navigation_teleop)/teleop.xml"/>
   <include file="$(find pr2_navigation_perception)/lasers_and_filters.xml"/>
   <include file="$(find pr2_navigation_perception)/ground_plane.xml"/>
@@ -39,10 +35,8 @@
   <rosparam command="load" file="$(find collvoid_controller)/goals.yaml"/>
   <node pkg="collvoid_controller" type="controllerRobots.py" name="controller_robots" output="screen" />
 
-
   <!-- Throttle the voxel grid that is being published for rviz -->
   <node ns="move_base_node/local_costmap" name="voxel_grid_throttle" pkg="topic_tools" type="throttle" machine="c1" args="messages voxel_grid 3.0 voxel_grid_throttled" />
-
 
   <!--- Run collvoid -->
   <rosparam command="load" file="$(find collvoid_pr2)/params/params_created.yaml"/>
@@ -52,9 +46,8 @@
     <remap from="cmd_vel" to="navigation/cmd_vel" />
 
     <rosparam command="load" file="$(find collvoid_pr2)/params/params_pr2.yaml"/>
-    <!---  <param name="base_local_planner" value="pose_follower/PoseFollower" />  -->
     <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
-    <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" />
+    <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" /> <!-- used for demos -->
    
     
   </node>

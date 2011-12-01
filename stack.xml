@@ -1,6 +1,6 @@
 <stack>
-  <description brief="collvoid">collvoid</description>
-  <author>Maintained by danielclaes</author>
+  <description brief="collvoid">Multi Robot Collision Avoidance</description>
+  <author>Maintained by Daniel Claes</author>
   <license>BSD</license>  
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/collvoid</url>
