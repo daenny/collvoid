@@ -83,7 +83,7 @@ local_costmap:
                observation_persistence: 0.2, marking: false, clearing: true, min_obstacle_height: -20.00, max_obstacle_height: 40.0}
 
   ground_object_cloud: {sensor_frame: laser_tilt_link, topic: /ground_object_cloud, data_type: PointCloud, expected_update_rate: 0.2,
-                         observation_persistence: 0.6, marking: true, clearing: false, min_obstacle_height: -0.10, max_obstacle_height: 2.0}
+                         observation_persistence: 4.6, marking: true, clearing: false, min_obstacle_height: -0.10, max_obstacle_height: 2.0}
   # END VOXEL STUFF
 
       
@@ -122,7 +122,7 @@ global_costmap:
                observation_persistence: 0.2, marking: false, clearing: true, min_obstacle_height: -20.00, max_obstacle_height: 40.0}
 
   ground_object_cloud: {sensor_frame: laser_tilt_link, topic: /ground_object_cloud, data_type: PointCloud, expected_update_rate: 0.2,
-                         observation_persistence: 0.6, marking: true, clearing: false, min_obstacle_height: -0.10, max_obstacle_height: 2.0}
+                         observation_persistence: 4.6, marking: true, clearing: false, min_obstacle_height: -0.10, max_obstacle_height: 2.0}
   # END VOXEL STUFF
 
 
