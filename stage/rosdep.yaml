@@ -1,6 +1,0 @@
-libjpeg:
-  ubuntu: libjpeg62-dev
-  debian: libjpeg62-dev
-  fedora: libjpeg-devel
-  macports: jpeg
-  arch: libjpeg
