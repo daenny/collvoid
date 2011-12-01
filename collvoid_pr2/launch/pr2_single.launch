@@ -3,6 +3,7 @@
 
   <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_pr2)/world/maplarge.yaml" output="screen" />
 
+
   <!--- Run Navstack -->
   <include file="$(find pr2_navigation_global)/amcl_node.xml"/>
   <include file="$(find pr2_navigation_teleop)/teleop.xml"/>
@@ -33,6 +34,11 @@
 
   <!-- Throttle the voxel grid that is being published for rviz -->
   <node ns="move_base_node/local_costmap" name="voxel_grid_throttle" pkg="topic_tools" type="throttle" machine="c1" args="messages voxel_grid 3.0 voxel_grid_throttled" />
+
+  <!--- Run Controller -->
+  <rosparam command="load" file="$(find collvoid_controller)/goals.yaml"/>
+  <node pkg="collvoid_controller" type="controllerRobots.py" name="controller_robots" output="screen" />
+
 
   <!--- Run collvoid -->
   <rosparam command="load" file="$(find collvoid_pr2)/params/params_created.yaml"/>
