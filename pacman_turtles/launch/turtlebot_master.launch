@@ -1,0 +1,42 @@
+<launch>
+  <arg name="robot" />
+  
+  <!--- Run Robot Pose EKF -->
+  <include file="$(find collvoid_turtlebot)/launch/base.launch" />
+
+  <!--- Run the kinect -->
+  <include file="$(find pacman_turtles)/launch/kinect.launch" /> 
+
+  <!-- Run the map server -->
+<!--  <arg name="map_file" default="$(find turtlebot_navigation)/maps/willow-2010-02-18-0.10.yaml"/> -->
+
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find pacman_turtles)/world/maplarge.yaml" output="screen"/>
+
+
+  <!-- Run the laser -->
+  <include file="$(find pacman_turtles)/launch/hokuyo.launch" />
+
+  <!--- Run AMCL -->
+  <include file="$(find pacman_turtles)/launch/amcl_turtlebot.launch"/> 
+ 
+
+  <rosparam command="load" file="$(find pacman_controller)/params/map_willow.yaml"/>
+  <rosparam command="load" file="$(find pacman_controller)/params/ghost_homes.yaml"/>
+
+
+ 
+  <!--- Run collvoid -->
+  <rosparam command="load" file="$(find pacman_turtles)/params/params_created.yaml"/>
+
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <param name="~/CollvoidLocalPlanner/name" value="$(arg robot)" />
+
+    <rosparam command="load" file="$(find pacman_turtles)/params/params_turtle.yaml"/>
+    <!---  <param name="base_local_planner" value="pose_follower/PoseFollower" /> -->  
+    <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
+    <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" />
+    
+    <remap from="/cmd_vel" to="/turtlebot_node/cmd_vel"/>
+  </node>
+
+</launch>

@@ -1,0 +1,19 @@
+<launch>
+  <arg name="master" />
+
+  <node pkg="multimaster" type="master_sync.py" name="master_sync" output="screen"> 
+    <param name="foreign_master" value="http://$(arg master):11311" />      
+    <rosparam command="load" file="$(find pacman_turtles)/params/pacman.yaml" />
+  </node>
+
+  <include file="$(find pacman_turtles)/launch/turtlebot_master.launch">
+      <arg name="robot" value="pacman" />
+  </include>
+
+  <!--- Run Controller -->
+  <node pkg="pacman_controller" type="controller_pacman.py" name="controller_pacman" output="screen">
+    <param name="~/ghostname" value="pacman" />
+  </node>
+
+
+</launch>

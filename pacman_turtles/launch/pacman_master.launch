@@ -1,0 +1,12 @@
+<launch>
+  <include file="$(find pacman_turtles)/launch/turtlebot_master.launch">
+      <arg name="robot" value="pacman" />
+  </include>
+
+  <!--- Run Controller -->
+  <node pkg="pacman_controller" type="controller_pacman.py" name="controller_pacman" output="screen">
+    <param name="~/ghostname" value="pacman" />
+  </node>
+
+
+</launch>

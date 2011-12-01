@@ -1,0 +1,12 @@
+<launch>
+  
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find pacman_turtles)/pacman.vcg" output="screen" />
+
+  <rosparam command="load" file="$(find pacman_controller)/params/map_willow.yaml"/>
+  <rosparam command="load" file="$(find pacman_controller)/params/ghost_homes.yaml"/>
+
+ 
+  <node pkg="pacman_controller" type="game_controller.py" name="game_controller" output="screen" />
+  <node pkg="pacman_controller" type="game_engine.py" name="game_engine" output="screen" />
+
+</launch>

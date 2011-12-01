@@ -1,0 +1,2 @@
+local_pubs: [position_share]
+foreign_pubs: [position_share,commands_robot,state]

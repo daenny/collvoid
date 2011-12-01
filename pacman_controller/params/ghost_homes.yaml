@@ -1,0 +1,26 @@
+ghost_red:
+  home: 24
+  sleep_time: 0.0
+
+ghost_pink:
+  home: 25
+  sleep_time: 5.0
+
+ghost_blue:
+  home: 26
+  sleep_time: 10.0
+
+pacman:
+  home: 13
+  sleep_time: 0.0
+
+score_loc:
+  x: 5.0
+  y: 5.0
+
+info_loc:
+  x: 0.0
+  y: 0.0
+
+power_ups:
+  nodes: [1,4,12,9,19]

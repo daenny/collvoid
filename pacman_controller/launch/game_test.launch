@@ -1,0 +1,99 @@
+<launch>
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find pacman_controller)/world/maplarge.yaml"/>
+
+  <rosparam command="load" file="$(find pacman_controller)/params/params_created.yaml"/>
+
+  <node pkg="stage" type="stageros" name="stageros" args="$(find pacman_controller)/world/willow_full.world" respawn="false" output="screen" />
+
+  <include file="$(find collvoid_stage)/launch/amcl_diff_multi.launch">
+    <arg name="robot" value="robot_0"/>
+  </include>
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" ns="robot_0" output="screen">
+    <rosparam command="load" file="$(find pacman_controller)/params/params_turtle.yaml" />
+    <remap from="map" to="/map" />
+    <param name="~/CollvoidLocalPlanner/name" value="pacman" />
+    <param name="~tf_prefix" value="robot_0" />
+    <param name="~/global_costmap/robot_base_frame" value="robot_0/base_link" /> 
+    <param name="~/local_costmap/robot_base_frame" value="robot_0/base_link" /> 
+    <param name="~/local_costmap/global_frame" value="robot_0/odom" /> 
+    <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
+    <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" /> 
+
+  </node> 
+
+  <node pkg="pacman_controller" type="controller_pacman.py" name="controller_pacman"  ns="robot_0" output="screen">
+    <param name="~/ghostname" value="pacman" />
+  </node>
+
+
+  <include file="$(find collvoid_stage)/launch/amcl_diff_multi.launch">
+    <arg name="robot" value="robot_1"/>
+  </include>
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" ns="robot_1" output="screen">
+    <rosparam command="load" file="$(find pacman_controller)/params/params_turtle.yaml" />
+    <param name="~/CollvoidLocalPlanner/name" value="ghost_red" />
+    <remap from="map" to="/map" />
+    <param name="~tf_prefix" value="robot_1" />
+    <param name="~/global_costmap/robot_base_frame" value="robot_1/base_link" /> 
+    <param name="~/local_costmap/robot_base_frame" value="robot_1/base_link" /> 
+    <param name="~/local_costmap/global_frame" value="robot_1/odom" /> 
+    <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
+    <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" /> 
+
+  </node> 
+
+  <node pkg="pacman_controller" type="controller_ghosts.py" name="controller_ghosts"  ns="robot_1" output="screen">
+    <param name="~/ghostname" value="ghost_red" />
+  </node>
+
+  <include file="$(find collvoid_stage)/launch/amcl_diff_multi.launch">
+    <arg name="robot" value="robot_2"/>
+  </include>
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" ns="robot_2" output="screen">
+    <rosparam command="load" file="$(find pacman_controller)/params/params_turtle.yaml" />
+    <param name="~/CollvoidLocalPlanner/name" value="ghost_pink" />
+    <remap from="map" to="/map" />
+    <param name="~tf_prefix" value="robot_2" />
+    <param name="~/global_costmap/robot_base_frame" value="robot_2/base_link" /> 
+    <param name="~/local_costmap/robot_base_frame" value="robot_2/base_link" /> 
+    <param name="~/local_costmap/global_frame" value="robot_2/odom" /> 
+    <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
+    <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" />
+
+  </node> 
+
+  <node pkg="pacman_controller" type="controller_ghosts.py" name="controller_ghosts"  ns="robot_2" output="screen">
+    <param name="~/ghostname" value="ghost_pink" />
+  </node>
+
+  <include file="$(find collvoid_stage)/launch/amcl_diff_multi.launch">
+    <arg name="robot" value="robot_3"/>
+  </include>
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" ns="robot_3" output="screen">
+    <rosparam command="load" file="$(find pacman_controller)/params/params_turtle.yaml" />
+    <remap from="map" to="/map" />
+    <param name="~/CollvoidLocalPlanner/name" value="ghost_blue" />
+    <param name="~tf_prefix" value="robot_3" />
+    <param name="~/global_costmap/robot_base_frame" value="robot_3/base_link" /> 
+    <param name="~/local_costmap/robot_base_frame" value="robot_3/base_link" /> 
+    <param name="~/local_costmap/global_frame" value="robot_3/odom" /> 
+    <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
+    <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" /> 
+
+  </node> 
+
+  <node pkg="pacman_controller" type="controller_ghosts.py" name="controller_ghosts"  ns="robot_3" output="screen">
+    <param name="~/ghostname" value="ghost_blue" />
+  </node>
+
+
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find pacman_controller)/pc_view.vcg" output="screen" />
+
+  <rosparam command="load" file="$(find pacman_controller)/params/map_willow.yaml"/>
+  <rosparam command="load" file="$(find pacman_controller)/params/ghost_homes.yaml"/>
+
+ 
+  <node pkg="pacman_controller" type="game_controller.py" name="game_controller" output="screen" />
+  <node pkg="pacman_controller" type="game_engine.py" name="game_engine" output="screen" />
+
+</launch>

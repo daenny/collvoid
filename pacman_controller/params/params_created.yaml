@@ -1,0 +1,36 @@
+/use_sim_time: true
+/simulation_mode: true
+/use_ground_truth: false
+/scale_radius: true
+/init_guess_noise_std: 0.0
+/num_robots: 6
+robot_0:
+    goals:
+        x: [-3.472792]
+        y: [3.272792]
+        ang: [2.356194]
+robot_1:
+    goals:
+        x: [-3.938666]
+        y: [1.534126]
+        ang: [3.403392]
+robot_2:
+    goals:
+        x: [-2.665874]
+        y: [0.261334]
+        ang: [4.450590]
+robot_3:
+    goals:
+        x: [-0.927208]
+        y: [0.727208]
+        ang: [5.497787]
+robot_4:
+    goals:
+        x: [-0.461334]
+        y: [2.465874]
+        ang: [6.544985]
+robot_5:
+    goals:
+        x: [-1.734126]
+        y: [3.738666]
+        ang: [7.592182]

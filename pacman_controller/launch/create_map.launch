@@ -1,0 +1,26 @@
+<launch>
+  
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find pacman_controller)/world/maplarge.yaml"/>
+  <node pkg="stage" type="stageros" name="stageros" args="$(find pacman_controller)/world/willow_full.world" respawn="false" output="screen" />
+
+  <rosparam command="load" file="$(find pacman_controller)/params/map_willow.yaml"/>
+
+  <rosparam command="load" file="$(find pacman_controller)/params/ghost_homes.yaml"/>
+
+
+  <include file="$(find collvoid_stage)/launch/amcl_omni_single.launch">
+  </include>
+  <rosparam command="load" file="$(find collvoid_stage)/params_created.yaml"/>
+
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <rosparam command="load" file="$(find collvoid_stage)/params/params_pr2.yaml"/>
+   <!---  <param name="base_local_planner" value="pose_follower/PoseFollower" /> -->
+       <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
+  </node>
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find pacman_controller)/map_create.vcg" output="screen" />
+  
+  <node pkg="pacman_controller" type="game_controller.py" name="game_controller" output="screen" />
+
+  <node pkg="pacman_controller" type="create_map.py" name="create_map" output="screen" />
+
+</launch>

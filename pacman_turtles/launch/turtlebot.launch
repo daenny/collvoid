@@ -1,0 +1,15 @@
+<launch>
+  <arg name="master" />
+  <arg name="robot" />
+
+
+  <include file="$(find pacman_turtles)/launch/master.launch">
+    <arg name="master" value="$(arg master)"/>
+  </include>
+
+  <include file="$(find collvoid_turtlebot)/launch/turtlebot_master.launch">
+      <arg name="robot" value="$(arg robot)"/>
+  </include>
+
+
+</launch>

@@ -1,0 +1,159 @@
+Background\ ColorR=0
+Background\ ColorG=0
+Background\ ColorB=0
+Fixed\ Frame=/map
+Target\ Frame=<Fixed Frame>
+Axes.Enabled=0
+Axes.Length=1
+Axes.Radius=0.1
+Axes.Reference\ Frame=/base_link
+Axes2.Enabled=1
+Axes2.Length=1
+Axes2.Radius=0.1
+Axes2.Reference\ Frame=/base_footprint
+Footprint.Alpha=1
+Footprint.ColorR=1
+Footprint.ColorG=0.109804
+Footprint.ColorB=0
+Footprint.Enabled=1
+Footprint.Topic=/move_base/global_costmap/robot_footprint
+Inflated\ Obstacles.Alpha=1
+Inflated\ Obstacles.ColorR=0
+Inflated\ Obstacles.ColorG=0.105882
+Inflated\ Obstacles.ColorB=1
+Inflated\ Obstacles.Enabled=1
+Inflated\ Obstacles.Topic=/move_base/local_costmap/inflated_obstacles
+Laser\ Scan.Alpha=1
+Laser\ Scan.Billboard\ Size=0.01
+Laser\ Scan.Color\ Transformer=Flat Color
+Laser\ Scan.Decay\ Time=0
+Laser\ Scan.Enabled=1
+Laser\ Scan.Position\ Transformer=XYZ
+Laser\ Scan.Selectable=1
+Laser\ Scan.Style=1
+Laser\ Scan.Topic=/base_scan
+Laser\ Scan..AxisAutocompute\ Value\ Bounds=1
+Laser\ Scan..AxisAxis=2
+Laser\ Scan..AxisMax\ Value=10
+Laser\ Scan..AxisMin\ Value=-10
+Laser\ Scan..AxisUse\ Fixed\ Frame=1
+Laser\ Scan..Flat\ ColorColorR=0
+Laser\ Scan..Flat\ ColorColorG=1
+Laser\ Scan..Flat\ ColorColorB=0
+Laser\ Scan..IntensityAutocompute\ Intensity\ Bounds=1
+Laser\ Scan..IntensityChannel\ Name=intensity
+Laser\ Scan..IntensityMax\ ColorR=1
+Laser\ Scan..IntensityMax\ ColorG=1
+Laser\ Scan..IntensityMax\ ColorB=1
+Laser\ Scan..IntensityMax\ Intensity=0
+Laser\ Scan..IntensityMin\ ColorR=0
+Laser\ Scan..IntensityMin\ ColorG=0
+Laser\ Scan..IntensityMin\ ColorB=0
+Laser\ Scan..IntensityMin\ Intensity=0
+Laser\ Scan..IntensityUse\ full\ RGB\ spectrum=0
+Local\ Path.Alpha=1
+Local\ Path.ColorR=0.803922
+Local\ Path.ColorG=0
+Local\ Path.ColorB=1
+Local\ Path.Enabled=0
+Local\ Path.Topic=/move_base/TrajectoryPlannerROS/local_plan
+Map.Alpha=0.7
+Map.Draw\ Behind=0
+Map.Enabled=1
+Map.Topic=/map
+Marker.Enabled=1
+Marker.Marker\ Topic=/orca_lines
+MarkerArray.Enabled=1
+MarkerArray.Marker\ Array\ Topic=/visualization_markers
+Obstacles.Alpha=1
+Obstacles.ColorR=0.1
+Obstacles.ColorG=1
+Obstacles.ColorB=0
+Obstacles.Enabled=1
+Obstacles.Topic=/move_base/local_costmap/obstacles
+Path.Alpha=1
+Path.ColorR=0.0901961
+Path.ColorG=0.27451
+Path.ColorB=0.85098
+Path.Enabled=1
+Path.Topic=/move_base/CollvoidLocalPlanner/global_plan
+Plan.Alpha=1
+Plan.ColorR=0.1
+Plan.ColorG=1
+Plan.ColorB=0
+Plan.Enabled=1
+Plan.Topic=/move_base/NavfnROS/plan
+Pose\ Array.ColorR=1
+Pose\ Array.ColorG=0.1
+Pose\ Array.ColorB=0
+Pose\ Array.Enabled=1
+Pose\ Array.Topic=/particlecloud
+TF.All\ Enabled=1
+TF.Enabled=0
+TF.Frame\ Timeout=15
+TF.Marker\ Scale=1
+TF.Show\ Arrows=1
+TF.Show\ Axes=1
+TF.Show\ Names=1
+TF.Update\ Interval=0
+Tool\ 2D\ Nav\ GoalTopic=click
+Tool\ 2D\ Pose\ EstimateTopic=initialpose
+Camera\ Type=rviz::OrbitViewController
+Camera\ Config=0.301 0.631221 23.3136 -2.87669 -5.57465 -3.12294
+Property\ Grid\ State=selection=MarkerArray.Enabled.MarkerArray.Marker Array Topic;expanded=.Global Options,Map.Enabled,Footprint.Enabled,Obstacles.Enabled,Inflated Obstacles.Enabled,Axes.Enabled.Axes.StatusTopStatus,TF.Enabled.TF.StatusTopStatus,TF.Enabled.TF.Tree,Marker.Enabled,Marker.Enabled.Marker.Namespaces,MarkerArray.Enabled,MarkerArray.Enabled.MarkerArray.Namespaces;scrollpos=0,0;splitterpos=191,398;ispageselected=1
+[Display0]
+Name=Map
+Package=rviz
+ClassName=rviz::MapDisplay
+[Display1]
+Name=Footprint
+Package=rviz
+ClassName=rviz::PolygonDisplay
+[Display2]
+Name=Obstacles
+Package=rviz
+ClassName=rviz::GridCellsDisplay
+[Display3]
+Name=Inflated Obstacles
+Package=rviz
+ClassName=rviz::GridCellsDisplay
+[Display4]
+Name=Plan
+Package=rviz
+ClassName=rviz::PathDisplay
+[Display5]
+Name=Local Path
+Package=rviz
+ClassName=rviz::PathDisplay
+[Display6]
+Name=Pose Array
+Package=rviz
+ClassName=rviz::PoseArrayDisplay
+[Display7]
+Name=Laser Scan
+Package=rviz
+ClassName=rviz::LaserScanDisplay
+[Display8]
+Name=Axes
+Package=rviz
+ClassName=rviz::AxesDisplay
+[Display9]
+Name=Axes2
+Package=rviz
+ClassName=rviz::AxesDisplay
+[Display10]
+Name=TF
+Package=rviz
+ClassName=rviz::TFDisplay
+[Display11]
+Name=Path
+Package=rviz
+ClassName=rviz::PathDisplay
+[Display12]
+Name=Marker
+Package=rviz
+ClassName=rviz::MarkerDisplay
+[Display13]
+Name=MarkerArray
+Package=rviz
+ClassName=rviz::MarkerArrayDisplay

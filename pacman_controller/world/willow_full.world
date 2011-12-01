@@ -1,0 +1,137 @@
+resolution 0.02 # set the resolution of the underlying raytrace model in meters
+interval_sim 100 # simulation timestep in milliseconds
+#interval_real 100
+
+window
+( 
+  size [ 800.000 600.000 ] 
+  scale 28.806 
+)
+
+define map model
+(
+  color "gray30"
+  boundary 0
+  gui_nose 0
+  gui_grid 0
+  gui_move 0
+  gui_outline 0
+  obstacle_return 1
+  gripper_return 0
+  fiducial_return 0
+  laser_return 1
+)
+
+map
+(
+  name "wilow_map"
+  size [99.200  99.200 0.500]
+  pose [0 0 0 0]
+  origin [-0.400 -0.400 0 0]
+
+  bitmap "maplarge.pgm"
+)
+
+
+define hokuyo laser
+(
+  range_max 4.0
+  fov 270.25
+  samples 1081
+  color "black"
+  size [ 0.050 0.050 0.100 ]
+)
+
+define roomba position
+(
+  size [0.330 0.330 0.100]
+  origin [0 0 0 0]
+  gui_nose 1
+
+  # This block approximates the circular shape of a Roomba
+  block
+  ( 
+  points 16
+  point[0] [ 0.225 0.000 ]
+  point[1] [ 0.208 0.086 ]
+  point[2] [ 0.159 0.159 ]
+  point[3] [ 0.086 0.208 ]
+  point[4] [ 0.000 0.225 ]
+  point[5] [ -0.086 0.208 ]
+  point[6] [ -0.159 0.159 ]
+  point[7] [ -0.208 0.086 ]
+  point[8] [ -0.225 0.000 ]
+  point[9] [ -0.208 -0.086 ]
+  point[10] [ -0.159 -0.159 ]
+  point[11] [ -0.086 -0.208 ]
+  point[12] [ -0.000 -0.225 ]
+  point[13] [ 0.086 -0.208 ]
+  point[14] [ 0.159 -0.159 ]
+  point[15] [ 0.208 -0.086 ]
+  )
+ 	
+  hokuyo( pose [0 0 0.100 0] )
+  drive "diff"
+
+)
+
+define topurg laser
+(
+  range_max 30.0
+  fov 270.25
+  samples 1081
+  # generic model properties
+  color "black"
+  size [ 0.05 0.05 0.1 ]
+)
+
+define diff_robot position
+(
+  size [0.34 0.34 0.3]
+  origin [0 0 0 0]
+  gui_nose 1
+  drive "diff"
+  wheelbase 0.25
+  topurg(pose [ 0.0 0.000 0 0.000 ])
+)
+
+define omni_robot position
+(
+  size [0.34 0.34 0.3]
+  origin [0 0 0 0]
+  gui_nose 1
+  drive "omni"
+  wheelbase 0.25
+  topurg(pose [ 0.0 0.000 0 0.000 ])
+)
+
+define pr2 position
+(
+  size [0.55 0.55 0.1]
+  origin [0 0 0 0]
+  gui_nose 1
+
+  # This block approximates the shape of a PR2
+  block
+  ( 
+  points 5
+  point[0] [ -0.325  0.325 ]
+  point[1] [ -0.325 -0.325 ]
+  point[2] [ 0.325 -0.325 ]
+  point[3] [ 0.46 0.0 ]
+
+  point[4] [ 0.325 0.325 ]
+
+  )
+ 	
+  topurg( pose [0.275 0 0.1 0] )
+  drive "omni"
+
+)
+
+
+# robots added here automatically
+roomba( pose [ 6.023 3.057 0 4.807 ] name "robot_0" color "black")
+roomba( pose [ -1.459 1.068 0 2.509 ] name "robot_1" color "SlateGray")
+roomba( pose [ -1.488 -0.557 0 4.503 ] name "robot_2" color "LightGrey")
+roomba( pose [ -1.199 -1.679 0 4.574 ] name "robot_3" color "dark slate blue")
