@@ -67,6 +67,11 @@ class GameController(wx.Frame):
         sendInitGuess = wx.Button(self,-1,label="Send init Guess")
         grid_sizer.Add(sendInitGuess, (5,0))
         self.Bind(wx.EVT_BUTTON, self.makeCommand("init Guess"), sendInitGuess)
+
+        sendSetup = wx.Button(self,-1,label="Setup")
+        grid_sizer.Add(sendSetup, (5,1))
+        self.Bind(wx.EVT_BUTTON, self.makeCommand("Setup"), sendSetup)
+
         
         setCircleOn = wx.Button(self,-1,label="Pause")
         grid_sizer.Add(setCircleOn, (6,0))

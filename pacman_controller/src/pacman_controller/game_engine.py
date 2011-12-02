@@ -25,6 +25,7 @@ def dist(a, b):
     return math.sqrt(math.pow(a['x'] - b['x'], 2) + math.pow(a['y'] - b['y'], 2))
 
 class State():
+    SETUP = -1
     INIT = 0
     RUNNING = 1
     FLEEING = 2
@@ -76,7 +77,7 @@ class GameEngine():
         self.publishPositions();
         self.publishScore()
     
-        if self.state in [State.GAME_OVER, State.STOPPED, State.PAUSED, State.INIT, State.WON]:
+        if self.state in [State.GAME_OVER, State.STOPPED, State.PAUSED, State.INIT, State.WON, State.SETUP]:
             return;
 
         self.eatMapPoints();
@@ -128,7 +129,7 @@ class GameEngine():
                 marker.action = marker.DELETE
                 self.state = State.RUNNING
   
-        if (self.state in [State.GAME_OVER, State.STOPPED]):
+        if (self.state in [State.GAME_OVER, State.STOPPED, State.SETUP]):
             marker.text = 'GAME OVER!'
 
         if (self.state in [State.INIT]):
@@ -299,11 +300,15 @@ class GameEngine():
         if (msg.data == "Start") and self.state == State.INIT:
             self.state = State.RUNNING
 
+        if (msg.data == "Setup"): 
+            self.state = State.SETUP
+
+            
         if (msg.data == "Stop"):
             self.state = State.STOPPED
 
 
-        if (msg.data == "Init") and self.state in [State.STOPPED, State.GAME_OVER]:
+        if (msg.data == "Init") and self.state in [State.STOPPED, State.GAME_OVER, State.SETUP]:
             self.state = State.INIT
             self.reset()
         

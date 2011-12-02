@@ -51,7 +51,7 @@ class ControllerGhosts():
 
    
     def update(self):
-        if not self.gameEngine.initialized or not self.ghostname in self.gameEngine.ghosts:
+        if not self.gameEngine.initialized or not self.ghostname in self.gameEngine.ghosts or self.state == GE.State.SETUP:
             return
         me = self.gameEngine.ghosts[self.ghostname]
                           
@@ -135,6 +135,9 @@ class ControllerGhosts():
     def cb_state(self,msg):
         if self.state == GE.State.INIT and int(msg.data) == GE.State.RUNNING:
             self.startTime = rospy.get_time()
+        if not self.state == GE.State.SETUP and int(msg.data) == GE.State.SETUP:
+            self.move_base_client.cancel_all_goals()
+
         self.state = int(msg.data)
         
 

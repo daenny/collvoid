@@ -48,6 +48,8 @@ class ControllerPacman():
         
    
     def update(self):
+        if self.state == GE.State.SETUP:
+            return
         new_wp = None
         if (self.state == GE.State.STOPPED or self.state == GE.State.PAUSED):
             self.move_base_client.cancel_all_goals()
@@ -83,6 +85,9 @@ class ControllerPacman():
         if self.state in [GE.State.RUNNING, GE.State.FLEEING] and int(msg.data) in [GE.State.STOPPED, GE.State.PAUSED, GE.State.WON, GE.State.GAME_OVER]:
             self.move_base_client.cancel_all_goals()
             self.current_wp = None
+        if not self.state == GE.State.SETUP and int(msg.data) == GE.State.SETUP:
+            self.move_base_client.cancel_all_goals()
+ 
 
         self.state = int(msg.data)
 
