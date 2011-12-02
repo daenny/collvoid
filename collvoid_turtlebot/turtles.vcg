@@ -117,14 +117,14 @@ Path.Alpha=1
 Path.ColorR=0.0901961
 Path.ColorG=0.27451
 Path.ColorB=0.85098
-Path.Enabled=0
-Path.Topic=/move_base/CollvoidLocalPlanner/global_plan
+Path.Enabled=1
+Path.Topic=/move_base/CollvoidLocalPlanner/local_plan
 Path2.Alpha=1
 Path2.ColorR=0.1
 Path2.ColorG=1
 Path2.ColorB=0
-Path2.Enabled=0
-Path2.Topic=
+Path2.Enabled=1
+Path2.Topic=/move_base/NavfnROS/plan
 Path3.Alpha=1
 Path3.ColorR=0.1
 Path3.ColorG=1
@@ -159,8 +159,8 @@ TF.Update\ Interval=0
 Tool\ 2D\ Nav\ GoalTopic=/move_base_simple/goal
 Tool\ 2D\ Pose\ EstimateTopic=/initialpose
 Camera\ Type=rviz::XYOrbitViewController
-Camera\ Config=0.041 4.63357 16.8416 5.48017 1.43051e-06 -8.4665
-Property\ Grid\ State=selection=Local Path.Enabled;expanded=.Global Options,Footprint.Enabled,Inflated Obstacles.Enabled,Pose Array.Enabled,Laser Scan.Enabled,Axes2.Enabled.Axes2.StatusTopStatus,Axes.Enabled.Axes.StatusTopStatus,TF.Enabled.TF.StatusTopStatus,TF.Enabled.TF.Tree,Marker.Enabled.Marker.StatusTopStatus,Marker.Enabled.Marker.Namespaces,Laser Scan2.Enabled,Marker2.Enabled.Marker2.StatusTopStatus,Marker2.Enabled.Marker2.Namespaces,Marker3.Enabled.Marker3.StatusTopStatus,Marker3.Enabled.Marker3.Namespaces,MarkerArray.Enabled,MarkerArray.Enabled.MarkerArray.Namespaces,MarkerArray2.Enabled,MarkerArray2.Enabled.MarkerArray2.Namespaces,MarkerArray3.Enabled,MarkerArray3.Enabled.MarkerArray3.StatusTopStatus,MarkerArray3.Enabled.MarkerArray3.Namespaces,Marker4.Enabled,Marker4.Enabled.Marker4.StatusTopStatus,Marker4.Enabled.Marker4.Namespaces,Marker5.Enabled,Marker5.Enabled.Marker5.StatusTopStatus,Marker5.Enabled.Marker5.Namespaces,MarkerArray4.Enabled,MarkerArray4.Enabled.MarkerArray4.StatusTopStatus,MarkerArray4.Enabled.MarkerArray4.Namespaces;scrollpos=0,1;splitterpos=125,250;ispageselected=1
+Camera\ Config=0.041 4.63357 27.1236 -2.60125 1.43051e-06 -10.7941
+Property\ Grid\ State=selection=Path.Enabled.Path.Topic;expanded=.Global Options,Footprint.Enabled,Inflated Obstacles.Enabled,Pose Array.Enabled,Laser Scan.Enabled,Axes2.Enabled.Axes2.StatusTopStatus,Path.Enabled,Axes.Enabled.Axes.StatusTopStatus,TF.Enabled.TF.StatusTopStatus,TF.Enabled.TF.Tree,Marker.Enabled.Marker.StatusTopStatus,Marker.Enabled.Marker.Namespaces,Path2.Enabled,Laser Scan2.Enabled,Marker2.Enabled.Marker2.StatusTopStatus,Marker2.Enabled.Marker2.Namespaces,Marker3.Enabled.Marker3.StatusTopStatus,Marker3.Enabled.Marker3.Namespaces,MarkerArray.Enabled,MarkerArray.Enabled.MarkerArray.Namespaces,MarkerArray2.Enabled,MarkerArray2.Enabled.MarkerArray2.Namespaces,MarkerArray3.Enabled,MarkerArray3.Enabled.MarkerArray3.StatusTopStatus,MarkerArray3.Enabled.MarkerArray3.Namespaces,Marker4.Enabled,Marker4.Enabled.Marker4.StatusTopStatus,Marker4.Enabled.Marker4.Namespaces,Marker5.Enabled,Marker5.Enabled.Marker5.StatusTopStatus,Marker5.Enabled.Marker5.Namespaces,MarkerArray4.Enabled,MarkerArray4.Enabled.MarkerArray4.StatusTopStatus,MarkerArray4.Enabled.MarkerArray4.Namespaces;scrollpos=0,22;splitterpos=133,250;ispageselected=1
 [Display0]
 Name=Map
 Package=rviz
@@ -261,5 +261,7 @@ ClassName=rviz::MarkerDisplay
 Name=MarkerArray4
 Package=rviz
 ClassName=rviz::MarkerArrayDisplay
+[MarkerArray.]
+base_link=1
 [MarkerArray2.]
 base_link=1

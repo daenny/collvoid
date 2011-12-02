@@ -167,6 +167,8 @@ namespace collvoid_local_planner {
       pt_agg_ = new PoseTwistAggregator();
       pt_agg_->initialize(nh,tf,use_ground_truth_, scale_radius_, radius, scale_radius_factor, holo_robot_, robot_base_frame_, global_frame_, my_id);
 
+      //collision_planner_.initialize(name, tf_, costmap_ros_);
+	  
 
       me_ = new ROSAgent();
       me_->setId(my_id);
@@ -296,7 +298,7 @@ namespace collvoid_local_planner {
     else if (fabs(v_theta_samp) < min_vel_theta_inplace_)
       v_theta_samp = sign(v_theta_samp) * max(min_vel_theta_inplace_,fabs(v_theta_samp));
     //we still want to lay down the footprint of the robot and check if the action is legal
-    bool valid_cmd = true; //TODO tc_->checkTrajectory(global_pose.getOrigin().getX(), global_pose.getOrigin().getY(), yaw, robot_vel.getOrigin().getX(), robot_vel.getOrigin().getY(), vel_yaw, 0.0, 0.0, v_theta_samp);
+    bool valid_cmd = true;//collision_planner_.checkTrajectory(0.0, 0.0, v_theta_samp,true);
 
     ROS_DEBUG("Moving to desired goal orientation, th cmd: %.2f", v_theta_samp);
 
@@ -320,7 +322,7 @@ namespace collvoid_local_planner {
 
     //we do want to check whether or not the command is valid
     //    double yaw = tf::getYaw(global_pose.getRotation());
-    bool valid_cmd = true; //TODO check if that workstc_->checkTrajectory(global_pose.getOrigin().getX(), global_pose.getOrigin().getY(), yaw, robot_vel.getOrigin().getX(), robot_vel.getOrigin().getY(), vel_yaw, vx, vy, vth);
+    bool valid_cmd = true; //collision_planner_.checkTrajectory(vx, vy, vth, true);
 
     //if we have a valid command, we'll pass it on, otherwise we'll command all zeros
     if(valid_cmd){
@@ -619,6 +621,15 @@ namespace collvoid_local_planner {
       cmd_vel.linear.x = 0.0;
     if(std::abs(cmd_vel.linear.y)<min_vel_y_)
       cmd_vel.linear.y = 0.0;
+
+    bool valid_cmd = true; //collision_planner_.checkTrajectory(cmd_vel.linear.x, cmd_vel.linear.y, cmd_vel.angular.z,true);
+
+    if (!valid_cmd){
+      cmd_vel.angular.z = 0.0;
+      cmd_vel.linear.x = 0.0;
+      cmd_vel.linear.y = 0.0;
+    }
+
     if (cmd_vel.linear.x == 0.0 && cmd_vel.angular.z == 0.0 && cmd_vel.linear.y == 0.0) {
       
       ROS_DEBUG("Did not find a good vel, calculated best holonomic velocity was: %f, %f, cur wp %d of %d trying next waypoint", me_->velocity_.x(),me_->velocity_.y(), current_waypoint_, (int)transformed_plan_.size());
@@ -745,9 +756,10 @@ namespace collvoid_local_planner {
 	      oriented_footprint.push_back(pt);
 	      angle += step;
 	    }
-	    double max_inflation_dist = 2 * (costmap_ros_->getInflationRadius() + costmap_ros_->getCircumscribedRadius());
+	    //ROS_ERROR("footprint length = %d", (int)oriented_footprint.size());
+	    //double max_inflation_dist = 2 * (costmap_ros_->getInflationRadius() + costmap_ros_->getCircumscribedRadius());
 	    costmap_ros_->setConvexPolygonCost(oriented_footprint, costmap_2d::FREE_SPACE);
-	    costmap_ros_->clearNonLethalWindow(max_inflation_dist, max_inflation_dist);
+	    //costmap_ros_->clearNonLethalWindow(max_inflation_dist, max_inflation_dist);
 	    
 	  }
 

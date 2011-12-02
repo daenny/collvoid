@@ -332,11 +332,13 @@ float ROSAgent::getDistToFootprint(RVO::Vector2& point){
 }
 
 void ROSAgent::calculateObstacleLines(){
-  
+  std::vector<int> delete_points;
   for(size_t i = 0; i< obstacle_points_.size(); i++){
     //ROS_DEBUG("obstacle at %f %f dist %f",obstacle_points_[i].x(),obstacle_points_[i].y(),RVO::abs(position_-obstacle_points_[i]));
-    if (delete_observations_ && pointInNeighbor(obstacle_points_[i]))
+    if (pointInNeighbor(obstacle_points_[i])){
+      delete_points.push_back((int)i);
       continue;
+    }
     double dist = RVO::abs(position_ - obstacle_points_[i]);
     Line line;
     Vector2 relative_position = obstacle_points_[i] - position_;
@@ -362,7 +364,15 @@ void ROSAgent::calculateObstacleLines(){
     if (dist > timeHorizonObst_ * RVO::abs(velocity_))
       return;
   }
-
+  if (delete_observations_) 
+    return;
+  else {
+    while(!delete_points.empty()){
+      int del = delete_points.back();
+      obstacle_points_.erase(obstacle_points_.begin()+del);
+      delete_points.pop_back();
+    }
+  }
 }
 
 void ROSAgent::setMaxVelWithObstacles(float max_vel_with_obstacles){

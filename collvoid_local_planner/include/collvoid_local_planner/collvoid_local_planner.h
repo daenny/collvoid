@@ -11,6 +11,7 @@
 #include <ros/ros.h>
 #include <boost/unordered_map.hpp>
 #include <dynamic_reconfigure/server.h>
+//#include <base_local_planner/trajectory_planner_ros.h>
 
 #include "collvoid_local_planner/ROSAgent.h"
 #include "collvoid_local_planner/pose_twist_aggregator.h"
@@ -89,7 +90,9 @@ namespace collvoid_local_planner {
 
     ROSAgent* me_;
     //boost::unordered_map<std::string,ROSAgent> neighbors_;
-
+    //base_local_planner::TrajectoryPlanner collision_planner_;
+     
+    
     double time_to_holo_, min_error_holo_, max_error_holo_;
 
     std::string global_frame_; ///< @brief The frame in which the controller will run
