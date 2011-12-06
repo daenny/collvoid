@@ -47,7 +47,9 @@
 
     <rosparam command="load" file="$(find collvoid_pr2)/params/params_pr2.yaml"/>
     <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
+    <!--- <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS" /> -->
     <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" /> <!-- used for demos -->
+    <rosparam file="$(find pr2_navigation_config)/move_base/dwa_local_planner.yaml" command="load" ns="DWAPlannerROS" />
    
     
   </node>

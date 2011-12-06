@@ -3,7 +3,6 @@
 
   <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_pr2)/world/maplarge.yaml" output="screen" />
 
-
   <!--- Run Navstack -->
   <include file="$(find pr2_navigation_global)/amcl_node.xml"/>
   <include file="$(find pr2_navigation_teleop)/teleop.xml"/>
@@ -39,7 +38,6 @@
   <rosparam command="load" file="$(find collvoid_controller)/goals.yaml"/>
   <node pkg="collvoid_controller" type="controllerRobots.py" name="controller_robots" output="screen" />
 
-
   <!--- Run collvoid -->
   <rosparam command="load" file="$(find collvoid_pr2)/params/params_created.yaml"/>
 
@@ -49,5 +47,7 @@
 
     <rosparam command="load" file="$(find collvoid_pr2)/params/params_pr2.yaml"/>
     <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
+    <rosparam file="$(find pr2_navigation_config)/move_base/dwa_local_planner.yaml" command="load" ns="DWAPlannerROS" />
+
   </node>
 </launch>
