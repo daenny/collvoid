@@ -91,7 +91,7 @@ class ControllerGhosts():
             self.send_goal(self.current_wp)
         else:
             nearestWP = self.gameEngine.findClosestWP(me)
-            if self.state in [GE.State.RUNNING, GE.State.FLEEING] and nearestWP == self.current_wp and self.current_wp == end and GE.dist(me, self.gameEngine.points[self.current_wp]) < GE.THRESHOLD:
+            if self.state in [GE.State.RUNNING, GE.State.FLEEING] and nearestWP == self.current_wp and self.current_wp == end and GE.dist(me, self.gameEngine.points[self.current_wp]) < me['radius']:
                 self.headingToWp = True
                 
                 pm_wp = self.gameEngine.findClosestWP(self.gameEngine.pacman)
@@ -103,7 +103,9 @@ class ControllerGhosts():
                         self.current_wp = pm_mp['neighbors'][0]
                     
                 else:
-                    self.current_wp = random.choice(self.gameEngine.points[nearestWP]['neighbors'])
+                    while self.current_wp == end:
+                        print self.ghostname + str(self.current_wp)
+                        self.current_wp = random.choice(self.gameEngine.points[nearestWP]['neighbors'])
                
                 self.move_base_client.cancel_all_goals()
                 self.send_goal(self.current_wp)

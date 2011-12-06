@@ -522,7 +522,8 @@ namespace collvoid_local_planner {
    
     double min_dist_neigh =  addAllNeighbors(); //closest neighbor 
     RVO::Vector2 min_obst_vec = me_->obstacle_points_[0] - me_->position_;
-    double min_dist_obst = RVO::abs(min_obst_vec) - old_radius;
+    //double min_dist_obst = RVO::abs(min_obst_vec) - old_radius;
+    double min_dist_obst = DBL_MAX;
     double min_dist = std::min(min_dist_neigh, min_dist_obst);
 
     if (!me_->isHoloRobot()) {

@@ -16,7 +16,7 @@ Footprint.ColorR=1
 Footprint.ColorG=0.109804
 Footprint.ColorB=0
 Footprint.Enabled=1
-Footprint.Topic=/move_base/global_costmap/robot_footprint
+Footprint.Topic=/move_base/local_costmap/robot_footprint
 Inflated\ Obstacles.Alpha=1
 Inflated\ Obstacles.ColorR=0
 Inflated\ Obstacles.ColorG=0.105882
@@ -101,8 +101,8 @@ TF.Update\ Interval=0
 Tool\ 2D\ Nav\ GoalTopic=move_base_simple/goal
 Tool\ 2D\ Pose\ EstimateTopic=initialpose
 Camera\ Type=rviz::OrbitViewController
-Camera\ Config=0.306 0.586221 28.5902 7.04866 -7.002 -9.83426
-Property\ Grid\ State=selection=MarkerArray2.Enabled;expanded=.Global Options,Map.Enabled,Footprint.Enabled,Obstacles.Enabled,Inflated Obstacles.Enabled,Axes.Enabled.Axes.StatusTopStatus,TF.Enabled.TF.StatusTopStatus,TF.Enabled.TF.Tree,Path.Enabled,Marker.Enabled,Marker.Enabled.Marker.StatusTopStatus,Marker.Enabled.Marker.Namespaces,MarkerArray.Enabled,MarkerArray.Enabled.MarkerArray.Namespaces,MarkerArray2.Enabled,MarkerArray2.Enabled.MarkerArray2.Namespaces;scrollpos=0,16;splitterpos=125,250;ispageselected=1
+Camera\ Config=0.306 0.586221 35.8635 7.04866 -7.002 -9.83426
+Property\ Grid\ State=selection=Footprint.Enabled.Footprint.Topic;expanded=.Global Options,Map.Enabled,Footprint.Enabled,Obstacles.Enabled,Inflated Obstacles.Enabled,Axes.Enabled.Axes.StatusTopStatus,TF.Enabled.TF.StatusTopStatus,TF.Enabled.TF.Tree,Path.Enabled,Marker.Enabled,Marker.Enabled.Marker.StatusTopStatus,Marker.Enabled.Marker.Namespaces,MarkerArray.Enabled,MarkerArray.Enabled.MarkerArray.Namespaces,MarkerArray2.Enabled,MarkerArray2.Enabled.MarkerArray2.Namespaces;scrollpos=0,0;splitterpos=150,285;ispageselected=1
 [Display0]
 Name=Map
 Package=rviz
