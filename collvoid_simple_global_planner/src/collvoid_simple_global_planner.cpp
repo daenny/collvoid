@@ -61,7 +61,28 @@ namespace collvoid_simple_global_planner {
 
     plan.clear();
     plan.push_back(start);
+    double x, y, dir_x, dir_y;
+    dir_x = goal.pose.position.x - start.pose.position.x;
+    dir_y = goal.pose.position.y - start.pose.position.y;
+    double length = sqrt(dir_y * dir_y + dir_x * dir_x);
+    dir_x /= length;
+    dir_y /= length;
+    x = start.pose.position.x + 0.1 * dir_x;
+    y = start.pose.position.y + 0.1 * dir_y;
+    ROS_DEBUG("dir: %.2f, %.2f, cur: %.2f, %.2f", dir_x, dir_y, x, y);
+
+    while (fabs(x-goal.pose.position.x) > 0.2 || fabs(y-goal.pose.position.y) > 0.2) {
+      geometry_msgs::PoseStamped point;
+      point.header = goal.header;
+      point.pose.position.x = x;
+      point.pose.position.y = y;
+      point.pose.orientation.w = 1;
+      plan.push_back(point);
+      x += 0.1 * dir_x;
+      y += 0.1 * dir_y;
+    }
     plan.push_back(goal);
+
     return true;
   }
 
