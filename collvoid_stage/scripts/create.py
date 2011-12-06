@@ -14,7 +14,7 @@ def create_world_file(argv):
     localization = True
     simulation = True
     runExperiments = False
-    scaleRadius = False
+    scaleRadius = True
     useNoise = False
     useBagFile = False
     bagFileName = "collvoid.bag"
@@ -41,7 +41,7 @@ def create_world_file(argv):
             useBagFile = True
             bagFileName = str(arg)
         elif opt in ("-R", "--radiusScaling"):
-            scaleRadius = True
+            scaleRadius = False
         elif opt in ("-N"):
             useNoise = True
     
@@ -127,7 +127,6 @@ def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,
    #     launchWrite.write('<node pkg="collvoid_controller" type="controller.py" name="controller" output="screen"/>\n')
     launchWrite.write('  <node pkg="stage" type="stageros" name="stageros" args="$(find collvoid_stage)/world/swarmlab_created.world" respawn="false" output="screen" />\n')
     for x in range(numRobots):
-        #if localization: # TODO: use "not localizationx" amcl is still used in orca_planner
         if (omni):
             launchWrite.write('  <include file="$(find collvoid_stage)/launch/amcl_omni_multi.launch">\n')
         else:
@@ -145,9 +144,11 @@ def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,
         launchWrite.write('    <param name="~/global_costmap/robot_base_frame" value="robot_{0}/base_link" /> \n    <param name="~/local_costmap/robot_base_frame" value="robot_{1}/base_link" /> \n    <param name="~/local_costmap/global_frame" value="robot_{0}/odom" /> \n'.format(x,x,x))
         launchWrite.write('    <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />\n')
         launchWrite.write('    <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" />\n')
-
+        launchWrite.write('    <rosparam file="$(find pr2_navigation_config)/move_base/dwa_local_planner.yaml" command="load" ns="DWAPlannerROS" />\n')
+       
         launchWrite.write('  </node> \n')
         launchWrite.write('  <node pkg="collvoid_controller" type="controllerRobots.py" name="controllerRobots" ns="robot_{0}" output="screen" />\n'.format(x))
+       
     launchWrite.write('  <node pkg="collvoid_controller" type="controller.py" name="controller" output="screen" />\n')
   
     s = ""
