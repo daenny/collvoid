@@ -5,6 +5,10 @@
   </include>
   <rosparam command="load" file="$(find collvoid_stage)/params_created.yaml"/>
 
+  <node pkg="collvoid_controller" type="controllerRobots.py" name="controllerRobots" output="screen" />
+  <node pkg="collvoid_controller" type="controller.py" name="controller" output="screen" />
+
+  
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
     <rosparam command="load" file="$(find collvoid_stage)/params/params_turtle.yaml"/>
    <!---  <param name="base_local_planner" value="pose_follower/PoseFollower" /> -->  

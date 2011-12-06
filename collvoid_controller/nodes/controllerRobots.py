@@ -27,6 +27,9 @@ class ControllerRobots():
         self.init_guess_srv = rospy.ServiceProxy("init_guess_pub", InitGuess)
         self.sub_commands_robot = rospy.Subscriber("/commands_robot", String, self.cb_commands_robot)
 
+        self.sub_goal = rospy.Subscriber("/goal", PoseStamped, self.cb_goal)
+
+        
         self.hostname = rospy.get_namespace()
 
         if (self.hostname == "/"):
@@ -41,9 +44,10 @@ class ControllerRobots():
             self.cur_goal_msg = self.return_cur_goal()
         rospy.loginfo("Name: %s",self.hostname)
 
+
+
     def return_cur_goal(self):
         goal = MoveBaseGoal()
-        
         goal.target_pose.pose.position.x = self.goals["x"][self.cur_goal]
         goal.target_pose.pose.position.y = self.goals["y"][self.cur_goal]
         q = tf.transformations.quaternion_from_euler(0,0, self.goals["ang"][self.cur_goal], axes='sxyz')
@@ -56,6 +60,12 @@ class ControllerRobots():
         return goal
 
 
+    def cb_goal(self,msg):
+        self.sent_goal = MoveBaseGoal()
+        self.sent_goal.target_pose.pose.position = msg.pose.position
+        self.sent_goal.target_pose.pose.orientation = msg.pose.orientation
+        self.sent_goal.target_pose.header = msg.header;
+        return goal
         
 
 
@@ -76,7 +86,11 @@ class ControllerRobots():
             self.cur_goal_msg = self.return_cur_goal()
             self.client.send_goal(self.cur_goal_msg)
 
-            rospy.loginfo("Send new Goal")            
+            rospy.loginfo("Send new Goal")
+
+        if msg.data == "all send delayed Goal" or msg.data == "%s send delayed Goal"%self.hostname:
+            self.client.send_goal(self.sent_goal)
+        
 
 
 if __name__ == '__main__':

@@ -61,8 +61,14 @@ class controller(wx.Frame):
         grid_sizer.Add(self.choiceBox,(0,0),(1,2),wx.EXPAND)
         self.SetPosition(wx.Point(200,200))
         self.SetSize(wx.Size(600,200))
+
+        sendDelayedGoal = wx.Button(self,-1,label="Send delayed Goal")
+        grid_sizer.Add(sendDelayedGoal, (4,0))
+        self.Bind(wx.EVT_BUTTON, self.sendDelayedGoal, sendDelayedGoal)
+
+        self.delayTime = wx.TextCtrl(self,-1,value=u"0.0")
+        grid_sizer.Add(self.delayTime, (4,1))
         
-      
         sendInitGuess = wx.Button(self,-1,label="Send init Guess")
         grid_sizer.Add(sendInitGuess, (5,0))
         self.Bind(wx.EVT_BUTTON, self.sendInitGuess, sendInitGuess)
@@ -86,6 +92,13 @@ class controller(wx.Frame):
             self.robotList.append(msg.robot_id)
             self.choiceBox.Append(msg.robot_id)
 
+    def sendDelayedGoal(self, event):
+        sleepTime = float(self.delayTime.GetValue())
+        rospy.sleep(sleepTime)
+        string = "%s send delayed Goal"%self.choiceBox.GetStringSelection()
+        self.pub.publish(str(string))
+        
+            
     def sendNextGoal(self,event):
         string = "%s next Goal"%self.choiceBox.GetStringSelection()
         self.pub.publish(str(string))
