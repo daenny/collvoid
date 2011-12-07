@@ -65,9 +65,8 @@ class ControllerRobots():
         self.sent_goal.target_pose.pose.position = msg.pose.position
         self.sent_goal.target_pose.pose.orientation = msg.pose.orientation
         self.sent_goal.target_pose.header = msg.header;
-        return goal
-        
-
+        print str(self.sent_goal)
+       
 
     def cb_commands_robot(self,msg):
         if (msg.data == "all init Guess"):
