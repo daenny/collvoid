@@ -29,7 +29,7 @@ ROSAgent::ROSAgent() :
   additional_orca_lines_()
 {
   ros::NodeHandle nh;
-  line_pub_ = nh.advertise<visualization_msgs::Marker>("orca_lines", 10);
+  line_pub_ = nh.advertise<visualization_msgs::MarkerArray>("orca_lines", 10);
   neighbors_pub_ = nh.advertise<visualization_msgs::MarkerArray>("neighbors", 10);
 
 }
@@ -128,6 +128,9 @@ void ROSAgent::computeNewVelocity()
 
 
 void ROSAgent::publishOrcaLines(){
+  visualization_msgs::MarkerArray line_array;
+  line_array.markers.resize(2);
+  line_array.markers.clear();
   visualization_msgs::Marker line_list;
   //line_list.header.frame_id = myId + "/base_link";
   line_list.header.frame_id = "/map";
@@ -137,8 +140,11 @@ void ROSAgent::publishOrcaLines(){
   line_list.pose.orientation.w = 1.0;
   line_list.type = visualization_msgs::Marker::LINE_LIST;
   line_list.scale.x = 0.02;
-  line_list.color.r = 1.0;
+  line_list.color.r = 0.0;
+  line_list.color.g = 1.0;
+
   line_list.color.a = 1.0;
+  line_list.id = 0;
   geometry_msgs::Point p;
   p.x = position_.x();
   p.y = position_.y();
@@ -147,15 +153,30 @@ void ROSAgent::publishOrcaLines(){
   p.x = p.x + velocity_.x();
   p.y = p.y + velocity_.y();
   line_list.points.push_back(p);
+  line_array.markers.push_back(line_list);
+
+  visualization_msgs::Marker line_list2;
+  //line_list2.header.frame_id = myId + "/base_link";
+  line_list2.header.frame_id = "/map";
+  line_list2.header.stamp = ros::Time::now();
+  line_list2.ns = base_odom_.header.frame_id;
+  line_list2.action = visualization_msgs::Marker::ADD;
+  line_list2.pose.orientation.w = 1.0;
+  line_list2.type = visualization_msgs::Marker::LINE_LIST;
+  line_list2.scale.x = 0.015;
+  line_list2.color.r = 1.0;
+  line_list2.color.a = 1.0;
+  line_list2.id = 1;
+  // geometry_msgs::Point p;
   for (size_t i=0;i< orcaLines_.size();i++) {
     geometry_msgs::Point p;
     p.x = position_.x() + orcaLines_[i].point.x() - orcaLines_[i].direction.x();
     p.y = position_.y() + orcaLines_[i].point.y() - orcaLines_[i].direction.y();
     
-    line_list.points.push_back(p);
+    line_list2.points.push_back(p);
     p.x = p.x + 3 * orcaLines_[i].direction.x();
     p.y = p.y + 3 * orcaLines_[i].direction.y();
-    line_list.points.push_back(p);
+    line_list2.points.push_back(p);
      
     //p.x = 2*me.agent->orcaLines_[i].point.x();
     //p.y = 2*me.agent->orcaLines_[i].point.y();
@@ -163,7 +184,8 @@ void ROSAgent::publishOrcaLines(){
 
     
     }
-  line_pub_.publish(line_list);
+  line_array.markers.push_back(line_list2);
+  line_pub_.publish(line_array);
     
 }
 

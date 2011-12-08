@@ -93,13 +93,13 @@ Path.ColorR=0.0901961
 Path.ColorG=0.27451
 Path.ColorB=0.85098
 Path.Enabled=1
-Path.Topic=/move_base_node/DWAPlannerROS/local_plan
+Path.Topic=/move_base_node/CollvoidLocalPlanner/local_plan
 Plan.Alpha=1
 Plan.ColorR=0.1
 Plan.ColorG=1
 Plan.ColorB=0
 Plan.Enabled=1
-Plan.Topic=/move_base_node/DWAPlannerROS/local_plan
+Plan.Topic=/move_base_node/NavfnROS/plan
 Pose\ Array.ColorR=1
 Pose\ Array.ColorG=0.1
 Pose\ Array.ColorB=0
@@ -113,11 +113,11 @@ TF.Show\ Arrows=1
 TF.Show\ Axes=1
 TF.Show\ Names=1
 TF.Update\ Interval=0
-Tool\ 2D\ Nav\ GoalTopic=move_base_simple/goal
+Tool\ 2D\ Nav\ GoalTopic=goal
 Tool\ 2D\ Pose\ EstimateTopic=initialpose
 Camera\ Type=rviz::OrbitViewController
-Camera\ Config=0.456 0.521221 32.6082 0.309158 -7.46767 3.06741
-Property\ Grid\ State=selection=;expanded=.Global Options,Obstacles.Enabled,Inflated Obstacles.Enabled,Plan.Enabled,Axes.Enabled.Axes.StatusTopStatus,TF.Enabled.TF.StatusTopStatus,TF.Enabled.TF.Tree,Path.Enabled,Marker.Enabled,Marker.Enabled.Marker.StatusTopStatus,Marker.Enabled.Marker.Namespaces,MarkerArray.Enabled,MarkerArray.Enabled.MarkerArray.Namespaces,MarkerArray2.Enabled.MarkerArray2.Namespaces,Grid.Enabled;scrollpos=0,6;splitterpos=133,250;ispageselected=1
+Camera\ Config=0.431 0.641221 36.9545 -2.78537 -3.97283 -5.8529
+Property\ Grid\ State=selection=Path.Enabled.Path.Topic;expanded=.Global Options,Obstacles.Enabled,Inflated Obstacles.Enabled,Plan.Enabled,Axes.Enabled.Axes.StatusTopStatus,TF.Enabled.TF.StatusTopStatus,TF.Enabled.TF.Tree,Path.Enabled,Marker.Enabled,Marker.Enabled.Marker.StatusTopStatus,Marker.Enabled.Marker.Namespaces,MarkerArray.Enabled,MarkerArray.Enabled.MarkerArray.Namespaces,MarkerArray2.Enabled.MarkerArray2.Namespaces,Grid.Enabled;scrollpos=0,18;splitterpos=150,285;ispageselected=1
 [Display0]
 Name=Map
 Package=rviz
@@ -182,3 +182,7 @@ ClassName=rviz::MarkerArrayDisplay
 Name=Grid
 Package=rviz
 ClassName=rviz::GridDisplay
+[MarkerArray.]
+base_footprint=1
+[MarkerArray2.]
+base_footprint=1

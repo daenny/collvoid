@@ -15,8 +15,8 @@
     <param name="oscillation_timeout" value="30.0"/>
     <param name="oscillation_distance" value="0.5"/>
     <rosparam command="load" file="$(find collvoid_stage)/params/params_pr2.yaml"/>
-    <!---    <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" /> -->
-    <!-- <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" /> -->
+     <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
+     <!-- <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" /> -->
   </node>
   <node pkg="rviz" type="rviz" name="rviz" args="-d $(find collvoid_stage)/single_view.vcg" output="screen" />
 
