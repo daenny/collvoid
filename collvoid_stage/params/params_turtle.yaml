@@ -3,7 +3,7 @@ controller_frequency: 10
 CollvoidLocalPlanner:
   max_neighbors: 10
   neighbor_dist: 5.0
-  time_horizon: 5.0
+  time_horizon: 10.0
   time_horizon_obst: 10.0
   threshold_last_seen: 1.0
 
@@ -16,7 +16,7 @@ CollvoidLocalPlanner:
   wheel_base: 0.25
   time_to_holo: 0.4
   min_error_holo: 0.05
-  max_error_holo: 0.15
+  max_error_holo: 0.10
   holo_robot: false
   delete_observations: true
 

@@ -60,7 +60,7 @@ void ROSAgent::computeNewVelocity()
     const Vector2 relativePosition = other->position_ - position_;
     const Vector2 relativeVelocity = velocity_ - other->velocity_;
     const float distSq = absSq(relativePosition);
-    const float combinedRadius = radius_ + other->radius_;
+    const float combinedRadius = radius_ + other->radius_ - cur_allowed_error_;
     const float combinedRadiusSq = sqr(combinedRadius);
 
     Line line;
@@ -511,6 +511,10 @@ void ROSAgent::addAccelerationConstraintsXY(double max_vel_x, double acc_lim_x, 
 
 void ROSAgent::setWheelBase(float wheel_base){
   wheel_base_ = wheel_base;
+}
+
+void ROSAgent::setCurAllowedError(float cur_allowed_error){
+  cur_allowed_error_ = cur_allowed_error;
 }
 
 

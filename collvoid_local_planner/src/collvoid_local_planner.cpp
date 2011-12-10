@@ -544,7 +544,7 @@ namespace collvoid_local_planner {
 	  // ROS_DEBUG("%s I think I am in collision", me_->getId().c_str());
 	}
       }
-      if (fabs(dif_ang_goal) <= M_PI/2.0 && error > 2.0 * min_error)
+      if (fabs(dif_ang_goal) <= M_PI/2.0 && error > 1.5 * min_error)
 	me_->addMovementConstraintsDiff(error, T, max_vel_x_,max_vel_th_);
       else {
 	double max_track_speed = me_->calculateMaxTrackSpeedAngle(T,M_PI/2.0, error, max_vel_x_, max_vel_th_);
@@ -553,7 +553,7 @@ namespace collvoid_local_planner {
 	  max_track_speed = min_error * 2.0;
 	me_->setMaxTrackSpeed(max_track_speed);
       }      //  ROS_ERROR("error %6.4f", error);
-      
+      me_->setCurAllowedError(error);
       pt_agg_->setRadius((circumscribed_radius_ + error)*2.0/3.0 + old_radius / 3.0);
     }
     else {

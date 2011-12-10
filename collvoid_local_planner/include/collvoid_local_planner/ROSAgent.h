@@ -40,7 +40,6 @@ class ROSAgent : public RVO::Agent {
   float wheel_base_;
   float footprint_radius_;
   float max_vel_with_obstacles_;
-
   bool holo_robot_;
   bool delete_observations_;
   bool has_footprint_;
@@ -65,6 +64,7 @@ class ROSAgent : public RVO::Agent {
 
   void setWheelBase(float wheel_base);
   void setTimeStep(float timestep);
+
   
   void setHeading(float heading);
   float getHeading();
@@ -82,7 +82,7 @@ class ROSAgent : public RVO::Agent {
   void setAdditionalOrcaLines(std::vector<RVO::Line> additional_orca_lines);
   void setRadius(float radius);
   float getRadius();
-  //  void setCurAllowedError(float cur_allowed_error);
+  void setCurAllowedError(float cur_allowed_error);
   void setPosition(float x, float y);
   void setVelocity(float x, float y);
 
