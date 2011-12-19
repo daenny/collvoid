@@ -92,7 +92,7 @@ local_costmap:
 
   observation_sources: laser_scan_sensor 
   laser_scan_sensor: {sensor_frame: base_laser_link, data_type: LaserScan, topic: base_scan, observation_persistence: 0.0, marking: true, clearing: true, min_obstacle_height: -0.10, max_obstacle_height: 2.0}
-  kinect: {sensor_frame: kinect_depth_frame, data_type: LaserScan, topic: scan, observation_persistence: 0.0, marking: true, clearing: true, min_obstacle_height: -0.10, max_obstacle_height: 2.0}
+#  kinect: {sensor_frame: kinect_depth_frame, data_type: LaserScan, topic: scan, observation_persistence: 0.0, marking: true, clearing: true, min_obstacle_height: -0.10, max_obstacle_height: 2.0}
 
 
 global_costmap:
