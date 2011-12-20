@@ -1,9 +1,9 @@
 <stack>
   <description brief="collvoid">Multi Robot Collision Avoidance</description>
   <author>Maintained by Daniel Claes</author>
-  <license>BSD</license>  
+  <license>BSD, proprietary license (RVO2 library)</license>  
   <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/collvoid</url>
+  <url>http://ros.org/wiki/multi_robot_collision_avoidance</url>
   <depend stack="common" /> <!-- actionlib -->
   <depend stack="common_msgs" /> <!-- nav_msgs, geometry_msgs, visualization_msgs -->
   <depend stack="driver_common" /> <!-- dynamic_reconfigure -->
