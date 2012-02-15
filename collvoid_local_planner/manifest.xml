@@ -5,7 +5,7 @@
 
   </description>
   <author>Daniel Claes</author>
-  <license>BSD</license>
+  <license>BSD, proprietary license (RVO2)</license>
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/collvoid_local_planner</url>
   <depend package="roscpp"/>
