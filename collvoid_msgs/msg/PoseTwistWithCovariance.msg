@@ -5,3 +5,4 @@ bool holo_robot
 geometry_msgs/Vector3 holonomic_velocity
 geometry_msgs/PoseWithCovariance pose
 geometry_msgs/TwistWithCovariance twist
+geometry_msgs/Point[] footprint

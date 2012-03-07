@@ -93,12 +93,14 @@ Marker.Enabled=1
 Marker.Marker\ Topic=/orca_lines
 Marker2.Enabled=0
 Marker2.Marker\ Topic=/robot_1/orca_lines
-Marker3.Enabled=1
-Marker3.Marker\ Topic=/robot_0/orca_lines
+Marker3.Enabled=0
+Marker3.Marker\ Topic=
 MarkerArray.Enabled=1
 MarkerArray.Marker\ Array\ Topic=/robot_0/neighbors
 MarkerArray2.Enabled=1
 MarkerArray2.Marker\ Array\ Topic=/robot_0/me
+MarkerArray3.Enabled=1
+MarkerArray3.Marker\ Array\ Topic=/robot_0/orca_lines
 Obstacles.Alpha=1
 Obstacles.ColorR=0.1
 Obstacles.ColorG=1
@@ -152,7 +154,7 @@ Tool\ 2D\ Nav\ GoalTopic=/robot_0/move_base_simple/goal
 Tool\ 2D\ Pose\ EstimateTopic=/robot_0/initialpose
 Camera\ Type=rviz::XYOrbitViewController
 Camera\ Config=0.526001 0.698065 25.0126 -4.27699 9.53674e-07 2.21793
-Property\ Grid\ State=selection=MarkerArray2.Enabled.MarkerArray2.Marker Array Topic;expanded=.Global Options,Axes.Enabled.Axes.StatusTopStatus,TF.Enabled.TF.StatusTopStatus,TF.Enabled.TF.Tree,Marker.Enabled.Marker.Namespaces,Marker2.Enabled.Marker2.StatusTopStatus,Marker2.Enabled.Marker2.Namespaces,Marker3.Enabled.Marker3.Namespaces,MarkerArray.Enabled,MarkerArray.Enabled.MarkerArray.Namespaces,MarkerArray2.Enabled,MarkerArray2.Enabled.MarkerArray2.Namespaces;scrollpos=0,8;splitterpos=133,250;ispageselected=1
+Property\ Grid\ State=selection=MarkerArray3.Enabled;expanded=.Global Options,Axes.Enabled.Axes.StatusTopStatus,TF.Enabled.TF.StatusTopStatus,TF.Enabled.TF.Tree,Marker.Enabled.Marker.Namespaces,Marker2.Enabled.Marker2.StatusTopStatus,Marker2.Enabled.Marker2.Namespaces,Marker3.Enabled,Marker3.Enabled.Marker3.Namespaces,MarkerArray.Enabled,MarkerArray.Enabled.MarkerArray.Namespaces,MarkerArray2.Enabled,MarkerArray2.Enabled.MarkerArray2.Namespaces,MarkerArray3.Enabled,MarkerArray3.Enabled.MarkerArray3.Namespaces;scrollpos=0,0;splitterpos=216,515;ispageselected=1
 [Display0]
 Name=Map
 Package=rviz
@@ -235,6 +237,10 @@ Package=rviz
 ClassName=rviz::MarkerArrayDisplay
 [Display20]
 Name=MarkerArray2
+Package=rviz
+ClassName=rviz::MarkerArrayDisplay
+[Display21]
+Name=MarkerArray3
 Package=rviz
 ClassName=rviz::MarkerArrayDisplay
 [MarkerArray.]
