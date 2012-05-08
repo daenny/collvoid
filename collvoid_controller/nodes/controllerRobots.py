@@ -3,9 +3,11 @@ import roslib; roslib.load_manifest('collvoid_controller')
 import rospy
 import string
 import actionlib
-from collvoid_local_planner.srv import InitGuess
+import math
+#from collvoid_local_planner.srv import InitGuess
 from std_msgs.msg import String
 from geometry_msgs.msg import PoseWithCovarianceStamped,PoseStamped
+from nav_msgs.msg import Odometry
 from socket import gethostname
 from collvoid_msgs.msg import PoseTwistWithCovariance
 from move_base_msgs.msg import *
@@ -24,12 +26,14 @@ class ControllerRobots():
         self.client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
         self.client.wait_for_server()
        
-        self.init_guess_srv = rospy.ServiceProxy("init_guess_pub", InitGuess)
+        #self.init_guess_srv = rospy.ServiceProxy("init_guess_pub", InitGuess)
         self.sub_commands_robot = rospy.Subscriber("/commands_robot", String, self.cb_commands_robot)
 
         self.sub_goal = rospy.Subscriber("/goal", PoseStamped, self.cb_goal)
+        self.sub_ground_truth = rospy.Subscriber("base_pose_ground_truth", Odometry, self.cb_ground_truth)
+       
+        self.pub_init_guess = rospy.Publisher("initialpose", PoseWithCovarianceStamped)
 
-        
         self.hostname = rospy.get_namespace()
 
         if (self.hostname == "/"):
@@ -66,11 +70,34 @@ class ControllerRobots():
         self.sent_goal.target_pose.pose.orientation = msg.pose.orientation
         self.sent_goal.target_pose.header = msg.header;
         print str(self.sent_goal)
-       
 
+    def cb_ground_truth(self, msg):
+        self.ground_truth = PoseWithCovarianceStamped()
+        #print str(self.ground_truth)
+        self.ground_truth.header.frame_id = msg.header.frame_id
+        self.ground_truth.pose.pose.position.x = -msg.pose.pose.position.y
+        self.ground_truth.pose.pose.position.y = msg.pose.pose.position.x
+        q = msg_to_quaternion(msg.pose.pose.orientation)
+        rpy = list(tf.transformations.euler_from_quaternion(q))
+        yaw = rpy[2] + math.pi / 2.0
+        q = tf.transformations.quaternion_from_euler(0,0,yaw, axes='sxyz')
+        self.ground_truth.pose.pose.orientation.x = q[0]
+        self.ground_truth.pose.pose.orientation.y = q[1]
+        self.ground_truth.pose.pose.orientation.z = q[2]
+        self.ground_truth.pose.pose.orientation.w = q[3]
+        
+
+    def publish_init_guess(self, noise_cov):
+        if not (self.ground_truth == None):
+            self.ground_truth.header.stamp = rospy.Time.now()
+            self.ground_truth.pose.covariance[0] = noise_cov
+            self.ground_truth.pose.covariance[7] = noise_cov
+            self.ground_truth.pose.covariance[35] = noise_cov / 3.0
+            self.pub_init_guess.publish(self.ground_truth)
+        
     def cb_commands_robot(self,msg):
         if (msg.data == "all init Guess"):
-            self.init_guess_srv(0.01)
+            self.publish_init_guess(0.2)
         
         if msg.data == "all Stop" or msg.data == "%s Stop"%self.hostname:
             self.client.cancel_all_goals()
@@ -90,6 +117,8 @@ class ControllerRobots():
         if msg.data == "all send delayed Goal" or msg.data == "%s send delayed Goal"%self.hostname:
             self.client.send_goal(self.sent_goal)
         
+def msg_to_quaternion(msg):
+    return [msg.x, msg.y, msg.z, msg.w]
 
 
 if __name__ == '__main__':
