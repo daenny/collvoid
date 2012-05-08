@@ -16,18 +16,18 @@ from collvoid_msgs.msg import PoseTwistWithCovariance
 import tf
 
 class controller(wx.Frame):
-
+    
+    
     def __init__(self,parent,id,title):
         wx.Frame.__init__(self,parent,id,title)
         self.parent = parent
+        self.initialized = False
         self.initialize()
         
     def initialize(self):
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(sizer)
 
-
-        self.subCommonPositions = rospy.Subscriber("/position_share", PoseTwistWithCovariance, self.cbCommonPositions)
         self.pub = rospy.Publisher('/commands_robot', String)
 
         self.robotList = []
@@ -85,8 +85,12 @@ class controller(wx.Frame):
         self.Fit()
         self.Show(True)
 
+        self.subCommonPositions = rospy.Subscriber("/position_share", PoseTwistWithCovariance, self.cbCommonPositions)
+        self.initialized = True
                
     def cbCommonPositions(self,msg):
+        if not self.initialized:
+            return
         if self.robotList.count(msg.robot_id) == 0:
             rospy.loginfo("robot added")
             self.robotList.append(msg.robot_id)
