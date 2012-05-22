@@ -97,7 +97,7 @@ class ControllerRobots():
         
     def cb_commands_robot(self,msg):
         if (msg.data == "all init Guess"):
-            self.publish_init_guess(0.2)
+            self.publish_init_guess(0.01)
         
         if msg.data == "all Stop" or msg.data == "%s Stop"%self.hostname:
             self.client.cancel_all_goals()

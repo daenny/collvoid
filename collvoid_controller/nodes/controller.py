@@ -38,15 +38,15 @@ class controller(wx.Frame):
         static_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Controls"), wx.HORIZONTAL)
         sizer.Add(static_sizer, 0)
          
-        start = wx.Button(self,-1,label="Start!")
+        start = wx.Button(self,wx.ID_ANY,label="Start!")
         static_sizer.Add(start, 0)
         self.Bind(wx.EVT_BUTTON, self.start, start)
         
-        stop = wx.Button(self,-1,label="Stop!")
+        stop = wx.Button(self,wx.ID_ANY,label="Stop!")
         static_sizer.Add(stop, 0)
         self.Bind(wx.EVT_BUTTON, self.stop, stop)
 
-        reset = wx.Button(self,-1,label="Reset!")
+        reset = wx.Button(self,wx.ID_ANY,label="Reset!")
         static_sizer.Add(reset, 0)
         self.Bind(wx.EVT_BUTTON, self.reset, reset)
 
@@ -56,24 +56,24 @@ class controller(wx.Frame):
         static_sizer.Add(grid_sizer, 0)
         sizer.Add(static_sizer, 0)
  
-        self.choiceBox = wx.Choice(self,-1,choices=self.robotList)
+        self.choiceBox = wx.Choice(self,wx.ID_ANY,choices=self.robotList)
 
         grid_sizer.Add(self.choiceBox,(0,0),(1,2),wx.EXPAND)
         self.SetPosition(wx.Point(200,200))
         self.SetSize(wx.Size(600,200))
 
-        sendDelayedGoal = wx.Button(self,-1,label="Send delayed Goal")
+        sendDelayedGoal = wx.Button(self,wx.ID_ANY,label="Send delayed Goal")
         grid_sizer.Add(sendDelayedGoal, (4,0))
         self.Bind(wx.EVT_BUTTON, self.sendDelayedGoal, sendDelayedGoal)
 
-        self.delayTime = wx.TextCtrl(self,-1,value=u"0.0")
+        self.delayTime = wx.TextCtrl(self,wx.ID_ANY,value=u"0.0")
         grid_sizer.Add(self.delayTime, (4,1))
         
-        sendInitGuess = wx.Button(self,-1,label="Send init Guess")
+        sendInitGuess = wx.Button(self,wx.ID_ANY,label="Send init Guess")
         grid_sizer.Add(sendInitGuess, (5,0))
         self.Bind(wx.EVT_BUTTON, self.sendInitGuess, sendInitGuess)
 
-        sendNextGoal = wx.Button(self,-1,label="Send next Goal")
+        sendNextGoal = wx.Button(self,wx.ID_ANY,label="Send next Goal")
         grid_sizer.Add(sendNextGoal, (5,1))
         self.Bind(wx.EVT_BUTTON, self.sendNextGoal, sendNextGoal)
 
@@ -130,6 +130,6 @@ class controller(wx.Frame):
 if __name__ == '__main__':
     rospy.init_node('controller')
     app = wx.App()
-    frame = controller(None,-1,'Controller')
+    frame = controller(None,wx.ID_ANY,'Controller')
 
     app.MainLoop()
