@@ -1,22 +1,22 @@
-turtlebot01:
+turtlebot-red:
   goals:
     x: [13.34, 16.82]
     y: [8.62, 7.38]
     ang: [-0.377, 2.816]
     
-turtlebot02:
+turtlebot-white:
   goals:
     x: [13.34, 16.82]
     y: [8.62, 7.38]
     ang: [-0.377, 2.816]
      
-turtlebot03:
+turtlebot-yellow:
   goals:
     x: [13.35, 16.1]
     y: [6.9, 9.4]
     ang: [0.56, -2.41]
 
-turtlebot04:
+turtlebot-green:
   goals:
     x: [13.35, 16.1]
     y: [6.9, 9.4]
