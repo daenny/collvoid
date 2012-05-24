@@ -2,7 +2,7 @@
   <!-- start hokuyo laser -->
   <node pkg="hokuyo_node" type="hokuyo_node" name="base_laser" output="screen">
     <param name="port" value="/dev/ttyACM0"/>
-    <param name="frame_id" value="/base_laser_link"/>
+    <param name="frame_id" value="/base_link"/>
     <param name="min_ang" value="-2.086213"/>
     <param name="max_ang" value="2.086213"/>
     <remap from="scan" to="base_scan"/>
