@@ -123,6 +123,10 @@ class controller(wx.Frame):
         string = "all next Goal"
         self.pub.publish(str(string))
 
+    def all_init_guess(self,event):
+        string = "all init Guess"
+        self.pub.publish(str(string))
+
         
     def reset(self,event):
         self.pub.publish("all Stop")

@@ -83,8 +83,9 @@ class Watchdog():
         rospy.loginfo('subscribed to %d "odom" topics'%len(odom_subs))
 
 
-
-        self.controller = controller(None, -1, "controller")
+        #app.wx.App()
+        self.controller = controller.controller(None, wx.ID_ANY, "controller")
+        
         self.controller.Show(False);
 
 
@@ -95,6 +96,10 @@ class Watchdog():
 
     def start(self):
         self.num_run_pub.publish(Int32(self.num_rep))
+        self.controller.all_init_guess(None)
+        rospy.sleep(1)
+        self.controller.all_init_guess(None)
+        
         for i in range(5):
             self.controller.all_start(None)
 
