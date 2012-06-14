@@ -67,6 +67,8 @@ MarkerArray.Enabled=1
 MarkerArray.Marker\ Array\ Topic=/neighbors
 MarkerArray2.Enabled=1
 MarkerArray2.Marker\ Array\ Topic=/me
+MarkerArray3.Enabled=0
+MarkerArray3.Marker\ Array\ Topic=visualization_marker_array
 Obstacles.Alpha=1
 Obstacles.ColorR=0.1
 Obstacles.ColorG=1
@@ -102,7 +104,7 @@ Tool\ 2D\ Nav\ GoalTopic=move_base_simple/goal
 Tool\ 2D\ Pose\ EstimateTopic=initialpose
 Camera\ Type=rviz::OrbitViewController
 Camera\ Config=0.306 0.586221 35.8635 7.04866 -7.002 -9.83426
-Property\ Grid\ State=selection=Footprint.Enabled.Footprint.Topic;expanded=.Global Options,Map.Enabled,Footprint.Enabled,Obstacles.Enabled,Inflated Obstacles.Enabled,Axes.Enabled.Axes.StatusTopStatus,TF.Enabled.TF.StatusTopStatus,TF.Enabled.TF.Tree,Path.Enabled,Marker.Enabled,Marker.Enabled.Marker.StatusTopStatus,Marker.Enabled.Marker.Namespaces,MarkerArray.Enabled,MarkerArray.Enabled.MarkerArray.Namespaces,MarkerArray2.Enabled,MarkerArray2.Enabled.MarkerArray2.Namespaces;scrollpos=0,0;splitterpos=150,285;ispageselected=1
+Property\ Grid\ State=selection=MarkerArray3.Enabled;expanded=.Global Options,Map.Enabled,Footprint.Enabled,Obstacles.Enabled,Inflated Obstacles.Enabled,Axes.Enabled.Axes.StatusTopStatus,TF.Enabled.TF.StatusTopStatus,TF.Enabled.TF.Tree,Path.Enabled,Marker.Enabled,Marker.Enabled.Marker.StatusTopStatus,Marker.Enabled.Marker.Namespaces,MarkerArray.Enabled,MarkerArray.Enabled.MarkerArray.Namespaces,MarkerArray2.Enabled,MarkerArray2.Enabled.MarkerArray2.Namespaces,MarkerArray3.Enabled,MarkerArray3.Enabled.MarkerArray3.Namespaces;scrollpos=0,38;splitterpos=162,327;ispageselected=1
 [Display0]
 Name=Map
 Package=rviz
@@ -163,5 +165,7 @@ ClassName=rviz::MarkerArrayDisplay
 Name=MarkerArray2
 Package=rviz
 ClassName=rviz::MarkerArrayDisplay
-[MarkerArray2.]
-base_footprint=1
+[Display15]
+Name=MarkerArray3
+Package=rviz
+ClassName=rviz::MarkerArrayDisplay

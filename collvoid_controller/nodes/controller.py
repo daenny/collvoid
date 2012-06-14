@@ -119,6 +119,11 @@ class controller(wx.Frame):
         string = "%s next Goal"%self.choiceBox.GetStringSelection()
         self.pub.publish(str(string))
 
+    def all_start(self,event):
+        string = "all next Goal"
+        self.pub.publish(str(string))
+
+        
     def reset(self,event):
         self.pub.publish("all Stop")
         rospy.sleep(0.2)

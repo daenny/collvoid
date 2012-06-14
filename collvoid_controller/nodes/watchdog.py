@@ -79,6 +79,7 @@ class Watchdog():
         self.stall_pub = rospy.Publisher("/stall", Int32)
         self.stall_resolved_pub = rospy.Publisher("/stall_resolved", Int32)
         self.exceeded_pub = rospy.Publisher("/exceeded", Bool)
+        self.num_run_pub = rospy.Publisher("/num_run", Int32)
         rospy.loginfo('subscribed to %d "odom" topics'%len(odom_subs))
 
 
@@ -93,8 +94,9 @@ class Watchdog():
         self.INIT = False
 
     def start(self):
+        self.num_run_pub.publish(Int32(self.num_rep))
         for i in range(5):
-            self.controller.start(None)
+            self.controller.all_start(None)
 
     def reset(self):
         if (self.resetting):
@@ -107,8 +109,8 @@ class Watchdog():
         self.controller.reset(None)
         self.reset_vars()
         rospy.sleep(self.WAIT_FOR_INIT)
-        self.start()
         self.num_rep += 1
+        self.start()
         self.resetting = False
         self.exceeded = False
    
@@ -122,7 +124,7 @@ class Watchdog():
 
 
     def cb_commands_robots(self, msg):
-        if (msg.data == "all Start"):
+        if (msg.data == "all next Goal"):
             self.reset_vars()
             self.start_time = rospy.Time.now()
             rospy.sleep(1)
@@ -181,8 +183,7 @@ class Watchdog():
     def cb_odom(self, msg):
         x = msg.pose.pose.position.x
         y = msg.pose.pose.position.y
-        if x < self.X_MIN or x > self.X_MAX or y < self.Y_MIN or y > self.Y_MAX:
-            rospy.loginfo('robot %s is out of bounding box'%msg.header.frame_id)
+
 
 if __name__ == '__main__':
     rospy.init_node('watchdog')
