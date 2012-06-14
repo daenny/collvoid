@@ -73,7 +73,7 @@ class Watchdog():
             if re.match('/robot_[0123456789]+/' + self.ODOM, t):
                 odom_subs.append(rospy.Subscriber(t, Odometry, self.cb_odom))
     
-        commands_robots_subs = rospy.Subscriber("/commandsRobot",String, self.cb_commands_robots)
+        commands_robots_subs = rospy.Subscriber("/commands_robot",String, self.cb_commands_robots)
         
         #publisher for collisions
         self.stall_pub = rospy.Publisher("/stall", Int32)
@@ -129,7 +129,7 @@ class Watchdog():
 
 
     def cb_commands_robots(self, msg):
-        if (msg.data == "all next Goal"):
+        if (msg.data == "all Start"):
             self.reset_vars()
             self.start_time = rospy.Time.now()
             rospy.sleep(1)

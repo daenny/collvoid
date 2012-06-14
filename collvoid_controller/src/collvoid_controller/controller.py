@@ -120,7 +120,7 @@ class controller(wx.Frame):
         self.pub.publish(str(string))
 
     def all_start(self,event):
-        string = "all next Goal"
+        string = "all Start"
         self.pub.publish(str(string))
 
     def all_init_guess(self,event):
