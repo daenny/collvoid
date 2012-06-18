@@ -29,10 +29,10 @@ class Watchdog():
     Y_MAX = 25
     Y_MIN = - Y_MAX
 
-    NUM_REPITITIONS = 50 #How many repititions in total?
+    NUM_REPITITIONS = 3 #How many repititions in total?
     num_rep = 1
 
-    WAIT_FOR_INIT = 10 #Wait time before sending start signal
+    WAIT_FOR_INIT = 5 #Wait time before sending start signal
     MAX_TIME = 60 #Max allowed time before timeout.
 
     AUTO_MODE = True
@@ -52,7 +52,7 @@ class Watchdog():
 
     def __init__(self):
         rospy.loginfo('init watchdog')
-        rospy.sleep(5) #wait 10 sec, so everything is started and all topics are there
+        rospy.sleep(10) #wait 10 sec, so everything is started and all topics are there
         topics = rospy.get_published_topics()
         # stall topics
         stall_subs = []
@@ -85,22 +85,21 @@ class Watchdog():
 
         #app.wx.App()
         self.controller = controller.controller(None, wx.ID_ANY, "controller")
-        
         self.controller.Show(False);
 
 
         if self.AUTO_MODE:
-            rospy.sleep(10)
+            rospy.sleep(5)
             self.start()
         self.INIT = False
 
     def start(self):
         self.num_run_pub.publish(Int32(self.num_rep))
         self.controller.all_init_guess(None)
-        rospy.sleep(1)
+        rospy.sleep(2)
         self.controller.all_init_guess(None)
-        
-        for i in range(5):
+        rospy.sleep(2)
+        for i in range(1):
             self.controller.all_start(None)
 
     def reset(self):
@@ -155,7 +154,7 @@ class Watchdog():
         #rospy.loginfo("Got a message")
         if msg.linear.x == 0.0 and msg.angular.z == 0.0:
             self.robots_moving[id] = False
-            rospy.loginfo("Robot %d stopped"%id)
+            #rospy.loginfo("Robot %d stopped"%id)
         else:
             self.robots_moving[id] = True
         if max(self.robots_moving) == 0:
