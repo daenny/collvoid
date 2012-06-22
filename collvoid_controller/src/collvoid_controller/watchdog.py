@@ -19,37 +19,6 @@ from collvoid_msgs.msg import PoseTwistWithCovariance
 
 import re
 
-class controllerHeadless():
-
-    def __init__(self):
-        self.pub = rospy.Publisher('/commands_robot', String)
-        self.reset_srv = rospy.ServiceProxy('/stageros/reset', Empty)
-    #    self.subCommonPositions = rospy.Subscriber("/position_share", PoseTwistWithCovariance, self.cbCommonPositions)
-        self.initialized = True
-
-    def cbCommonPositions(self,msg):
-        if not self.initialized:
-            return
-        if self.robotList.count(msg.robot_id) == 0:
-            rospy.loginfo("robot added")
-            self.robotList.append(msg.robot_id)
-    
-    def all_start(self,event):
-        string = "all Start"
-        self.pub.publish(str(string))
-
-    def all_init_guess(self,event):
-        string = "all init Guess"
-        self.pub.publish(str(string))
-
-        
-    def reset(self,event):
-        self.pub.publish("all Stop")
-        rospy.sleep(0.2)
-        self.pub.publish("all Restart")
-        #rospy.sleep(0.2)
-        self.reset_srv()
-
 
 class Watchdog():
     
@@ -61,7 +30,7 @@ class Watchdog():
     Y_MAX = 25
     Y_MIN = - Y_MAX
 
-    NUM_REPITITIONS = 3 #How many repititions in total?
+    NUM_REPITITIONS = 50 #How many repititions in total?
     num_rep = 1
 
     WAIT_FOR_INIT = 5 #Wait time before sending start signal
@@ -219,6 +188,41 @@ class Watchdog():
     def cb_odom(self, msg):
         x = msg.pose.pose.position.x
         y = msg.pose.pose.position.y
+
+
+class controllerHeadless():
+
+    def __init__(self):
+        self.pub = rospy.Publisher('/commands_robot', String)
+        self.reset_srv = rospy.ServiceProxy('/stageros/reset', Empty)
+    #    self.subCommonPositions = rospy.Subscriber("/position_share", PoseTwistWithCovariance, self.cbCommonPositions)
+        self.initialized = True
+
+    def cbCommonPositions(self,msg):
+        if not self.initialized:
+            return
+        if self.robotList.count(msg.robot_id) == 0:
+            rospy.loginfo("robot added")
+            self.robotList.append(msg.robot_id)
+    
+    def all_start(self,event):
+        string = "all Start"
+        self.pub.publish(str(string))
+
+    def all_init_guess(self,event):
+        string = "all init Guess"
+        self.pub.publish(str(string))
+
+        
+    def reset(self,event):
+        self.pub.publish("all Stop")
+        rospy.sleep(0.2)
+        self.pub.publish("all Restart")
+        #rospy.sleep(0.2)
+        self.reset_srv()
+
+
+
 
 
 if __name__ == '__main__':
