@@ -4,20 +4,52 @@ import roslib
 roslib.load_manifest('collvoid_controller')
 import rospy
 roslib.load_manifest('stage')
+import string
 from stage.msg import Stall
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist
 from std_msgs.msg import String
 from std_msgs.msg import Int32,Bool
-from collvoid_controller import controller
+from geometry_msgs.msg import PoseWithCovarianceStamped,PoseStamped
+from std_srvs.srv import Empty
+from collvoid_msgs.msg import PoseTwistWithCovariance
 
-try:
-    import wx
-except ImportError:
-    raise ImportError,"The wxPython module is required to run this program"
+#from collvoid_controller import controller
 
 
 import re
+
+class controllerHeadless():
+
+    def __init__(self):
+        self.pub = rospy.Publisher('/commands_robot', String)
+        self.reset_srv = rospy.ServiceProxy('/stageros/reset', Empty)
+    #    self.subCommonPositions = rospy.Subscriber("/position_share", PoseTwistWithCovariance, self.cbCommonPositions)
+        self.initialized = True
+
+    def cbCommonPositions(self,msg):
+        if not self.initialized:
+            return
+        if self.robotList.count(msg.robot_id) == 0:
+            rospy.loginfo("robot added")
+            self.robotList.append(msg.robot_id)
+    
+    def all_start(self,event):
+        string = "all Start"
+        self.pub.publish(str(string))
+
+    def all_init_guess(self,event):
+        string = "all init Guess"
+        self.pub.publish(str(string))
+
+        
+    def reset(self,event):
+        self.pub.publish("all Stop")
+        rospy.sleep(0.2)
+        self.pub.publish("all Restart")
+        #rospy.sleep(0.2)
+        self.reset_srv()
+
 
 class Watchdog():
     
@@ -84,8 +116,8 @@ class Watchdog():
 
 
         #app.wx.App()
-        self.controller = controller.controller(None, wx.ID_ANY, "controller")
-        self.controller.Show(False);
+        self.controller = controllerHeadless()
+       
 
 
         if self.AUTO_MODE:
@@ -191,7 +223,7 @@ class Watchdog():
 
 if __name__ == '__main__':
     rospy.init_node('watchdog')
-    app = wx.App()
+    #app = wx.App()
     watchdog = Watchdog()
-    app.MainLoop()
+    #app.MainLoop()
     #rospy.spin()
