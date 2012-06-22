@@ -226,4 +226,4 @@ if __name__ == '__main__':
     #app = wx.App()
     watchdog = Watchdog()
     #app.MainLoop()
-    #rospy.spin()
+    rospy.spin()
