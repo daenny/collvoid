@@ -14,6 +14,12 @@ from move_base_msgs.msg import *
 
 import tf
 
+THRESHOLD = 0.22
+
+def dist(a, b):
+    return math.sqrt(math.pow(a.position.x - b.position.x, 2) + math.pow(a.position.y - b.position.y, 2))
+
+
 class ControllerRobots():
 
     def __init__(self):
@@ -25,15 +31,19 @@ class ControllerRobots():
 
         self.client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
         self.client.wait_for_server()
-       
+
+        self.circling = False
         #self.init_guess_srv = rospy.ServiceProxy("init_guess_pub", InitGuess)
         self.sub_commands_robot = rospy.Subscriber("/commands_robot", String, self.cb_commands_robot)
-
+        self.sub_position_share = rospy.Subscriber("/position_share", PoseTwistWithCovariance, self.cb_common_positions)
+        
         self.sub_goal = rospy.Subscriber("/goal", PoseStamped, self.cb_goal)
         self.sub_ground_truth = rospy.Subscriber("base_pose_ground_truth", Odometry, self.cb_ground_truth)
        
         self.pub_init_guess = rospy.Publisher("initialpose", PoseWithCovarianceStamped)
-
+        self.pub_commands_robot = rospy.Publisher("/commands_robot", String)
+                
+        
         self.hostname = rospy.get_namespace()
 
         if (self.hostname == "/"):
@@ -64,6 +74,20 @@ class ControllerRobots():
         return goal
 
 
+    def cb_common_positions(self,msg):
+        if self.stopped or not self.circling:
+            return        #       rospy.loginfo("%s"%rospy.get_master())
+        if msg.robot_id == self.hostname:
+            if dist(msg.pose.pose, self.cur_goal_msg.target_pose.pose) < THRESHOLD:
+                rospy.loginfo("Reached goal, sending new goal")
+                self.cur_goal += 1
+                if (self.cur_goal == self.num_goals):
+                    self.cur_goal = 0
+                self.cur_goal_msg = self.return_cur_goal()
+                str = "%s Start"%self.hostname
+                self.pub_commands_robot.publish(String(str))
+
+                     
     def cb_goal(self,msg):
         self.sent_goal = MoveBaseGoal()
         self.sent_goal.target_pose.pose.position = msg.pose.position
@@ -96,6 +120,14 @@ class ControllerRobots():
             self.pub_init_guess.publish(self.ground_truth)
         
     def cb_commands_robot(self,msg):
+        if msg.data == "all WP change" or msg.data == "%s WP change"%self.hostname:
+            self.stopped = not(self.stopped)
+       
+        
+        if self.stopped:
+            rospy.loginfo("I am stopped %s", self.hostname)
+            return
+
         if (msg.data == "all init Guess"):
             self.publish_init_guess(0.005)
         
@@ -104,7 +136,10 @@ class ControllerRobots():
           
         if msg.data == "all Start" or msg.data == "%s Start"%self.hostname:
             self.client.send_goal(self.cur_goal_msg)
-        
+
+        if msg.data == "all circle" or msg.data == "%s circle"%self.hostname:
+            self.circling = not(self.circling)
+            rospy.loginfo("Set circling to %s", str(self.circling));
         if msg.data == "all next Goal" or msg.data == "%s next Goal"%self.hostname:
             self.cur_goal += 1
             if (self.cur_goal == self.num_goals):

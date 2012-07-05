@@ -62,6 +62,17 @@ class controller(wx.Frame):
         self.SetPosition(wx.Point(200,200))
         self.SetSize(wx.Size(600,200))
 
+
+        setCircling = wx.Button(self,wx.ID_ANY,label="Circling On/Off")
+        grid_sizer.Add(setCircling, (3,1))
+        self.Bind(wx.EVT_BUTTON, self.setCircling, setCircling)
+
+
+        setOnOff = wx.Button(self,wx.ID_ANY,label="Set On/Off")
+        grid_sizer.Add(setOnOff, (3,0))
+        self.Bind(wx.EVT_BUTTON, self.setOnOff, setOnOff)
+
+        
         sendDelayedGoal = wx.Button(self,wx.ID_ANY,label="Send delayed Goal")
         grid_sizer.Add(sendDelayedGoal, (4,0))
         self.Bind(wx.EVT_BUTTON, self.sendDelayedGoal, sendDelayedGoal)
@@ -101,7 +112,15 @@ class controller(wx.Frame):
         rospy.sleep(sleepTime)
         string = "%s send delayed Goal"%self.choiceBox.GetStringSelection()
         self.pub.publish(str(string))
-        
+
+    def setCircling(self,event):
+        string = "%s circle"%self.choiceBox.GetStringSelection()
+        self.pub.publish(str(string))
+
+    def setOnOff(self,event):
+        string = "%s WP change"%self.choiceBox.GetStringSelection()
+        self.pub.publish(str(string))
+
             
     def sendNextGoal(self,event):
         string = "%s next Goal"%self.choiceBox.GetStringSelection()
