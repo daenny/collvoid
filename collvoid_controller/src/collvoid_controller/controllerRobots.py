@@ -46,6 +46,7 @@ class ControllerRobots():
                 
         
         self.hostname = rospy.get_namespace()
+        self.noise_std = rospy.get_param("/noise_std")
 
         if (self.hostname == "/"):
             self.hostname = gethostname()
@@ -112,10 +113,10 @@ class ControllerRobots():
         self.ground_truth.pose.pose.orientation.w = q[3]
         
 
-    def publish_init_guess(self, noise_cov):
+    def publish_init_guess(self, noise_cov, noise_std):
         if not (self.ground_truth == None):
-            self.ground_truth.pose.pose.position.x += random.gauss(0, 0.15)
-            self.ground_truth.pose.pose.position.y += random.gauss(0, 0.15)
+            self.ground_truth.pose.pose.position.x += random.gauss(0, noise_std)
+            self.ground_truth.pose.pose.position.y += random.gauss(0, noise_std)
             
             self.ground_truth.header.stamp = rospy.Time.now()
             self.ground_truth.pose.covariance[0] = noise_cov
@@ -133,7 +134,7 @@ class ControllerRobots():
             return
 
         if (msg.data == "all init Guess"):
-            self.publish_init_guess(0.01)
+            self.publish_init_guess(0.01, self.noise_std)
         
         if msg.data == "all Stop" or msg.data == "%s Stop"%self.hostname:
             self.client.cancel_all_goals()
