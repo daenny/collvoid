@@ -1,11 +1,11 @@
 turtlebot-red:
   goals:
-    x: [-2.7, -0.7]]
+    x: [-2.7, -0.7]
     y: [2.4, 4.4]
     ang: [7.068, 3.93]
 turtlebot-green:
   goals:
-    x: [-2.7, -0.7]]
+    x: [-2.7, -0.7]
     y: [2.4, 4.4]
     ang: [7.068, 3.93]
 turtlebot-yellow:
