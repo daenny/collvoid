@@ -1,33 +1,54 @@
-swarmlab03:
+turtlebot-red:
+    goals:
+        x: [-3.402082, -0.997918]
+        y: [3.202082, 0.7979]
+        ang: [2.356194, 5.49]
+turtlebot-green:
+    goals:
+        x: [-3.402082, -0.998]
+        y: [0.797918, 3.20]
+        ang: [3.926991, 7.068]
+turtlebot-yellow:
+    goals:
+        x: [-0.997918, -3.4]
+        y: [0.797918, 3.2]
+        ang: [5.497787, 2.356]
+turtlebot-white:
+    goals:
+        x: [-0.997918, -3.4]
+        y: [3.202082, 0.7979]
+        ang: [7.068583, 3.926]
+
+
+1turtlebot-red:
   goals:
     x: [-1.3, -1.3]
     y: [4.0, 0.0]
     ang: [-1.71, 1.71]
 
-turtlebot-red:
+turtlebot-red_bak:
   goals:
-    x: [13.34, 16.82]
-    y: [8.62, 7.38]
-    ang: [-0.377, 2.816]
+    x: [-0.5, 2.5]
+    y: [0.5, -2.5]
+    ang: [-0.78, 2.38]
     
-turtlebot-white:
+1turtlebot-white:
   goals:
-    x: [13.34, 16.82]
-    y: [8.62, 7.38]
-    ang: [-0.377, 2.816]
+    x: [-0.5, 2.5]
+    y: [-2.5, 0.5]
+    ang: [0.78, -2.38]
      
-turtlebot-yellow:
+1turtlebot-yellow:
   goals:
-    x: [13.35, 16.1]
-    y: [6.9, 9.4]
-    ang: [0.56, -2.41]
+    x: [-0.5, 2.5]
+    y: [0.5, -2.5]
+    ang: [-0.78, 2.38]
 
-turtlebot-green:
+1turtlebot-green:
   goals:
-    x: [13.35, 16.1]
-    y: [6.9, 9.4]
-    ang: [0.56, -2.41]
-
+    x: [-0.5, 2.5]
+    y: [-2.5, 0.5]
+    ang: [0.78, -2.38]
     
 turtlebot4:
   goals:
