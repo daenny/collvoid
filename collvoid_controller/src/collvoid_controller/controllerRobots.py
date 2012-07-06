@@ -4,6 +4,7 @@ import rospy
 import string
 import actionlib
 import math
+import random
 #from collvoid_local_planner.srv import InitGuess
 from std_msgs.msg import String
 from geometry_msgs.msg import PoseWithCovarianceStamped,PoseStamped
@@ -113,10 +114,13 @@ class ControllerRobots():
 
     def publish_init_guess(self, noise_cov):
         if not (self.ground_truth == None):
+            self.ground_truth.pose.pose.position.x += random.gauss(0, 0.15)
+            self.ground_truth.pose.pose.position.y += random.gauss(0, 0.15)
+            
             self.ground_truth.header.stamp = rospy.Time.now()
             self.ground_truth.pose.covariance[0] = noise_cov
             self.ground_truth.pose.covariance[7] = noise_cov
-            self.ground_truth.pose.covariance[35] = noise_cov / 3.0
+            self.ground_truth.pose.covariance[35] = noise_cov / 4.0
             self.pub_init_guess.publish(self.ground_truth)
         
     def cb_commands_robot(self,msg):
@@ -129,7 +133,7 @@ class ControllerRobots():
             return
 
         if (msg.data == "all init Guess"):
-            self.publish_init_guess(0.005)
+            self.publish_init_guess(0.01)
         
         if msg.data == "all Stop" or msg.data == "%s Stop"%self.hostname:
             self.client.cancel_all_goals()
