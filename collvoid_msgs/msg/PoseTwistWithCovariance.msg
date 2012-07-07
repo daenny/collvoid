@@ -2,6 +2,7 @@ Header header
 string robot_id
 float32 radius
 bool holo_robot
+bool controlled
 geometry_msgs/Vector3 holonomic_velocity
 geometry_msgs/PoseWithCovariance pose
 geometry_msgs/TwistWithCovariance twist
