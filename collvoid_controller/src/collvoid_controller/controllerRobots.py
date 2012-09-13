@@ -100,7 +100,7 @@ class ControllerRobots():
     def cb_ground_truth(self, msg):
         self.ground_truth = PoseWithCovarianceStamped()
         #print str(self.ground_truth)
-        self.ground_truth.header.frame_id = msg.header.frame_id
+        self.ground_truth.header.frame_id = "/map"
         self.ground_truth.pose.pose.position.x = -msg.pose.pose.position.y
         self.ground_truth.pose.pose.position.y = msg.pose.pose.position.x
         q = msg_to_quaternion(msg.pose.pose.orientation)
@@ -123,6 +123,7 @@ class ControllerRobots():
             self.ground_truth.pose.covariance[7] = noise_cov
             self.ground_truth.pose.covariance[35] = noise_cov / 4.0
             self.pub_init_guess.publish(self.ground_truth)
+      
         
     def cb_commands_robot(self,msg):
         if msg.data == "all WP change" or msg.data == "%s WP change"%self.hostname:
