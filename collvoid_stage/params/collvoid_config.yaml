@@ -1,7 +1,7 @@
 /noise_std: 0.0
-use_obstacles: false
+use_obstacles: true
 
-controller_frequency: 5
+controller_frequency: 10
 
 CollvoidLocalPlanner:
   yaw_goal_tolerance: 0.10
@@ -15,9 +15,9 @@ CollvoidLocalPlanner:
   min_error_holo: 0.02
   max_error_holo: 0.10
   delete_observations: true
-  threshold_last_seen: 0.5
-  publish_positions_frequency: 20
-  publish_me_frequency: 20
+  threshold_last_seen: 0.5 #not implemented yet
+  publish_positions_frequency: 10
+  publish_me_frequency: 10
 
   trunc_time: 10.0
   left_pref: -0.05

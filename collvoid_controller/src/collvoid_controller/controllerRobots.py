@@ -101,16 +101,18 @@ class ControllerRobots():
         self.ground_truth = PoseWithCovarianceStamped()
         #print str(self.ground_truth)
         self.ground_truth.header.frame_id = "/map"
-        self.ground_truth.pose.pose.position.x = -msg.pose.pose.position.y
-        self.ground_truth.pose.pose.position.y = msg.pose.pose.position.x
-        q = msg_to_quaternion(msg.pose.pose.orientation)
-        rpy = list(tf.transformations.euler_from_quaternion(q))
-        yaw = rpy[2] + math.pi / 2.0
-        q = tf.transformations.quaternion_from_euler(0,0,yaw, axes='sxyz')
-        self.ground_truth.pose.pose.orientation.x = q[0]
-        self.ground_truth.pose.pose.orientation.y = q[1]
-        self.ground_truth.pose.pose.orientation.z = q[2]
-        self.ground_truth.pose.pose.orientation.w = q[3]
+        self.ground_truth.pose.pose = msg.pose.pose
+
+        #self.ground_truth.pose.pose.position.x = -msg.pose.pose.position.y
+        #self.ground_truth.pose.pose.position.y = msg.pose.pose.position.x
+        #q = msg_to_quaternion(msg.pose.pose.orientation)
+        #rpy = list(tf.transformations.euler_from_quaternion(q))
+        #yaw = rpy[2] + math.pi / 2.0
+        #q = tf.transformations.quaternion_from_euler(0,0,yaw, axes='sxyz')
+        #self.ground_truth.pose.pose.orientation.x = q[0]
+        #self.ground_truth.pose.pose.orientation.y = q[1]
+        #self.ground_truth.pose.pose.orientation.z = q[2]
+        #self.ground_truth.pose.pose.orientation.w = q[3]
         
 
     def publish_init_guess(self, noise_cov, noise_std):

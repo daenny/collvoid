@@ -8,8 +8,8 @@ import commands
 def create_world_file(argv):
     numRobots = 0
     circleSize = 0
-    centerX = -2.2
-    centerY = 2
+    centerX = -2
+    centerY = -2.2
     omni = False
     localization = True
     simulation = True
@@ -96,9 +96,9 @@ def create_yaml_file(circleSize, numRobots,omni,simulation,localization,centerX,
   
         yamlWrite.write('robot_{0}:\n'.format(x))
         yamlWrite.write('    goals:\n')
-        yamlWrite.write('        x: [{0:f}]\n'.format(centerX-posY))
-        yamlWrite.write('        y: [{0:f}]\n'.format(centerY+posX))
-        yamlWrite.write('        ang: [{0:f}]\n'.format((angleX+90) / 360.0 * 2 * math.pi))
+        yamlWrite.write('        x: [{0:f}]\n'.format(centerY+posX))
+        yamlWrite.write('        y: [{0:f}]\n'.format(-centerX+posY))
+        yamlWrite.write('        ang: [{0:f}]\n'.format((angleX) / 360.0 * 2 * math.pi))
     
     yamlWrite.close()
     
