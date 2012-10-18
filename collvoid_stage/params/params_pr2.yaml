@@ -1,36 +1,3 @@
-/controller_frequency: 10
-
-CollvoidLocalPlanner:
-  max_neighbors: 10
-  neighbor_dist: 15.0
-  time_horizon: 10.0
-  time_horizon_obst: 10.0
-  threshold_last_seen: 1.0
-  
-  scale_radius_factor: 0.5
-  
-  yaw_goal_tolerance: 0.05
-  xy_goal_tolerance: 0.10
-#  latch_xy_goal_tolerance: true
-  global_frame: /map
-
-  holo_robot: true
-  delete_observations: true
-
-  max_vel_x: 0.5
-  max_vel_th: 1.0
-  min_vel_x: 0.01
-  min_vel_th: 0.1
-  min_vel_y: 0.01
-  max_vel_y: 0.2
-  min_vel_theta_inplace: 0.2
-  acc_lim_x: 2.5
-  acc_lim_y: 2.5
-  acc_lim_th: 3.2
-  max_vel_with_obstacles: 0.5
-  footprint_radius: 0.35
-  inscribed_radius: 0.33
-  
 TrajectoryPlannerROS:
   #Set the acceleration limits of the robot
   acc_lim_th: 3.2

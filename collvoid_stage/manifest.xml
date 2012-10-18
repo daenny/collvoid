@@ -1,15 +1,15 @@
 <package>
-  <description brief="collvoid_stage">
+  <description brief="clearpath_stage">
 
      collvoid_stage
 
   </description>
-  <author>Swarmlab</author>
+  <author>Daniel Claes</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/collvoid_stage</url>
   <depend package="stage"/>
-  <depend package="collvoid_local_planner"/>
+  <depend package="cocalu_local_planner"/>
 
 </package>
 

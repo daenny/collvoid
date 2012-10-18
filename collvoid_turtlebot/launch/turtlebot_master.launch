@@ -16,21 +16,21 @@
   <include file="$(find collvoid_turtlebot)/launch/amcl_turtlebot.launch"/> 
  
   <!--- Run Controller -->
-  <rosparam command="load" file="$(find collvoid_controller)/goals.yaml"/>
+  <rosparam command="load" file="$(find collvoid_turtlebot)/goals.yaml"/>
   <node pkg="collvoid_controller" type="controllerRobots.py" name="controller_robots" output="screen" />
 
   <!--- Run collvoid -->
   <rosparam command="load" file="$(find collvoid_turtlebot)/params/params_created.yaml"/>
 
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
-    <rosparam command="load" file="$(find collvoid_turtlebot)/params/params_roomba.yaml"/>
-   <!---  <param name="base_local_planner" value="pose_follower/PoseFollower" /> -->  
-       <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
-       <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" />
-
-       <!-- <remap from="/cmd_vel" to="/turtlebot_node/cmd_vel"/> -->
+    <rosparam command="load" file="$(find collvoid_turtlebot)/params/params_turtle.yaml"/>
+    <rosparam command="load" file="$(find collvoid_turtlebot)/params/collvoid_config.yaml"/>
+    <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
+   <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" />
+   
+   <!-- <remap from="/cmd_vel" to="/turtlebot_node/cmd_vel"/> -->
   </node>
-
+  
 
 
 </launch>

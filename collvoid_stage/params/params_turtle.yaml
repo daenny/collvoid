@@ -1,38 +1,21 @@
-controller_frequency: 10
-
 CollvoidLocalPlanner:
-  max_neighbors: 10
-  neighbor_dist: 5.0
-  time_horizon: 10.0
-  time_horizon_obst: 10.0
-  threshold_last_seen: 1.0
-
-  scale_radius_factor: 0.5
-
-  yaw_goal_tolerance: 0.15
-  xy_goal_tolerance: 0.10
-#  latch_xy_goal_tolerance: true
-  global_frame: /map
-  wheel_base: 0.25
-  time_to_holo: 0.4
-  min_error_holo: 0.05
-  max_error_holo: 0.10
   holo_robot: false
-  delete_observations: true
-
+  wheel_base: 0.25
+  
   max_vel_x: 0.5
   max_vel_th: 1.5
-  min_vel_x: 0.1
+  min_vel_x: 0.05
   min_vel_th: 0.1
-  min_vel_theta_inplace: 0.5
-  min_vel_y: 0.01
-  max_vel_y: 0.1
+  min_vel_y: 0.0
+  max_vel_y: 0.0
+  min_vel_th_inplace: 0.5
+  acc_lim_x: 5.0
+  acc_lim_y: 5.0
+  acc_lim_th: 5.2
+
   max_vel_with_obstacles: 0.5
-  acc_lim_x: 1.0
-  acc_lim_y: 0.0
-  acc_lim_th: 1.0
+
   footprint_radius: 0.17
-  inscribed_radius: 0.16
 
 TrajectoryPlannerROS:
   max_vel_x: 0.50

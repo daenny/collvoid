@@ -1,15 +1,15 @@
 <launch>
 
   <!--- Run Robot Pose EKF -->
-  <!-- <include file="$(find collvoid_turtlebot)/launch/base.launch" /> -->
+  <include file="$(find collvoid_turtlebot)/launch/base.launch" />
 
   <!--- Run the kinect -->
-  <!-- <include file="$(find collvoid_turtlebot)/launch/kinect.launch" />  -->
+  <include file="$(find collvoid_turtlebot)/launch/kinect.launch" /> 
   <!-- Run the map server -->
-  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_turtlebot)/world/map.yaml" output="screen"/>
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_turtlebot)/world/maplarge.yaml" output="screen"/>
 
   <!-- Run the laser -->
-  <!-- <include file="$(find collvoid_turtlebot)/launch/hokuyo.launch" /> -->
+  <include file="$(find collvoid_turtlebot)/launch/hokuyo.launch" />
 
   <!--- Run AMCL -->
   <include file="$(find collvoid_turtlebot)/launch/amcl_turtlebot.launch"/> 
@@ -23,8 +23,8 @@
 
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
     <rosparam command="load" file="$(find collvoid_turtlebot)/params/params_turtle.yaml"/>
-    <!-- <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" /> -->
-    <!-- <remap from="/cmd_vel" to="/turtlebot_node/cmd_vel"/> -->
+    <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
+    <remap from="/cmd_vel" to="/turtlebot_node/cmd_vel"/>
   </node>
 
 

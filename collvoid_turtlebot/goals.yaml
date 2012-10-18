@@ -1,0 +1,92 @@
+turtlebot-red:
+  goals:
+    x: [-2.7, -0.7]
+    y: [2.4, 4.4]
+    ang: [7.068, 3.93]
+turtlebot-green:
+  goals:
+    x: [-2.7, -0.7]
+    y: [2.4, 4.4]
+    ang: [7.068, 3.93]
+turtlebot-yellow:
+  goals:
+    x: [-0.7, -2.7]
+    y: [2.4, 4.4]
+    ang: [2.356, 5.497787]
+turtlebot-white:
+  goals:
+    x: [-0.7, -2.7]
+    y: [2.4, 4.4]
+    ang: [2.356, 5.497787]
+
+1turtlebot-red:
+  goals:
+    x: [-1.3, -1.3]
+    y: [4.0, 0.0]
+    ang: [-1.71, 1.71]
+
+turtlebot-red_bak:
+  goals:
+    x: [-0.5, 2.5]
+    y: [0.5, -2.5]
+    ang: [-0.78, 2.38]
+    
+1turtlebot-white:
+  goals:
+    x: [-0.5, 2.5]
+    y: [-2.5, 0.5]
+    ang: [0.78, -2.38]
+     
+1turtlebot-yellow:
+  goals:
+    x: [-0.5, 2.5]
+    y: [0.5, -2.5]
+    ang: [-0.78, 2.38]
+
+1turtlebot-green:
+  goals:
+    x: [-0.5, 2.5]
+    y: [-2.5, 0.5]
+    ang: [0.78, -2.38]
+    
+turtlebot4:
+  goals:
+    x: [ 1.2, -1.2]
+    y: [ 1.2, -1.2]
+    ang: [-2.356, 0.785]
+
+turtlebot5:
+  goals:
+    x: [ 1.2,  -1.2]
+    y: [ -1.2,  1.2]
+    ang: [2.356, -0.785]
+
+turtlebot6:
+  goals:
+    x: [ -1.2, 1.2]
+    y: [ 1.2, -1.2]
+    ang: [-0.785, 2.356]
+
+turtlebot7:
+  goals:
+    x: [ -1.2, 1.2]
+    y: [ -1.2, 1.2]
+    ang: [0.785, -2.356]
+
+prm1:
+  goals:
+    x: [ -1.2, 1.2]
+    y: [ -1.2, -1.2]
+    ang: [0.785, -2.356]
+
+pri1:
+  goals:
+    x: [ 3.6, 1.2]
+    y: [ 2.4, 0.0]
+    ang: [-2.356, 0.785]
+
+prk1:
+  goals:
+    x: [ -1.2, 1.2]
+    y: [ -1.2, -1.2]
+    ang: [0.785, -2.356]

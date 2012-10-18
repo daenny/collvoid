@@ -1,0 +1,159 @@
+Index: CMakeLists.txt
+===================================================================
+--- CMakeLists.txt	(revision 40103)
++++ CMakeLists.txt	(working copy)
+@@ -6,6 +6,7 @@
+ rosbuild_make_distribution(1.6.6)
+ rosbuild_add_boost_directories()
+ 
++rosbuild_genmsg()
+ # Build Stage
+ execute_process(COMMAND cmake -E chdir ${PROJECT_SOURCE_DIR} make -f Makefile.stage
+                 RESULT_VARIABLE _make_failed)
+Index: msg/Stall.msg
+===================================================================
+--- msg/Stall.msg	(revision 0)
++++ msg/Stall.msg	(revision 0)
+@@ -0,0 +1,2 @@
++Header header
++bool stall
+Index: src/stageros.cpp
+===================================================================
+--- src/stageros.cpp	(revision 40103)
++++ src/stageros.cpp	(working copy)
+@@ -46,6 +46,10 @@
+ #include <geometry_msgs/Twist.h>
+ #include <rosgraph_msgs/Clock.h>
+ 
++#include <stage/Stall.h>
++
++#include <std_srvs/Empty.h>
++
+ #include "tf/transform_broadcaster.h"
+ 
+ #define USAGE "stageros <worldfile>"
+@@ -53,6 +57,7 @@
+ #define BASE_SCAN "base_scan"
+ #define BASE_POSE_GROUND_TRUTH "base_pose_ground_truth"
+ #define CMD_VEL "cmd_vel"
++#define STALL "stall"
+ 
+ // Our node
+ class StageNode
+@@ -63,6 +68,7 @@
+     nav_msgs::Odometry *odomMsgs;
+     nav_msgs::Odometry *groundTruthMsgs;
+     rosgraph_msgs::Clock clockMsg;
++    stage::Stall *stallMsgs;
+ 
+     // roscpp-related bookkeeping
+     ros::NodeHandle n_;
+@@ -77,6 +83,12 @@
+     std::vector<ros::Publisher> odom_pubs_;
+     std::vector<ros::Publisher> ground_truth_pubs_;
+     std::vector<ros::Subscriber> cmdvel_subs_;
++    std::vector<ros::Publisher> stall_pubs_;
++
++    // Used to remember initial poses for soft reset
++    std::vector<Stg::Pose> initial_poses;
++    ros::ServiceServer reset_srv_;
++
+     ros::Publisher clock_pub_;
+ 
+     // A helper function that is executed for each stage model.  We use it
+@@ -125,6 +137,9 @@
+     // Message callback for a MsgBaseVel message, which set velocities.
+     void cmdvelReceived(int idx, const boost::shared_ptr<geometry_msgs::Twist const>& msg);
+ 
++    // Service callback for soft reset
++    bool cb_reset_srv(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
++
+     // The main simulator object
+     Stg::World* world;
+ };
+@@ -148,8 +163,11 @@
+ {
+   if (dynamic_cast<Stg::ModelRanger *>(mod))
+     node->lasermodels.push_back(dynamic_cast<Stg::ModelRanger *>(mod));
+-  if (dynamic_cast<Stg::ModelPosition *>(mod))
+-    node->positionmodels.push_back(dynamic_cast<Stg::ModelPosition *>(mod));
++  if (dynamic_cast<Stg::ModelPosition *>(mod)) {
++    Stg::ModelPosition * p = dynamic_cast<Stg::ModelPosition *>(mod);
++    node->positionmodels.push_back(p);
++    node->initial_poses.push_back(p->GetGlobalPose());
++  }
+ }
+ 
+ void
+@@ -162,6 +180,18 @@
+   this->base_last_cmd = this->sim_time;
+ }
+ 
++
++bool
++StageNode::cb_reset_srv(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
++{
++  ROS_INFO("Resetting stage!");
++  for (size_t r = 0; r < this->positionmodels.size(); r++) {
++    this->positionmodels[r]->SetPose(this->initial_poses[r]);
++    this->positionmodels[r]->SetStall(false);
++  }
++  return true;
++}
++
+ StageNode::StageNode(int argc, char** argv, bool gui, const char* fname)
+ {
+   this->sim_time.fromSec(0.0);
+@@ -211,9 +241,24 @@
+   ROS_INFO("found %u position/laser pair%s in the file", 
+            (unsigned int)numRobots, (numRobots==1) ? "" : "s");
+ 
++
++  for (size_t r = 0; r < this->initial_poses.size(); r++) 
++  {
++    //this->initial_poses[r].x += 2;
++    //this->positionmodels[r]->SetPose(this->initial_poses[r]);
++
++    ROS_INFO("%s:\tx=%.2f\ty=%.2f", 
++	     mapName("initial_pose", r), 
++	     this->initial_poses[r].x,
++	     this->initial_poses[r].y);
++  }
++
++
+   this->laserMsgs = new sensor_msgs::LaserScan[numRobots];
+   this->odomMsgs = new nav_msgs::Odometry[numRobots];
+   this->groundTruthMsgs = new nav_msgs::Odometry[numRobots];
++  this->stallMsgs = new stage::Stall[numRobots];
++
+ }
+ 
+ 
+@@ -252,8 +297,14 @@
+     odom_pubs_.push_back(n_.advertise<nav_msgs::Odometry>(mapName(ODOM,r), 10));
+     ground_truth_pubs_.push_back(n_.advertise<nav_msgs::Odometry>(mapName(BASE_POSE_GROUND_TRUTH,r), 10));
+     cmdvel_subs_.push_back(n_.subscribe<geometry_msgs::Twist>(mapName(CMD_VEL,r), 10, boost::bind(&StageNode::cmdvelReceived, this, r, _1)));
++    stall_pubs_.push_back(n_.advertise<stage::Stall>(mapName(STALL,r), 10));
+   }
+   clock_pub_ = n_.advertise<rosgraph_msgs::Clock>("/clock",10);
++
++  // advertising reset service
++  ros::NodeHandle private_nh("~");
++  reset_srv_ = private_nh.advertiseService("reset", &StageNode::cb_reset_srv, this);
++
+   return(0);
+ }
+ 
+@@ -363,6 +414,12 @@
+ 
+     this->odom_pubs_[r].publish(this->odomMsgs[r]);
+ 
++    // publish stall status
++    this->stallMsgs[r].header.frame_id = mapName("base_link", r);
++    this->stallMsgs[r].header.stamp = sim_time;
++    this->stallMsgs[r].stall = this->positionmodels[r]->Stalled(); 
++    this->stall_pubs_[r].publish(this->stallMsgs[r]);
++
+     // broadcast odometry transform
+     tf::Quaternion odomQ;
+     tf::quaternionMsgToTF(odomMsgs[r].pose.pose.orientation, odomQ);
