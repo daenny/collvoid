@@ -1,169 +1,119 @@
 /*
- *  Agent.h
- *  RVO2 Library.
- *  
- *  
- *  Copyright (C) 2008-10 University of North Carolina at Chapel Hill.
- *  All rights reserved.
- *  
- *  Permission to use, copy, modify, and distribute this software and its
- *  documentation for educational, research, and non-profit purposes, without
- *  fee, and without a written agreement is hereby granted, provided that the
- *  above copyright notice, this paragraph, and the following four paragraphs
- *  appear in all copies.
- *  
- *  Permission to incorporate this software into commercial products may be
- *  obtained by contacting the University of North Carolina at Chapel Hill.
- *  
- *  This software program and documentation are copyrighted by the University of
- *  North Carolina at Chapel Hill. The software program and documentation are
- *  supplied "as is", without any accompanying services from the University of
- *  North Carolina at Chapel Hill or the authors. The University of North
- *  Carolina at Chapel Hill and the authors do not warrant that the operation of
- *  the program will be uninterrupted or error-free. The end-user understands
- *  that the program was developed for research purposes and is advised not to
- *  rely exclusively on the program for any reason.
- *  
- *  IN NO EVENT SHALL THE UNIVERSITY OF NORTH CAROLINA AT CHAPEL HILL OR ITS
- *  EMPLOYEES OR THE AUTHORS BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,
- *  SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,
- *  ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF THE
- *  UNIVERSITY OF NORTH CAROLINA AT CHAPEL HILL OR THE AUTHORS HAVE BEEN ADVISED
- *  OF THE POSSIBILITY OF SUCH DAMAGE.
- *  
- *  THE UNIVERSITY OF NORTH CAROLINA AT CHAPEL HILL AND THE AUTHORS SPECIFICALLY
- *  DISCLAIM ANY WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- *  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE AND ANY
- *  STATUTORY WARRANTY OF NON-INFRINGEMENT. THE SOFTWARE PROVIDED HEREUNDER IS
- *  ON AN "AS IS" BASIS, AND THE UNIVERSITY OF NORTH CAROLINA AT CHAPEL HILL AND
- *  THE AUTHORS HAVE NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
- *  ENHANCEMENTS, OR MODIFICATIONS.
- *  
- *  Please send all BUG REPORTS to:
- *  
- *  geom@cs.unc.edu
- *  
- *  The authors may be contacted via:
- *  
- *  Jur van den Berg, Stephen J. Guy, Jamie Snape, Ming C. Lin, and
- *  Dinesh Manocha
- *  Dept. of Computer Science
- *  Frederick P. Brooks Jr. Computer Science Bldg.
- *  3175 University of N.C.
- *  Chapel Hill, N.C. 27599-3175
- *  United States of America
- *  
- *  http://gamma.cs.unc.edu/RVO2/
- *  
+ * Copyright (c) 2012, Daniel Claes, Maastricht University
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of the Maastricht University nor the names of its
+ *       contributors may be used to endorse or promote products derived from
+ *       this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*!
- *  @file       Agent.h
- *  @brief      Contains the Agent class.
- */
+
 
 #ifndef AGENT_H
 #define AGENT_H
 
-#include "collvoid_local_planner/Definitions.h"
+#include "collvoid_local_planner/Utils.h"
+#include "collvoid_local_planner/clearpath.h"
 
+#include <boost/shared_ptr.hpp>
 
-namespace RVO
-{
-  /*!
-   *  @brief      Defines an agent in the simulation.
-   */
-  class Agent
-  {
+namespace collvoid{
+   
+  class Agent{
   public:
-    /*!
-     *  @brief      Constructs an agent instance.
-     *  @param      sim             The simulator instance.
-     */
-    explicit Agent();
+    
+    //    Agent(){};
+    virtual ~Agent(){};
+    
+    void computeOrcaVelocity(Vector2 pref_velocity, bool convex);
 
-    /*!
-     *  @brief      Destroys this agent instance.
-     */
-    ~Agent();
+    void computeClearpathVelocity(Vector2 pref_velocity);
+    void computeSampledVelocity(Vector2 pref_velocity);
 
-    /*!
-     *  @brief      Computes the new velocity of this agent.
-     */
-    void computeNewVelocity();
+    
+    void computeAgentVOs();
+    
+    void setLeftPref(double left_pref);
+    void setRadius(double radius);
+    void setTruncTime(double trunc_time);
+    void setSimPeriod(double sim_period);
 
-    /*!
-     *  @brief      Inserts an agent neighbor into the set of neighbors of
-     *              this agent.
-     *  @param      agent           A pointer to the agent to be inserted.
-     *  @param      rangeSq         The squared range around this agent.
-     */
-    void insertAgentNeighbor(const Agent* agent, float& rangeSq);
+    double getRadius();
+    collvoid::Vector2 getPosition();
+    collvoid::Vector2 getVelocity();
 
-    /*!
-     *  @brief      Updates the two-dimensional position and two-dimensional
-     *              velocity of this agent.
-     */
-    void update();
+    
+    //config
+    double left_pref_;  
 
-    std::vector<std::pair<float, const Agent*> > agentNeighbors_;
-    size_t maxNeighbors_;
-    float maxSpeed_;
-    float neighborDist_;
-    Vector2 newVelocity_;
-    std::vector<Line> orcaLines_;
+    bool use_truncation_;
+    double trunc_time_;
+    double timestep_, sim_period_;
+
+    bool controlled_;
+    
+    bool orca_; // Orca or VO?
+    bool convex_; // circle approx, or mink sum?
+
+    //VO settings
+    bool clearpath_; //Clearpath or sampling based
+    int type_vo_; //0 = HRVO, 1 = RVO , 2 = VO
+   
+    //description
     Vector2 position_;
-    Vector2 prefVelocity_;
-    float radius_;
-    float timeHorizon_;
-    float timeHorizonObst_;
+    double heading_;
     Vector2 velocity_;
 
-    std::string id_;
+    double radius_;
 
+    std::vector<Vector2> footprint_;
+  
+
+
+    Vector2 new_velocity_;
+   
+    
+    //nh stuff
+    double cur_allowed_error_;
+
+    //Orca
+    double max_speed_x_;
+    std::vector<Line> orca_lines_, additional_orca_lines_;
+
+    //VO stuff
+    std::vector<VO> vo_agents_, additional_vos_;
+    std::vector<VelocitySample> samples_;
+   
+
+    
+    std::vector<boost::shared_ptr<Agent> > agent_neighbors_;
+
+    
   };
 
-  /*!
-   *  @brief      Solves a one-dimensional linear program on a specified line
-   *              subject to linear constraints defined by lines and a circular
-   *              constraint.
-   *  @param      lines         Lines defining the linear constraints.
-   *  @param      lineNo        The specified line constraint.
-   *  @param      radius        The radius of the circular constraint.
-   *  @param      optVelocity   The optimization velocity.
-   *  @param      directionOpt  True if the direction should be optimized.
-   *  @param      result        A reference to the result of the linear program.
-   *  @returns    True if successful.
-   */
-  bool linearProgram1(const std::vector<Line>& lines, size_t lineNo,
-                      float radius, const Vector2& optVelocity,
-                      bool directionOpt, Vector2& result);
+  typedef boost::shared_ptr<Agent> AgentPtr;
+  
 
-  /*!
-   *  @brief      Solves a two-dimensional linear program subject to linear
-   *              constraints defined by lines and a circular constraint.
-   *  @param      lines         Lines defining the linear constraints.
-   *  @param      radius        The radius of the circular constraint.
-   *  @param      optVelocity   The optimization velocity.
-   *  @param      directionOpt  True if the direction should be optimized.
-   *  @param      result        A reference to the result of the linear program.
-   *  @returns    The number of the line it fails on, and the number of lines if successful.
-   */  
-  size_t linearProgram2(const std::vector<Line>& lines, float radius,
-                      const Vector2& optVelocity, bool directionOpt,
-                      Vector2& result);
-
-  /*!
-   *  @brief      Solves a two-dimensional linear program subject to linear
-   *              constraints defined by lines and a circular constraint.
-   *  @param      lines         Lines defining the linear constraints.
-   *  @param      numObstLines  Count of obstacle lines.
-   *  @param      beginLine     The line on which the 2-d linear program failed.
-   *  @param      radius        The radius of the circular constraint.
-   *  @param      result        A reference to the result of the linear program.
-   */
-  void linearProgram3(const std::vector<Line>& lines, size_t numObstLines, size_t beginLine, 
-                      float radius, Vector2& result);
 }
 
 #endif

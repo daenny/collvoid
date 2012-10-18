@@ -16,6 +16,7 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
+
 # add dynamic reconfigure api
 rosbuild_find_ros_package(dynamic_reconfigure)
 include(${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake)
@@ -24,17 +25,23 @@ gencfg()
 #uncomment if you have defined messages
 #rosbuild_genmsg()
 #uncomment if you have defined services
-rosbuild_gensrv()
+#rosbuild_gensrv()
 
 rosbuild_add_boost_directories()
 
 #common commands for building c++ executables and libraries
-#rosbuild_add_library(${PROJECT_NAME} src/randomTwistPublish.cpp)
+#rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
 #target_link_libraries(${PROJECT_NAME} another_library)
 #rosbuild_add_boost_directories()
-#rosbuild_link_boost(${PROJECT_NAME} thread)
+#rosbuild_link_boost(${PROJECT_NAME} signal)
+#rosbuild_add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
 
-rosbuild_add_library(collvoid_local_planner src/collvoid_local_planner.cpp src/pose_twist_aggregator.cpp src/ROSAgent.cpp src/Agent.cpp)
-rosbuild_add_executable(pose_twist_aggregator src/pose_twist_aggregator.cpp)
 
+rosbuild_add_library(collvoid_local_planner src/collvoid_local_planner.cpp src/Agent.cpp src/ROSAgent.cpp src/orca.cpp src/collvoid_publishers.cpp src/clearpath.cpp)
+
+rosbuild_add_executable(ROSAgent src/collvoid_local_planner.cpp src/Agent.cpp src/ROSAgent.cpp src/orca.cpp src/collvoid_publishers.cpp src/clearpath.cpp)
+rosbuild_link_boost(ROSAgent signals)
+
+rosbuild_add_executable(Helper src/helper.cpp src/clearpath.cpp)
+rosbuild_link_boost(Helper signals)

@@ -1,382 +1,243 @@
+/* This file is adapted from octomap/math/vector3.h see original copyright information below
+ */
+
 /*
-*  Vector2.h
-*  RVO2 Library.
-*  
-*  
-*  Copyright (C) 2008-10 University of North Carolina at Chapel Hill.
-*  All rights reserved.
-*  
-*  Permission to use, copy, modify, and distribute this software and its
-*  documentation for educational, research, and non-profit purposes, without
-*  fee, and without a written agreement is hereby granted, provided that the
-*  above copyright notice, this paragraph, and the following four paragraphs
-*  appear in all copies.
-*  
-*  Permission to incorporate this software into commercial products may be
-*  obtained by contacting the University of North Carolina at Chapel Hill.
-*  
-*  This software program and documentation are copyrighted by the University of
-*  North Carolina at Chapel Hill. The software program and documentation are
-*  supplied "as is", without any accompanying services from the University of
-*  North Carolina at Chapel Hill or the authors. The University of North
-*  Carolina at Chapel Hill and the authors do not warrant that the operation of
-*  the program will be uninterrupted or error-free. The end-user understands
-*  that the program was developed for research purposes and is advised not to
-*  rely exclusively on the program for any reason.
-*  
-*  IN NO EVENT SHALL THE UNIVERSITY OF NORTH CAROLINA AT CHAPEL HILL OR ITS
-*  EMPLOYEES OR THE AUTHORS BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT,
-*  SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,
-*  ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF THE
-*  UNIVERSITY OF NORTH CAROLINA AT CHAPEL HILL OR THE AUTHORS HAVE BEEN ADVISED
-*  OF THE POSSIBILITY OF SUCH DAMAGE.
-*  
-*  THE UNIVERSITY OF NORTH CAROLINA AT CHAPEL HILL AND THE AUTHORS SPECIFICALLY
-*  DISCLAIM ANY WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-*  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE AND ANY
-*  STATUTORY WARRANTY OF NON-INFRINGEMENT. THE SOFTWARE PROVIDED HEREUNDER IS
-*  ON AN "AS IS" BASIS, AND THE UNIVERSITY OF NORTH CAROLINA AT CHAPEL HILL AND
-*  THE AUTHORS HAVE NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
-*  ENHANCEMENTS, OR MODIFICATIONS.
-*  
-*  Please send all BUG REPORTS to:
-*  
-*  geom@cs.unc.edu
-*  
-*  The authors may be contacted via:
-*  
-*  Jur van den Berg, Stephen J. Guy, Jamie Snape, Ming C. Lin, and
-*  Dinesh Manocha
-*  Dept. of Computer Science
-*  Frederick P. Brooks Jr. Computer Science Bldg.
-*  3175 University of N.C.
-*  Chapel Hill, N.C. 27599-3175
-*  United States of America
-*  
-*  http://gamma.cs.unc.edu/RVO2/
-*  
-*/
+ * Copyright (c) 2009-2011, K. M. Wurm, A. Hornung, University of Freiburg
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of the University of Freiburg nor the names of its
+ *       contributors may be used to endorse or promote products derived from
+ *       this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
 
-/*!
-*  @file       Vector2.h
-*  @brief      Contains the Vector2 class.
-*/
+#ifndef COLLVOID_VECTOR2_H
+#define COLLVOID_VECTOR2_H
 
-#ifndef VECTOR_2_H
-#define VECTOR_2_H
-
+#include <iostream>
 #include <cmath>
-#include <ostream>
 
-namespace RVO
-{
-  /*!
-  *  @brief      Defines a two-dimensional vector.
-  */
-  class Vector2
+namespace collvoid {
+
+  class Vector2 
   {
   public:
-    /*!
-    *  @brief      Constructs and initializes a two-dimensional vector instance
-    *              to (0.0, 0.0).
-    */
-    inline Vector2() : x_(0.0f), y_(0.0f)
+
+    Vector2 () { data[0] = data[1] = 0; }
+
+
+    Vector2 (const Vector2& other) {
+      data[0] = other(0);
+      data[1] = other(1);
+    }
+
+    Vector2 (double x, double y) {
+      data[0] = x;
+      data[1] = y;
+    }
+
+    inline Vector2& operator= (const Vector2& other)  {
+      data[0] = other(0);
+      data[1] = other(1);
+      return *this;
+    }
+
+    inline const double& operator() (unsigned int i) const
     {
+      return data[i];
     }
-
-    /*!
-    *  @brief      Constructs and initializes a two-dimensional vector from the
-    *              specified two-dimensional vector.
-    *  @param      vector          The two-dimensional vector containing the
-    *                              xy-coordinates.
-    */
-    inline Vector2(const Vector2& vector) : x_(vector.x()), y_(vector.y())
+    
+    inline double& operator() (unsigned int i)
     {
+      return data[i];
     }
 
-    /*!
-    *  @brief      Constructs and initializes a two-dimensional vector from
-    *              the specified xy-coordinates.
-    *  @param      x               The x-coordinate of the two-dimensional
-    *                              vector.
-    *  @param      y               The y-coordinate of the two-dimensional
-    *                              vector.
-    */
-    inline Vector2(float x, float y) : x_(x), y_(y)
+    inline double& x() 
     {
+      return operator()(0);
     }
 
-    /*!
-    *  @brief      Destroys this two-dimensional vector instance.
-    */
-    inline ~Vector2()
+    inline double& y() 
     {
+      return operator()(1);
     }
 
-    /*!
-    *  @brief      Returns the x-coordinate of this two-dimensional vector.
-    *  @returns    The x-coordinate of the two-dimensional vector.
-    */
-    inline float x() const {
-      return x_;
-    }
-
-    /*!
-    *  @brief      Returns the y-coordinate of this two-dimensional vector.
-    *  @returns    The y-coordinate of the two-dimensional vector.
-    */
-    inline float y() const
+    inline const double& x() const 
     {
-      return y_;
+      return operator()(0);
     }
 
-    /*!
-    *  @brief      Computes the negation of this two-dimensional vector.
-    *  @returns    The negation of this two-dimensional vector.
-    */
-    inline Vector2 operator-() const
+    inline const double& y() const 
     {
-      return Vector2(-x_, -y_);
+      return operator()(1);
     }
 
-    /*!
-    *  @brief      Computes the dot product of this two-dimensional vector with
-    *              the specified two-dimensional vector.
-    *  @param      vector          The two-dimensional vector with which the
-    *                              dot product should be computed.
-    *  @returns    The dot product of this two-dimensional vector with a
-    *              specified two-dimensional vector.
-    */
-    inline float operator*(const Vector2& vector) const
+    inline Vector2 operator- () const 
     {
-      return x_ * vector.x() + y_ * vector.y();
+      Vector2 result;
+      result(0) = -data[0];
+      result(1) = -data[1];
+      return result;
     }
 
-    /*!
-    *  @brief      Computes the scalar multiplication of this
-    *              two-dimensional vector with the specified scalar value.
-    *  @param      s               The scalar value with which the scalar
-    *                              multiplication should be computed.
-    *  @returns    The scalar multiplication of this two-dimensional vector
-    *              with a specified scalar value.
-    */
-    inline Vector2 operator*(float s) const
+    inline Vector2 operator+ (const Vector2 &other) const 
     {
-      return Vector2(x_ * s, y_ * s);
+      Vector2 result(*this);
+      result(0) += other(0);
+      result(1) += other(1);
+      return result;
     }
 
-    /*!
-    *  @brief      Computes the scalar division of this two-dimensional vector
-    *              with the specified scalar value.
-    *  @param      s               The scalar value with which the scalar
-    *                              division should be computed.
-    *  @returns    The scalar division of this two-dimensional vector with a
-    *              specified scalar value.
-    */
-    inline Vector2 operator/(float s) const
+    inline double operator* (const Vector2& other) const 
     {
-      const float invS = 1.0f / s;
-
-      return Vector2(x_ * invS, y_ * invS);
+      return x()*other.x() + y()*other.y();
+    }
+    
+    inline Vector2 operator*  (double x) const {
+      Vector2 result(*this);
+      result(0) *= x;
+      result(1) *= x;
+      return result;
     }
 
-    /*!
-    *  @brief      Computes the vector sum of this two-dimensional vector with
-    *              the specified two-dimensional vector.
-    *  @param      vector          The two-dimensional vector with which the
-    *                              vector sum should be computed.
-    *  @returns    The vector sum of this two-dimensional vector with a
-    *              specified two-dimensional vector.
-    */
-    inline Vector2 operator+(const Vector2& vector) const
+    inline Vector2 operator/  (double x) const {
+      Vector2 result(*this);
+      result(0) /= x;
+      result(1) /= x;
+      return result;
+    }
+
+    inline Vector2 operator- (const Vector2 &other) const 
     {
-      return Vector2(x_ + vector.x(), y_ + vector.y());
+      Vector2 result(*this);
+      result(0) -= other(0);
+      result(1) -= other(1);
+      return result;
     }
 
-    /*!
-    *  @brief      Computes the vector difference of this two-dimensional
-    *              vector with the specified two-dimensional vector.
-    *  @param      vector          The two-dimensional vector with which the
-    *                              vector difference should be computed.
-    *  @returns    The vector difference of this two-dimensional vector with a
-    *              specified two-dimensional vector.
-    */
-    inline Vector2 operator-(const Vector2& vector) const
+    inline void operator+= (const Vector2 &other)
     {
-      return Vector2(x_ - vector.x(), y_ - vector.y());
+      data[0] += other(0);
+      data[1] += other(1);
     }
 
-    /*!
-    *  @brief      Tests this two-dimensional vector for equality with the
-    *              specified two-dimensional vector.
-    *  @param      vector          The two-dimensional vector with which to
-    *                              test for equality.
-    *  @returns    True if the two-dimensional vectors are equal.
-    */
-    inline bool operator==(const Vector2& vector) const
-    {
-      return x_ == vector.x() && y_ == vector.y();
+    inline void operator-= (const Vector2& other) {
+      data[0] -= other(0);
+      data[1] -= other(1);
     }
 
-    /*!
-    *  @brief      Tests this two-dimensional vector for inequality with the
-    *              specified two-dimensional vector.
-    *  @param      vector          The two-dimensional vector with which to
-    *                              test for inequality.
-    *  @returns    True if the two-dimensional vectors are not equal.
-    */
+    inline void operator/= (double x) {
+      data[0] /= x;
+      data[1] /= x;
+    }
+
+    inline void operator*= (double x) {    
+      data[0] *= x;
+      data[1] *= x;
+    }
+
+    inline bool operator== (const Vector2 &other) const {
+      for (unsigned int i=0; i<2; i++) {
+        if (operator()(i) != other(i)) 
+          return false;
+      }
+      return true;
+    }
+
     inline bool operator!=(const Vector2& vector) const
     {
-      return x_ != vector.x() || y_ != vector.y();
+      return x() != vector.x() || y() != vector.y();
     }
 
-    /*!
-    *  @brief      Sets the value of this two-dimensional vector to the scalar
-    *              multiplication of itself with the specified scalar value.
-    *  @param      s               The scalar value with which the scalar
-    *                              multiplication should be computed.
-    *  @returns    A reference to this two-dimensional vector.
-    */
-    inline Vector2& operator*=(float s)
-    {
-      x_ *= s;
-      y_ *= s;
 
-      return *this;
+
+    inline double dist (const Vector2& other) const {
+      double dist_x = x() - other.x();
+      double dist_y = y() - other.y();
+      return sqrt(dist_x*dist_x + dist_y*dist_y);
     }
 
-    /*!
-    *  @brief      Sets the value of this two-dimensional vector to the scalar
-    *              division of itself with the specified scalar value.
-    *  @param      s               The scalar value with which the scalar
-    *                              division should be computed.
-    *  @returns    A reference to this two-dimensional vector.
-    */
-    inline Vector2& operator/=(float s)
-    {
-      const float invS = 1.0f / s;
-      x_ *= invS;
-      y_ *= invS;
 
-      return *this;
+    inline std::ostream& operator<<(std::ostream& os) {
+      os << "(" << x() << "," << y() << ")";
+      
+      return os;
     }
 
-    /*!
-    *  @brief      Sets the value of this two-dimensional vector to the vector
-    *              sum of itself with the specified two-dimensional vector.
-    *  @param      vector          The two-dimensional vector with which the
-    *                              vector sum should be computed.
-    *  @returns    A reference to this two-dimensional vector.
-    */
-    inline Vector2& operator+=(const Vector2& vector)
-    {
-      x_ += vector.x();
-      y_ += vector.y();
+  protected:
+    double data[2];
 
-      return *this;
-    }
-
-    /*!
-    *  @brief      Sets the value of this two-dimensional vector to the vector
-    *              difference of itself with the specified two-dimensional
-    *              vector.
-    *  @param      vector          The two-dimensional vector with which the
-    *                              vector difference should be computed.
-    *  @returns    A reference to this two-dimensional vector.
-    */
-    inline Vector2& operator-=(const Vector2& vector)
-    {
-      x_ -= vector.x();
-      y_ -= vector.y();
-
-      return *this;
-    }
-
-  private:
-    float x_;
-    float y_;
   };
-
-
-  /*!
-  *  @brief      Computes the scalar multiplication of the specified
-  *              two-dimensional vector with the specified scalar value.
-  *  @param      s               The scalar value with which the scalar
-  *                              multiplication should be computed.
-  *  @param      vector          The two-dimensional vector with which the scalar
-  *                              multiplication should be computed.
-  *  @returns    The scalar multiplication of the two-dimensional vector with the
-  *              scalar value.
-  */
-  inline Vector2 operator*(float s, const Vector2& vector)
-  {
+  
+  inline Vector2 operator*(float s, const Vector2& vector)  {
     return Vector2(s * vector.x(), s * vector.y());
   }
 
-  /*!
-  *  @brief      Inserts the specified two-dimensional vector into the specified
-  *              output stream.
-  *  @param      os              The output stream into which the two-dimensional
-  *                              vector should be inserted.
-  *  @param      vector          The two-dimensional vector which to insert into
-  *                              the output stream.
-  *  @returns    A reference to the output stream.
-  */
-  inline std::ostream& operator<<(std::ostream& os, const Vector2& vector)
-  {
-    os << "(" << vector.x() << "," << vector.y() << ")";
-
-    return os;
-  }
-
-  /*!
-  *  @brief      Computes the length of a specified two-dimensional vector.
-  *  @param      vector          The two-dimensional vector whose length is to be
-  *                              computed.
-  *  @returns    The length of the two-dimensional vector.
-  */
-  inline float abs(const Vector2& vector)
-  {
+  
+  
+  inline double abs(const Vector2& vector) {
     return std::sqrt(vector * vector);
   }
 
-  /*!
-  *  @brief      Computes the squared length of a specified two-dimensional
-  *              vector.
-  *  @param      vector          The two-dimensional vector whose squared length
-  *                              is to be computed.
-  *  @returns    The squared length of the two-dimensional vector.
-  */
-  inline float absSq(const Vector2& vector)
-  {
+
+  inline double absSqr(const Vector2& vector) {
     return vector * vector;
   }
 
-  /*!
-  *  @brief      Computes the determinant of a two-dimensional square matrix with
-  *              rows consisting of the specified two-dimensional vectors.
-  *  @param      vector1         The top row of the two-dimensional square
-  *                              matrix.
-  *  @param      vector2         The bottom row of the two-dimensional square
-  *                              matrix.
-  *  @returns    The determinant of the two-dimensional square matrix.
-  */
-  inline float det(const Vector2& vector1, const Vector2& vector2)
-  {
+  inline double atan(const Vector2& vector){
+    return std::atan2(vector.y(), vector.x());
+  }
+  
+  inline double det(const Vector2& vector1, const Vector2& vector2) {
     return vector1.x() * vector2.y() - vector1.y() * vector2.x();
   }
 
-  /*!
-  *  @brief      Computes the normalization of the specified two-dimensional
-  *              vector.
-  *  @param      vector          The two-dimensional vector whose normalization
-  *                              is to be computed.
-  *  @returns    The normalization of the two-dimensional vector.
-  */
-  inline Vector2 normalize(const Vector2& vector)
-  {
+  inline Vector2 normalize(const Vector2& vector){
     return vector / abs(vector);
   }
+
+  inline Vector2 normal(const Vector2& vector){
+    return normalize(Vector2(vector.y(), -(vector.x())));
+  }
+  
+  inline double angleBetween(const Vector2& one, const Vector2& two) {  
+    double dot_prod = one*two; 
+    double len1 = abs(one); 
+    double len2 = abs(two); 
+    return acos(dot_prod / (len1*len2)); 
+  } 
+
+ inline Vector2 rotateVectorByAngle(double x, double y, double ang){
+    double cos_a, sin_a;
+    cos_a = cos(ang);
+    sin_a = sin(ang);
+    return Vector2(cos_a * x - sin_a * y, cos_a * y + sin_a * x);
+
+  }
+ inline Vector2 rotateVectorByAngle(const Vector2& vec, double ang) {
+   return rotateVectorByAngle(vec.x(), vec.y(), ang);
+ }
+
 }
+
 
 #endif

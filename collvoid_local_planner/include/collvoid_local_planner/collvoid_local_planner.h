@@ -1,3 +1,32 @@
+/*
+ * Copyright (c) 2012, Daniel Claes, Maastricht University
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *     * Neither the name of the Maastricht University nor the names of its
+ *       contributors may be used to endorse or promote products derived from
+ *       this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
 
 #ifndef COLLVOID_LOCAL_PLANNER_H_
 #define COLLVOID_LOCAL_PLANNER_H_
@@ -9,17 +38,16 @@
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/GridCells.h>
 #include <ros/ros.h>
-#include <boost/unordered_map.hpp>
 #include <dynamic_reconfigure/server.h>
-//#include <base_local_planner/trajectory_planner_ros.h>
 
 #include "collvoid_local_planner/ROSAgent.h"
-#include "collvoid_local_planner/pose_twist_aggregator.h"
 #include "collvoid_local_planner/CollvoidConfig.h"
 
 
+using namespace collvoid;
 
 namespace collvoid_local_planner {
+  /* typedef boost::shared_ptr<ROSAgent> ROSAgentPtr; */
 
   class CollvoidLocalPlanner: public nav_core::BaseLocalPlanner {
   public:
@@ -37,16 +65,10 @@ namespace collvoid_local_planner {
     bool stopWithAccLimits(const tf::Stamped<tf::Pose>& global_pose, const tf::Stamped<tf::Pose>& robot_vel, geometry_msgs::Twist& cmd_vel);
 
 
-    double addAllNeighbors();
-    void updateROSAgentWithMsg(ROSAgent* agent, collvoid_msgs::PoseTwistWithCovariance* msg);
     bool transformGlobalPlan(const tf::TransformListener& tf, const std::vector<geometry_msgs::PoseStamped>& global_plan, const costmap_2d::Costmap2DROS& costmap, const std::string& global_frame, std::vector<geometry_msgs::PoseStamped>& transformed_plan);
     void findBestWaypoint(geometry_msgs::PoseStamped& target_pose, const tf::Stamped<tf::Pose>& global_pose);
 
     void obstaclesCallback(const nav_msgs::GridCells::ConstPtr& msg);
-
-    double sign(double x){
-      return x < 0.0 ? -1.0 : 1.0;
-    }
 
     //Dyn reconfigure
     boost::recursive_mutex configuration_mutex_;
@@ -61,34 +83,36 @@ namespace collvoid_local_planner {
     costmap_2d::Costmap2DROS* costmap_ros_; 
     tf::TransformListener* tf_; 
     
-    PoseTwistAggregator* pt_agg_;
-
     bool initialized_, skip_next_, setup_;
 
+    //Agent stuff
     double sim_period_;
     double max_vel_x_, min_vel_x_;
     double max_vel_y_, min_vel_y_;
-    double max_vel_th_, min_vel_th_, min_vel_theta_inplace_;
-    double acc_lim_x_, acc_lim_y_, acc_lim_theta_;
+    double max_vel_th_, min_vel_th_, min_vel_th_inplace_;
+    double acc_lim_x_, acc_lim_y_, acc_lim_th_;
+    double wheel_base_, radius_;
+    double max_vel_with_obstacles_;
+
+    bool holo_robot_;
+
+    double trunc_time_, left_pref_; 
+    
     double xy_goal_tolerance_, yaw_goal_tolerance_;
     double rot_stopped_velocity_, trans_stopped_velocity_;
-    double inscribed_radius_, circumscribed_radius_, inflation_radius_; 
 
-    double wheel_base_;
+    double publish_me_period_, publish_positions_period_;
+    double threshold_last_seen_;
+    
 
     bool latch_xy_goal_tolerance_, xy_tolerance_latch_, rotating_to_goal_, ignore_goal_yaw_, delete_observations_;
     
     unsigned int current_waypoint_;
     //params ORCA
-    bool use_ground_truth_, scale_radius_;
-    double  neighbor_dist_, time_horizon_,time_horizon_obst_;
-    int max_neighbors_;
-    bool holo_robot_;
-    double INIT_GUESS_NOISE_STD_,THRESHOLD_LAST_SEEN_;
-    int MAX_INITIAL_GUESS_;
-    int nr_initial_guess_;
+    double  time_horizon_obst_;
+    double eps_;
 
-    ROSAgent* me_;
+    ROSAgentPtr me_;
     //boost::unordered_map<std::string,ROSAgent> neighbors_;
     //base_local_planner::TrajectoryPlanner collision_planner_;
      
@@ -103,7 +127,7 @@ namespace collvoid_local_planner {
 
   };//end class
 
-  RVO::Vector2 rotateVectorByAngle(double x, double y, double ang);
+  //  Vector2 rotateVectorByAngle(double x, double y, double ang);
 
 
 }; //end namespace

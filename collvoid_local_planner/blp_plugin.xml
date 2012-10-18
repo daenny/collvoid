@@ -1,7 +1,7 @@
 <library path="lib/libcollvoid_local_planner">
   <class name="collvoid_local_planner/CollvoidLocalPlanner" type="collvoid_local_planner::CollvoidLocalPlanner" base_class_type="nav_core::BaseLocalPlanner">
     <description>
-      A implementation of ORCA for local planning.
+      A implementation of VO paradigm for local planning.
     </description>
   </class>
 </library>
