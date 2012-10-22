@@ -46,7 +46,7 @@ class ControllerRobots():
                 
         
         self.hostname = rospy.get_namespace()
-        self.noise_std = rospy.get_param("/noise_std")
+        self.noise_std = rospy.get_param("/noise_std", 0.0)
 
         if (self.hostname == "/"):
             self.hostname = gethostname()
