@@ -6,6 +6,8 @@
     <rosparam command="load" file="$(find collvoid_turtlebot)/params/config.yaml" />
   </node>
 
+  <include file="$(find udp_multicast)/receiver.launch" />
+
   <include file="$(find collvoid_turtlebot)/launch/turtlebot_master.launch" />
 
 </launch>

@@ -128,6 +128,7 @@ class ControllerRobots():
       
         
     def cb_commands_robot(self,msg):
+        print msg.data
         if msg.data == "all WP change" or msg.data == "%s WP change"%self.hostname:
             self.stopped = not(self.stopped)
        
