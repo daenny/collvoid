@@ -170,14 +170,14 @@ namespace collvoid{
     samples_pub_ = nh.advertise<visualization_msgs::MarkerArray>("samples", 1);
     polygon_pub_ = nh.advertise<geometry_msgs::PolygonStamped>("convex_hull",1);
     speed_pub_ = nh.advertise<visualization_msgs::Marker>("speed",1);
-    position_share_pub_ = nh.advertise<collvoid_msgs::PoseTwistWithCovariance>("/position_share",1);
+    position_share_pub_ = nh.advertise<collvoid_msgs::PoseTwistWithCovariance>("/position_share_out",1);
 
     obstacles_pub_ = nh.advertise<visualization_msgs::Marker>("obstacles", 1);
 
 
     //Subscribers
     amcl_posearray_sub_ = nh.subscribe("particlecloud_weighted", 1, &ROSAgent::amclPoseArrayWeightedCallback,this);
-    position_share_sub_ = nh.subscribe("/position_share",10, &ROSAgent::positionShareCallback, this);
+    position_share_sub_ = nh.subscribe("/position_share_in",10, &ROSAgent::positionShareCallback, this);
     odom_sub_ = nh.subscribe("odom",1, &ROSAgent::odomCallback, this);
 
 
