@@ -22,11 +22,11 @@ def create_world_file(argv):
     try:
         opts, args= getopt.getopt(argv, "hn:s:olxf:S", ["help","numRobots=","circleSize=","omni","localization","experiments","bagFileName=","Sticks"])
     except getopt.GetoptError:
-        print 'create.py -n <numRobots> -s <circleSize> <-h> <-l> <-x> <-f> bagFile <-S>'
+        print 'create.py -n <numRobots> -s <circleSize> <-h> <-l> <-x> <-f> bagFile'
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print 'create.py -n <numRobots> -s <circleSize> <-h> <-l> <-x> <-f> bagfile <-S>'
+            print 'create.py -n <numRobots> -s <circleSize> <-h> <-l> <-x> <-f> bagfile'
             sys.exit(2)
         elif opt in ("-n","--numRobots"):
             numRobots = int(arg)
@@ -41,9 +41,9 @@ def create_world_file(argv):
         elif opt in ("-f", "--bagFileName"):
             useBagFile = True
             bagFileName = str(arg)
-        elif opt in ("-S", "--Sticks"):
-            useSticks = True
-            omni = True
+#        elif opt in ("-S", "--Sticks"):
+#            useSticks = True
+#            omni = True
     
     direct = commands.getoutput('rospack find collvoid_stage')
     worldFileTemp = open(direct + '/world/swarmlab_template.world','r')
