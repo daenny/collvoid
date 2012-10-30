@@ -149,6 +149,9 @@ def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,
         launchWrite.write('    <param name="~/global_costmap/robot_base_frame" value="robot_{0}/base_link" /> \n    <param name="~/local_costmap/robot_base_frame" value="robot_{1}/base_link" /> \n    <param name="~/local_costmap/global_frame" value="robot_{0}/odom" /> \n'.format(x,x,x))
         launchWrite.write('    <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />\n')
         launchWrite.write('    <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" />\n')
+        launchWrite.write('    <remap from="/position_share_in" to="/position_share" />\n')
+        launchWrite.write('    <remap from="/position_share_out" to="/position_share" />\n')
+
        # launchWrite.write('    <rosparam file="$(find pr2_navigation_config)/move_base/dwa_local_planner.yaml" command="load" ns="DWAPlannerROS" />\n')
        
         launchWrite.write('  </node> \n')
