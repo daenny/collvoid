@@ -16,7 +16,7 @@ CollvoidLocalPlanner:
 
   max_vel_with_obstacles: 0.5
 
-  footprint_radius: 0.17 #was 0.17
+  footprint_radius: 0.20 #was 0.17
 
 TrajectoryPlannerROS:
   max_vel_x: 0.50
@@ -55,9 +55,9 @@ local_costmap:
   map_type: voxel
   obstacle_range: 2.5
   raytrace_range: 3.0
-  robot_radius: 0.18
+  robot_radius: 0.19
   #footprint: [[0.21, 0.21], [-0.21, 0.21], [-0.21, -0.21], [0.21, -0.21]]
-  inflation_radius: 0.18
+  inflation_radius: 0.20
   footprint_padding: 0.01
 
   observation_sources: laser_scan_sensor 
