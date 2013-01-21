@@ -58,11 +58,10 @@ define roomba position
 define topurg ranger
 (
   sensor(
-    range[ 0.0 30.0 ]
+    range [0.0 30.0]
     fov 270.25
     samples 800
     size [ 0.05 0.05 0.1 ]
-
     )
   # generic model properties
   color "black"
@@ -92,13 +91,11 @@ define omni_robot position
 
 define pr2 position
 (
-  size [0.65 0.65 0.1]
+  size [0.50 0.45 0.1]
   origin [0 0 0 0]
   gui_nose 1
-
   topurg( pose [0.275 0 0.1 0] )
   drive "omni"
-
 )
 
 
@@ -107,8 +104,7 @@ define stick position
   size [0.6 0.4 0.1]
   origin [0 0 0 0]
   gui_nose 1
-
- 	
+	
   hokuyo( pose [0.125 0 0.1 0] )
   drive "omni"
 

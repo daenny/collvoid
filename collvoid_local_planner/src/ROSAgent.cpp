@@ -76,20 +76,35 @@ namespace collvoid{
 
     standalone_ = getParamDef(private_nh, "standalone", false);
    
-    id_ = private_nh.getNamespace();
-    if (strcmp(id_.c_str(), "/") == 0) {
-      char hostname[1024];
-      hostname[1023] = '\0';
-      gethostname(hostname,1023); 
-      id_ = std::string(hostname);
+    if (standalone_) {
+      ros::NodeHandle nh;
+      id_ = nh.getNamespace();
+      if (strcmp(id_.c_str(), "/") == 0) {
+	char hostname[1024];
+	hostname[1023] = '\0';
+	gethostname(hostname,1023); 
+	id_ = std::string(hostname);
+      }
+      ROS_INFO("Standalone My name is: %s",id_.c_str());
+      controlled_ = false;
+      ros::Duration(2.0).sleep();
+      initCommon(nh);
     }
-    ROS_INFO("My name is: %s",id_.c_str());
-    controlled_ = false;
-
-    initCommon(private_nh);
-
+    else {
+      id_ = private_nh.getNamespace();
+      if (strcmp(id_.c_str(), "/") == 0) {
+	char hostname[1024];
+	hostname[1023] = '\0';
+	gethostname(hostname,1023); 
+	id_ = std::string(hostname);
+      }
+      ROS_INFO("My name is: %s",id_.c_str());
+      controlled_ = false;
+      initCommon(private_nh);
+    }
     getParam(private_nh,"footprint_radius",&footprint_radius_);
 
+    radius_ = footprint_radius_;
     //only coverting round footprints for now
     geometry_msgs::PolygonStamped footprint;
     geometry_msgs::Point32 p;
@@ -108,7 +123,7 @@ namespace collvoid{
     eps_= getParamDef(private_nh, "eps", 0.1);
     getParam(private_nh, "convex", &convex_);
     getParam(private_nh, "holo_robot",&holo_robot_);
-    getParam(private_nh, "sim_period", &sim_period_);
+    //getParam(private_nh, "sim_period", &sim_period_);
 
     publish_positions_period_ = getParamDef(private_nh,"publish_positions_frequency",10.0);
     publish_positions_period_ = 1.0 / publish_positions_period_;
@@ -117,8 +132,11 @@ namespace collvoid{
     publish_me_period_ = 1.0/publish_me_period_;
     
     if (standalone_) {
-      initParams(private_nh);
+      //initParams(private_nh);
     }
+
+    initialized_ = true;
+
   }
 
 
@@ -156,12 +174,13 @@ namespace collvoid{
     tf_ = tf;
     controlled_ = true;
     ros::NodeHandle nh;
+    getParam(nh, "move_base/use_obstacles", &use_obstacles_);
+    controlled_ = getParamDef(nh,"move_base/controlled", true);
     initCommon(nh);
+    initialized_ = true;
   }
  
   void ROSAgent::initCommon(ros::NodeHandle nh){
-    getParam(nh, "move_base/use_obstacles", &use_obstacles_);
-    controlled_ = getParamDef(nh,"move_base/controlled", true);
     //Publishers
     vo_pub_ = nh.advertise<visualization_msgs::Marker>("vo", 1);
     neighbors_pub_ = nh.advertise<visualization_msgs::MarkerArray>("neighbors", 1);
@@ -190,8 +209,7 @@ namespace collvoid{
     
 
     ROS_INFO("New Agent as me initialized");
-    initialized_ = true;
-
+ 
   }
 
   void ROSAgent::computeNewVelocity(Vector2 pref_velocity, geometry_msgs::Twist& cmd_vel){
@@ -1015,7 +1033,7 @@ namespace collvoid{
       j++;
     }
     cur_loc_unc_radius_ = std::min(footprint_radius_ * 2.0, collvoid::abs(points[j-1].point));
-    // ROS_ERROR("Loc Uncertainty = %f", cur_loc_unc_radius_);
+    //ROS_ERROR("Loc Uncertainty = %f", cur_loc_unc_radius_);
     radius_ = footprint_radius_ + cur_loc_unc_radius_;
   }
 
@@ -1208,8 +1226,9 @@ namespace collvoid{
 
 int main(int argc, char **argv) {
   ros::init(argc, argv, "ROSAgent");
-  ros::NodeHandle nh;
-    
+  //ros::NodeHandle nh;
+  ros::NodeHandle nh("~");
+   
   ROSAgentPtr me(new ROSAgent);
   tf::TransformListener tf;
   me->init(nh,&tf);

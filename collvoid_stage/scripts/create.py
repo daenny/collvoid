@@ -22,11 +22,11 @@ def create_world_file(argv):
     try:
         opts, args= getopt.getopt(argv, "hn:s:olxf:S", ["help","numRobots=","circleSize=","omni","localization","experiments","bagFileName=","Sticks"])
     except getopt.GetoptError:
-        print 'create.py -n <numRobots> -s <circleSize> <-h> <-l> <-x> <-f> bagFile <-S>'
+        print 'create.py -n <numRobots> -s <circleSize> <-h> <-l> <-x> <-f> bagFile'
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print 'create.py -n <numRobots> -s <circleSize> <-h> <-l> <-x> <-f> bagfile <-S>'
+            print 'create.py -n <numRobots> -s <circleSize> <-h> <-l> <-x> <-f> bagfile'
             sys.exit(2)
         elif opt in ("-n","--numRobots"):
             numRobots = int(arg)
@@ -41,9 +41,9 @@ def create_world_file(argv):
         elif opt in ("-f", "--bagFileName"):
             useBagFile = True
             bagFileName = str(arg)
-        elif opt in ("-S", "--Sticks"):
-            useSticks = True
-            omni = True
+#        elif opt in ("-S", "--Sticks"):
+#            useSticks = True
+#            omni = True
     
     direct = commands.getoutput('rospack find collvoid_stage')
     worldFileTemp = open(direct + '/world/swarmlab_template.world','r')
@@ -149,6 +149,9 @@ def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,
         launchWrite.write('    <param name="~/global_costmap/robot_base_frame" value="robot_{0}/base_link" /> \n    <param name="~/local_costmap/robot_base_frame" value="robot_{1}/base_link" /> \n    <param name="~/local_costmap/global_frame" value="robot_{0}/odom" /> \n'.format(x,x,x))
         launchWrite.write('    <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />\n')
         launchWrite.write('    <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" />\n')
+        launchWrite.write('    <remap from="/position_share_in" to="/position_share" />\n')
+        launchWrite.write('    <remap from="/position_share_out" to="/position_share" />\n')
+
        # launchWrite.write('    <rosparam file="$(find pr2_navigation_config)/move_base/dwa_local_planner.yaml" command="load" ns="DWAPlannerROS" />\n')
        
         launchWrite.write('  </node> \n')

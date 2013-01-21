@@ -40,7 +40,7 @@ define hokuyo ranger
     size [ 0.05 0.05 0.1 ]
   )
   color "black"
-  #ctrl "lasernoise"
+  ctrl "lasernoise"
 )
 
 define roomba position

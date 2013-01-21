@@ -23,7 +23,7 @@ CollvoidLocalPlanner:
   left_pref: -0.05
   eps: 0.1
   type_vo: 0 #HRVO = 0, RVO = 1, VO = 2
-  orca: false #orca or VO
+  orca: true #orca or VO
   convex: true #footprint or radius
   clearpath: true #clearpath or sampling 
   num_samples: 400 #num samples

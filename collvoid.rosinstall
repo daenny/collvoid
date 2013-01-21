@@ -1,0 +1,9 @@
+- hg:
+    uri: https://kforge.ros.org/collvoid/collvoid
+    local-name: collvoid
+- svn: {local-name: stage, uri: 'https://code.ros.org/svn/ros-pkg/stacks/stage/trunk'}
+- hg:
+    local-name: navigation
+    meta: {repo-name: rosdistro_fuerte}
+    uri: https://kforge.ros.org/navigation/navigation
+    version: navigation-1.8
