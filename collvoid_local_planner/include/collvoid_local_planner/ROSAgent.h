@@ -47,7 +47,7 @@
 #include <message_filters/subscriber.h>
 #include <laser_geometry/laser_geometry.h>
 
-#include "collvoid_local_planner/Agent.h"
+#include <collvoid_local_planner/Agent.h>
 
 
 namespace collvoid {

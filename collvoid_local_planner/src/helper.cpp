@@ -33,10 +33,10 @@
 #include <boost/tuple/tuple.hpp>
 
 
-#include "collvoid_local_planner/ROSAgent.h"
+#include <collvoid_local_planner/ROSAgent.h>
 
-#include "collvoid_local_planner/orca.h"
-#include "collvoid_local_planner/collvoid_publishers.h"
+#include <collvoid_local_planner/orca.h>
+#include <collvoid_local_planner/collvoid_publishers.h>
 
 
 namespace collvoid{

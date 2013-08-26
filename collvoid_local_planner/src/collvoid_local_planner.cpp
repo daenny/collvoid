@@ -480,9 +480,22 @@ namespace collvoid_local_planner {
       boost::mutex::scoped_lock(me_->me_lock_);
       base_odom = me_->base_odom_;
     }
+    tf::Stamped<tf::Pose> global_pose;
+    costmap_ros_->getRobotPose(global_pose);
 
-    return base_local_planner::isGoalReached(*tf_, global_plan_, *costmap_ros_, global_frame_, base_odom, 
-					     rot_stopped_velocity_, trans_stopped_velocity_, xy_goal_tolerance_, yaw_goal_tolerance_);
+    costmap_2d::Costmap2D costmap_; ///< @brief The costmap the controller will u
+    costmap_ros_->getCostmapCopy(costmap_);
+
+    
+    return base_local_planner::isGoalReached(*tf_,
+					     global_plan_,
+					     costmap_,
+					     global_frame_,
+					     global_pose,
+					     base_odom, 
+					     rot_stopped_velocity_,
+					     trans_stopped_velocity_,
+					     xy_goal_tolerance_, yaw_goal_tolerance_);
   }
 
 
@@ -523,7 +536,9 @@ namespace collvoid_local_planner {
     double goal_th = yaw;
 
     //check to see if we've reached the goal position
-    if(base_local_planner::goalPositionReached(global_pose, goal_x, goal_y, xy_goal_tolerance_) || xy_tolerance_latch_){
+    if (xy_tolerance_latch_ || (base_local_planner::getGoalPositionDistance(global_pose, goal_x, goal_y) <= xy_goal_tolerance_)) {
+
+      //if(base_local_planner::goalPositionReached(global_pose, goal_x, goal_y, xy_goal_tolerance_) || xy_tolerance_latch_){
 
       //if the user wants to latch goal tolerance, if we ever reach the goal location, we'll
       //just rotate in place
@@ -531,7 +546,11 @@ namespace collvoid_local_planner {
         xy_tolerance_latch_ = true;
 
       //check to see if the goal orientation has been reached
-      if(base_local_planner::goalOrientationReached(global_pose, goal_th, yaw_goal_tolerance_)){
+      double angle = base_local_planner::getGoalOrientationAngleDifference(global_pose, goal_th);
+      //check to see if the goal orientation has been reached
+      if (fabs(angle) <= yaw_goal_tolerance_) {
+
+	//if(base_local_planner::goalOrientationReached(global_pose, goal_th, yaw_goal_tolerance_)){
         //set the velocity command to zero
         cmd_vel.linear.x = 0.0;
         cmd_vel.linear.y = 0.0;
@@ -564,8 +583,8 @@ namespace collvoid_local_planner {
 
       //publish an empty plan because we've reached our goal position
       transformed_plan_.clear();
-      base_local_planner::publishPlan(transformed_plan_, g_plan_pub_, 0.0, 1.0, 0.0, 0.0);
-      base_local_planner::publishPlan(transformed_plan_, l_plan_pub_, 0.0, 0.0, 1.0, 0.0);
+      base_local_planner::publishPlan(transformed_plan_, g_plan_pub_);
+      base_local_planner::publishPlan(transformed_plan_, l_plan_pub_);
       //we don't actually want to run the controller when we're just rotating to goal
       return true;
     } 
@@ -633,8 +652,8 @@ namespace collvoid_local_planner {
       }
       else {
 	transformed_plan_.clear();
-	base_local_planner::publishPlan(transformed_plan_, g_plan_pub_, 0.0, 1.0, 0.0, 0.0);
-	base_local_planner::publishPlan(transformed_plan_, l_plan_pub_, 0.0, 0.0, 1.0, 0.0);
+	base_local_planner::publishPlan(transformed_plan_, g_plan_pub_);
+	base_local_planner::publishPlan(transformed_plan_, l_plan_pub_);
  
 	return false;
       }
@@ -653,8 +672,8 @@ namespace collvoid_local_planner {
     tf::poseStampedTFToMsg(global_pose,pos);
     local_plan.push_back(pos);
     local_plan.push_back(transformed_plan_[current_waypoint_]);
-    base_local_planner::publishPlan(transformed_plan_, g_plan_pub_, 0.0, 1.0, 0.0, 0.0);
-    base_local_planner::publishPlan(local_plan, l_plan_pub_, 0.0, 0.0, 1.0, 0.0);
+    base_local_planner::publishPlan(transformed_plan_, g_plan_pub_);
+    base_local_planner::publishPlan(local_plan, l_plan_pub_);
     //me_->publishOrcaLines();
     return true;
   }
@@ -664,9 +683,9 @@ namespace collvoid_local_planner {
     double min_dist = DBL_MAX;
     for (size_t i=current_waypoint_; i < transformed_plan_.size(); i++) 
       {
-	double y = global_pose.getOrigin().y();
-	double x = global_pose.getOrigin().x();
-	double dist = base_local_planner::distance(x, y, transformed_plan_[i].pose.position.x, transformed_plan_[i].pose.position.y);
+	//double y = global_pose.getOrigin().y();
+	//double x = global_pose.getOrigin().x();
+	double dist = base_local_planner::getGoalPositionDistance(global_pose, transformed_plan_[i].pose.position.x, transformed_plan_[i].pose.position.y);
 	if (dist < me_->getRadius() || dist < min_dist) {
 	  min_dist = dist;
 	  target_pose = transformed_plan_[i];
@@ -750,9 +769,9 @@ namespace collvoid_local_planner {
       unsigned int cur_waypoint = 0;
       for (size_t i=0; i < global_plan_.size(); i++) 
 	{
-	  double y = robot_pose.getOrigin().y();
-	  double x = robot_pose.getOrigin().x();
-	  double dist = base_local_planner::distance(x, y, global_plan_[i].pose.position.x, global_plan_[i].pose.position.y);
+	  //double y = robot_pose.getOrigin().y();
+	  //double x = robot_pose.getOrigin().x();
+	  double dist = base_local_planner::getGoalPositionDistance(robot_pose, global_plan_[i].pose.position.x, global_plan_[i].pose.position.y);
 	  if (dist < sqrt(sq_dist)) {
 	    sq_dist = dist * dist;
 	    cur_waypoint = i;

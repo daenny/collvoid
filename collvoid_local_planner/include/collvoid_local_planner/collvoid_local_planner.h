@@ -80,7 +80,9 @@ namespace collvoid_local_planner {
 
 
     //Datatypes:
-    costmap_2d::Costmap2DROS* costmap_ros_; 
+    costmap_2d::Costmap2DROS* costmap_ros_;
+    costmap_2d::Costmap2D costmap_; ///< @brief The costmap the controller will use
+
     tf::TransformListener* tf_; 
     
     bool initialized_, skip_next_, setup_;
