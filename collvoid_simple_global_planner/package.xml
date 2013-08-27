@@ -1,0 +1,48 @@
+<package>
+  <name>collvoid_simple_global_planner</name>
+  <version>1.0.0</version>
+  <description>collvoid_simple_global_planner</description>
+  <maintainer email="daniel.claes@maastrichtuniversity.nl">Daniel Claes</maintainer>
+
+  <license>BSD</license>
+
+  <url type="website">http://ros.org/wiki/collvoid_simple_global_planner</url>
+  <!-- <url type="bugtracker"></url> -->
+
+  <author>Daniel Claes</author>
+
+  <!-- Dependencies which this package needs to build itself. -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- Dependencies needed to compile this package. -->
+  <build_depend>roscpp</build_depend>
+  <build_depend>pluginlib</build_depend>
+  <build_depend>nav_core</build_depend>
+  <build_depend>costmap_2d</build_depend>
+  <build_depend>base_local_planner</build_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>angles</build_depend>
+
+  <!-- Dependencies needed after this package is compiled. -->
+  <run_depend>roscpp</run_depend>
+  <run_depend>pluginlib</run_depend>
+  <run_depend>nav_core</run_depend>
+  <run_depend>costmap_2d</run_depend>
+  <run_depend>base_local_planner</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>angles</run_depend>
+
+  <!-- Dependencies needed only for running tests. -->
+  <!-- <test_depend>roscpp</test_depend> -->
+  <!-- <test_depend>pluginlib</test_depend> -->
+  <!-- <test_depend>nav_core</test_depend> -->
+  <!-- <test_depend>costmap_2d</test_depend> -->
+  <!-- <test_depend>base_local_planner</test_depend> -->
+  <!-- <test_depend>tf</test_depend> -->
+  <!-- <test_depend>angles</test_depend> -->
+
+  <export>
+    <cpp lflags="-Wl,-rpath,${prefix}/lib -L${prefix}/lib -lcollvoid_simple_global_planner" cflags="-I${prefix}/include"/>
+    <nav_core plugin="${prefix}/bgp_plugin.xml"/>
+  </export>
+</package>

@@ -1,0 +1,26 @@
+<package>
+  <name>collvoid_turtlebot</name>
+  <version>1.0.0</version>
+  <description>collvoid_turtlebot</description>
+  <maintainer email="daniel.claes@maastrichtuniversity.nl">Daniel Claes</maintainer>
+
+  <license>BSD</license>
+
+  <url type="website">http://ros.org/wiki/collvoid_turtlebot</url>
+  <!-- <url type="bugtracker"></url> -->
+
+  <author>Daniel Claes</author>
+
+  <!-- Dependencies which this package needs to build itself. -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- Dependencies needed to compile this package. -->
+
+  <!-- Dependencies needed after this package is compiled. -->
+
+  <!-- Dependencies needed only for running tests. -->
+
+  <export>
+
+  </export>
+</package>

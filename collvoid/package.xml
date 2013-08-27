@@ -1,0 +1,41 @@
+<package>
+  <name>collvoid</name>
+  <version>1.0.0</version>
+  <description>Multi Robot Collision Avoidance</description>
+  <maintainer email="daniel.claes@maastrichtuniversity.nl">Maintained by Daniel Claes</maintainer>
+
+  <license>BSD</license>
+  <license>proprietary license (RVO2 library)</license>
+
+  <url type="website">http://ros.org/wiki/multi_robot_collision_avoidance</url>
+  <!-- <url type="bugtracker"></url> -->
+
+  <author>Maintained by Daniel Claes</author>
+
+  <!-- Dependencies which this package needs to build itself. -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- Dependencies needed to compile this package. -->
+
+
+  <!-- Dependencies needed after this package is compiled. -->
+  <run_depend>collvoid_controller</run_depend>
+  <run_depend>pacman_turtles</run_depend>
+  <run_depend>pacman_controller</run_depend>
+  <run_depend>collvoid_pr2</run_depend>
+  <run_depend>collvoid_stage</run_depend>
+  <run_depend>collvoid_turtlebot</run_depend>
+  <run_depend>collvoid_local_planner</run_depend>
+  <run_depend>collvoid_simple_global_planner</run_depend>
+  <run_depend>collvoid_msgs</run_depend>
+
+  <!-- Dependencies needed only for running tests. -->
+
+
+
+
+
+  <export>
+    <metapackage/>
+  </export>
+</package>

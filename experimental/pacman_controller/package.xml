@@ -1,0 +1,59 @@
+<package>
+  <name>pacman_controller</name>
+  <version>1.0.0</version>
+  <description>pacman_controller</description>
+  <maintainer email="daniel.claes@maastrichtuniversity.nl">Daniel Claes</maintainer>
+
+  <license>BSD</license>
+
+  <url type="website">http://ros.org/wiki/pacman_controller</url>
+  <!-- <url type="bugtracker"></url> -->
+
+  <author>Daniel Claes</author>
+
+  <!-- Dependencies which this package needs to build itself. -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- Dependencies needed to compile this package. -->
+  <build_depend>rospy</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>std_srvs</build_depend>
+  <build_depend>visualization_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>collvoid_msgs</build_depend>
+  <build_depend>collvoid_local_planner</build_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>actionlib</build_depend>
+  <build_depend>move_base_msgs</build_depend>
+
+  <!-- Dependencies needed after this package is compiled. -->
+  <run_depend>rospy</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>std_srvs</run_depend>
+  <run_depend>visualization_msgs</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>collvoid_msgs</run_depend>
+  <run_depend>collvoid_local_planner</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>actionlib</run_depend>
+  <run_depend>move_base_msgs</run_depend>
+
+  <!-- Dependencies needed only for running tests. -->
+  <!-- <test_depend>rospy</test_depend> -->
+  <!-- <test_depend>roscpp</test_depend> -->
+  <!-- <test_depend>std_msgs</test_depend> -->
+  <!-- <test_depend>std_srvs</test_depend> -->
+  <!-- <test_depend>visualization_msgs</test_depend> -->
+  <!-- <test_depend>geometry_msgs</test_depend> -->
+  <!-- <test_depend>collvoid_msgs</test_depend> -->
+  <!-- <test_depend>collvoid_local_planner</test_depend> -->
+  <!-- <test_depend>tf</test_depend> -->
+  <!-- <test_depend>actionlib</test_depend> -->
+  <!-- <test_depend>move_base_msgs</test_depend> -->
+
+  <export>
+
+  </export>
+</package>
