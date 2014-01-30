@@ -818,7 +818,7 @@ namespace collvoid{
       agent->base_odom_.pose.pose = msg->pose.pose;
       agent->heading_ = tf::getYaw(msg->pose.pose.orientation);
       agent->base_odom_.twist.twist = msg->twist.twist;
-      agent->holo_velocity_ = Vector2(msg->holonomic_velocity.x, msg->holonomic_velocity.x);
+      agent->holo_velocity_ = Vector2(msg->holonomic_velocity.x, msg->holonomic_velocity.y);
       agent->radius_ = msg->radius;
 
       agent->controlled_ = msg->controlled;
