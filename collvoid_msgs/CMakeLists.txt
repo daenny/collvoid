@@ -32,7 +32,11 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 #uncomment if you have defined messages
 add_message_files(
-  FILES AggregatedPoseTwist.msg collvoid_debug.msg PoseTwistWithCovariance.msg
+  FILES
+  AggregatedPoseTwist.msg
+  collvoid_debug.msg
+  PoseTwistWithCovariance.msg
+  PoseArrayWeighted.msg
   # TODO: List your msg files here
 )
 #uncomment if you have defined services

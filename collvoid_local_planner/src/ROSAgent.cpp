@@ -836,7 +836,7 @@ namespace collvoid{
     }
   }
 
-  void ROSAgent::amclPoseArrayWeightedCallback(const amcl::PoseArrayWeighted::ConstPtr& msg){
+  void ROSAgent::amclPoseArrayWeightedCallback(const collvoid_msgs::PoseArrayWeighted::ConstPtr& msg){
     boost::mutex::scoped_lock lock(convex_lock_);
     
     pose_array_weighted_.clear();

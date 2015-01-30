@@ -483,13 +483,12 @@ namespace collvoid_local_planner {
     tf::Stamped<tf::Pose> global_pose;
     costmap_ros_->getRobotPose(global_pose);
 
-    costmap_2d::Costmap2D costmap_; ///< @brief The costmap the controller will u
-    costmap_ros_->getCostmapCopy(costmap_);
+    costmap_2d::Costmap2D* costmap = costmap_ros_ -> getCostmap();
 
     
     return base_local_planner::isGoalReached(*tf_,
 					     global_plan_,
-					     costmap_,
+					     *costmap,
 					     global_frame_,
 					     global_pose,
 					     base_odom, 
@@ -756,7 +755,7 @@ namespace collvoid_local_planner {
       //let's get the pose of the robot in the frame of the plan
       tf::Stamped<tf::Pose> robot_pose;
       robot_pose.setIdentity();
-      robot_pose.frame_id_ = costmap.getBaseFrameID();
+      robot_pose.frame_id_ = costmap_ros_->getBaseFrameID();
       robot_pose.stamp_ = ros::Time();
       tf.transformPose(plan_pose.header.frame_id, robot_pose, robot_pose);
 

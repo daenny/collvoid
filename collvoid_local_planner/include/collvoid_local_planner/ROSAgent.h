@@ -37,7 +37,7 @@
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
 
-#include <amcl/PoseArrayWeighted.h>
+#include <collvoid_msgs/PoseArrayWeighted.h>
 #include <geometry_msgs/PolygonStamped.h>
 
 #include <collvoid_msgs/PoseTwistWithCovariance.h>
@@ -142,7 +142,7 @@ namespace collvoid {
 
     
     void positionShareCallback(const collvoid_msgs::PoseTwistWithCovariance::ConstPtr& msg); 
-    void amclPoseArrayWeightedCallback(const amcl::PoseArrayWeighted::ConstPtr& msg);
+    void amclPoseArrayWeightedCallback(const collvoid_msgs::PoseArrayWeighted::ConstPtr& msg);
     void odomCallback(const nav_msgs::Odometry::ConstPtr& msg);
 
     void updateAllNeighbors();
