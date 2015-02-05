@@ -193,7 +193,7 @@ namespace collvoid {
     line_list.pose.orientation.w = 1.0;
     line_list.type = visualization_msgs::Marker::LINE_LIST;
     line_list.scale.x = 0.015;
-    line_list.color.r = 1.0;
+    line_list.color.g = 1.0;
     line_list.color.a = 1.0;
     line_list.id = 1;
     geometry_msgs::Point p;
