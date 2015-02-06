@@ -42,7 +42,7 @@
 
 #include "collvoid_local_planner/ROSAgent.h"
 #include "collvoid_local_planner/CollvoidConfig.h"
-
+//#include <base_local_planner/trajectory_planner_ros.h>
 
 using namespace collvoid;
 
@@ -107,7 +107,7 @@ namespace collvoid_local_planner {
     double threshold_last_seen_;
     
 
-    bool latch_xy_goal_tolerance_, xy_tolerance_latch_, rotating_to_goal_, ignore_goal_yaw_, delete_observations_;
+    bool latch_xy_goal_tolerance_, xy_tolerance_latch_, rotating_to_goal_, ignore_goal_yaw_, delete_observations_, been_in_obstacle_;
     
     unsigned int current_waypoint_;
     //params ORCA
@@ -116,13 +116,14 @@ namespace collvoid_local_planner {
 
     ROSAgentPtr me_;
     //boost::unordered_map<std::string,ROSAgent> neighbors_;
-    //base_local_planner::TrajectoryPlanner collision_planner_;
+    //base_local_planner::TrajectoryPlannerROS collision_planner_;
      
     
     double time_to_holo_, min_error_holo_, max_error_holo_;
 
     std::string global_frame_; ///< @brief The frame in which the controller will run
     std::string robot_base_frame_; ///< @brief Used as the base frame id of the robot
+    std::string my_id_;
     std::vector<geometry_msgs::PoseStamped> global_plan_, transformed_plan_;
     ros::Publisher g_plan_pub_, l_plan_pub_;
     ros::Subscriber obstacles_sub_;

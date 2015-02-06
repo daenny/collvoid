@@ -393,7 +393,7 @@ namespace collvoid{
     std::vector<Vector2> own_footprint;
     BOOST_FOREACH(geometry_msgs::Point32 p, footprint_msg_.polygon.points) {
       own_footprint.push_back(Vector2(p.x, p.y));
-      //      ROS_WARN("footprint point p = (%f, %f) ", footprint_[i].x, footprint_[i].y);
+      //ROS_WARN("footprint point p = (%f, %f) ", p.x, p.y);
     }
     min_dist_obst_ = DBL_MAX;
     ros::Time cur_time = ros::Time::now();
@@ -402,7 +402,9 @@ namespace collvoid{
     BOOST_FOREACH(Obstacle obst, obstacles_from_laser_) {
       if (obst.point1 != obst.point2) {// && (cur_time - obst.last_seen).toSec() < 0.2) {
 	double dist = distSqPointLineSegment(obst.point1, obst.point2, position_);
-	if (dist < sqr((abs(velocity_) + 4.0 * footprint_radius_))) {
+	
+	//ROS_INFO("dist: %f sqr: %f fr: %f", dist, sqr((abs(velocity_) + 8.0 * footprint_radius_)), footprint_radius_);
+	if (dist < sqr((abs(velocity_) + 8.0 * footprint_radius_))) {	  
 	  if (use_obstacles_) {
 	    if (orca_) {
 	      createObstacleLine(own_footprint, obst.point1, obst.point2);
@@ -469,8 +471,9 @@ namespace collvoid{
 
   bool ROSAgent::pointInNeighbor(collvoid::Vector2& point) {
     for (size_t i = 0; i<agent_neighbors_.size();i++){
-      if (collvoid::abs(point - agent_neighbors_[i]->position_) <= agent_neighbors_[i]->radius_)
+      if (collvoid::abs(point - agent_neighbors_[i]->position_) <= agent_neighbors_[i]->radius_)	
 	return true;
+
     }
     return false;
   }
@@ -518,7 +521,7 @@ namespace collvoid{
       
     double dist = distSqPointLineSegment(obst1, obst2, position_);
 
-    if (dist == absSqr(position_ - obst1)) {
+    if (dist == absSqr(position_ - obst1)) {      
       computeObstacleLine(obst1);
     }
     else if (dist == absSqr(position_ - obst2)) {
@@ -1123,7 +1126,9 @@ namespace collvoid{
 
     boost::mutex::scoped_lock lock(obstacle_lock_);
 
+    
     obstacles_from_laser_.clear();
+    obstacle_centers_.clear();
 
     double threshold_convex = 0.03;
     double threshold_concave = -0.03;
@@ -1194,16 +1199,97 @@ namespace collvoid{
 	prev = next;
 	prev_ang = ang;
       }
-      Obstacle obst;
-      obst.point1 = start;
-      obst.point2 = prev;
-      obst.last_seen = msg->header.stamp;
-    
-      obstacles_from_laser_.push_back(obst);
+      
+      addInflatedObstacleFromLine(start, prev, msg->header.stamp);
+
     }
     publishObstacleLines(obstacles_from_laser_, global_frame_, base_frame_, obstacles_pub_);
     
   }
+  
+  
+  
+  bool ROSAgent::isInStaticObstacle(){
+       
+    BOOST_FOREACH(Vector2 obst_center, obstacle_centers_) {
+      float dx = obst_center.x() - base_odom_.pose.pose.position.x;
+      float dy = obst_center.y() - base_odom_.pose.pose.position.y;
+      float d = sqrt(dx*dx + dy*dy);
+      
+      if (d < footprint_radius_*2)
+	return true;
+      
+    }
+    return false;
+  }
+  
+  // Creates a inlfacted rectangle from the line that represents the obstacle
+  void ROSAgent::addInflatedObstacleFromLine(Vector2 start, Vector2 end, ros::Time stamp){
+    Obstacle obst;
+    
+    float dx = fabs(start.x() - end.x()); //delta x
+    float dy = fabs(start.y() - end.y()); //delta y
+    float linelength = sqrtf(dx * dx + dy * dy);
+    dx /= linelength;
+    dy /= linelength;
+    
+    const float thickness = footprint_radius_; //Some number
+    const float px = thickness * (-dy); //perpendicular vector with lenght thickness * 0.5
+    const float py = thickness * dx;
+      
+    //create the four vertex of the inflated rectangle
+    Vector2 vertex1 = Vector2(start.x() - px, start.y() + py);
+    Vector2 vertex2 = Vector2(end.x() - px, end.y() + py);
+    Vector2 vertex3 = Vector2(end.x() + px, end.y() - py);
+    Vector2 vertex4 = Vector2(start.x() + px, start.y() - py);
+      
+    Vector2 center = Vector2((vertex1.x() + vertex4.x())/2, (vertex1.y() + vertex4.y())/2);
+    Vector2 center_line = Vector2((start.x() + end.y())/2, (start.y() + end.y())/2);
+      
+    //check if the obstacle is in a neighbor
+    bool obs_in_neigh = false;
+    float radius = 0.0;
+    Vector2 neigh_pos;
+    updateAllNeighbors();
+    for (size_t i = 0; i<agent_neighbors_.size();i++){
+      radius = agent_neighbors_[i]->radius_*2;
+      neigh_pos = agent_neighbors_[i]->position_;
+      if (collvoid::abs(start - neigh_pos ) <= radius || collvoid::abs(end - neigh_pos ) <= radius)	
+	obs_in_neigh = true;
+      
+    }
+      
+    if(!obs_in_neigh){
+      obstacle_centers_.push_back(center);
+      
+      obst.point1 = vertex1;
+      obst.point2 = vertex2;
+      obst.last_seen = stamp;    
+      
+      obstacles_from_laser_.push_back(obst);
+      
+      obst.point1 = vertex2;
+      obst.point2 = vertex3;
+      obst.last_seen = stamp;    
+      
+      obstacles_from_laser_.push_back(obst);
+	
+      obst.point1 = vertex3;
+      obst.point2 = vertex4;
+	
+      obst.last_seen = stamp;    
+	
+      obstacles_from_laser_.push_back(obst);
+	
+      obst.point1 = vertex4;
+      obst.point2 = vertex1;
+      obst.last_seen = stamp;    
+	
+      obstacles_from_laser_.push_back(obst);
+	
+    }
+  }
+
   // double pointToSegmentDistance(Vector2 line1, Vector2 line2, Vector2 point) {
   //   //  http://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
   //   // Return minimum distance between line segment vw and point point
