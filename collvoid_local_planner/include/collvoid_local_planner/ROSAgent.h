@@ -81,7 +81,9 @@ namespace collvoid {
 
     
     void addNHConstraints(double min_dist, Vector2 pref_velocity);
-
+    
+    void addInflatedObstacleFromLine(Vector2 start, Vector2 end, ros::Time stamp);
+    
     void computeObstacles();
 
     
@@ -90,6 +92,7 @@ namespace collvoid {
     bool compareConvexHullPointsPosition(const ConvexHullPoint& p1, const ConvexHullPoint& p2);
     bool compareVectorPosition(const collvoid::Vector2& v1, const collvoid::Vector2& v2);
 
+    bool isInStaticObstacle();
     void sortObstacleLines();
 
     collvoid::Vector2 LineSegmentToLineSegmentIntersection(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4);
@@ -189,8 +192,10 @@ namespace collvoid {
     //Obstacles
     laser_geometry::LaserProjection projector_;
 
-    //Obstacles
+    //Obstacles    
     std::vector<Obstacle> obstacles_from_laser_;
+    //Obstacle Center
+    std::vector<Vector2> obstacle_centers_;
     message_filters::Subscriber<sensor_msgs::LaserScan> laser_scan_sub_;
     boost::shared_ptr<tf::MessageFilter<sensor_msgs::LaserScan> > laser_notifier;
     

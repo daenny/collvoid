@@ -67,9 +67,11 @@ namespace collvoid_local_planner {
 
   CollvoidLocalPlanner::CollvoidLocalPlanner(std::string name, tf::TransformListener* tf, Costmap2DROS* costmap_ros): 
     costmap_ros_(NULL), tf_(NULL), initialized_(false){
-
+      
     //initialize the planner
     initialize(name, tf, costmap_ros);
+    
+
   }
 
   CollvoidLocalPlanner::~CollvoidLocalPlanner() {
@@ -78,6 +80,7 @@ namespace collvoid_local_planner {
   
   void CollvoidLocalPlanner::initialize(std::string name, tf::TransformListener* tf, costmap_2d::Costmap2DROS* costmap_ros){
     if (!initialized_){
+      
       tf_ = tf;
       costmap_ros_ = costmap_ros;
       
@@ -100,15 +103,15 @@ namespace collvoid_local_planner {
 
 
       //set my id
-      std::string my_id = nh.getNamespace();
-      if (strcmp(my_id.c_str(), "/") == 0) {
+      my_id_ = nh.getNamespace();
+      if (strcmp(my_id_.c_str(), "/") == 0) {
 	char hostname[1024];
 	hostname[1023] = '\0';
 	gethostname(hostname,1023); 
-	my_id = std::string(hostname);
+	my_id_ = std::string(hostname);
       }
-      my_id = getParamDef<std::string>(private_nh,"name",my_id);
-      ROS_INFO("My name is: %s",my_id.c_str());
+      my_id_ = getParamDef<std::string>(private_nh,"name",my_id_);
+      ROS_INFO("My name is: %s",my_id_.c_str());
 
 
       //init ros agent
@@ -225,7 +228,8 @@ namespace collvoid_local_planner {
       me_->setLeftPref(left_pref_);
       me_->setPublishPositionsPeriod(publish_positions_period_);
       me_->setPublishMePeriod(publish_me_period_);
-
+  
+      been_in_obstacle_ = false;
       
 
       
@@ -257,7 +261,7 @@ namespace collvoid_local_planner {
       }
 
       me_->initAsMe(tf_);
-      me_->setId(my_id);
+      me_->setId(my_id_);
 
 
       
@@ -272,6 +276,11 @@ namespace collvoid_local_planner {
       dsrv_ = new dynamic_reconfigure::Server<collvoid_local_planner::CollvoidConfig>(private_nh);
       dynamic_reconfigure::Server<collvoid_local_planner::CollvoidConfig>::CallbackType cb = boost::bind(&CollvoidLocalPlanner::reconfigureCB, this, _1, _2);
       dsrv_->setCallback(cb);
+      
+      
+      //intialize the collision planner
+      //collision_planner_.initialize("collision_planner", tf_, costmap_ros_);
+      //ROS_DEBUG("collision_planner initialized..."); 
       initialized_ = true;
     }
     else
@@ -394,9 +403,9 @@ namespace collvoid_local_planner {
       v_th_samp  = 0.0;
     else if (fabs(v_th_samp) < min_vel_th_inplace_)
       v_th_samp = sign(v_th_samp) * max(min_vel_th_inplace_,fabs(v_th_samp));
-    //we still want to lay down the footprint of the robot and check if the action is legal
-    bool valid_cmd = true;//collision_planner_.checkTrajectory(0.0, 0.0, v_th_samp,true);
-
+    //we still want to lay down the footprint of the robot and check if the action is legal   
+    bool valid_cmd = true;// collision_planner_.checkTrajectory(0.0, 0.0, v_th_samp,true);
+    
     ROS_DEBUG("Moving to desired goal orientation, th cmd: %.2f", v_th_samp);
 
     if(valid_cmd){
@@ -419,8 +428,8 @@ namespace collvoid_local_planner {
 
     //we do want to check whether or not the command is valid
     //    double yaw = tf::getYaw(global_pose.getRotation());
-    bool valid_cmd = true; //collision_planner_.checkTrajectory(vx, vy, vth, true);
-
+    bool valid_cmd = true;//collision_planner_.checkTrajectory(vx, vy, vth, true);
+    //ROS_INFO("checkTrajectory (1): %d", valid_cmd);
     //if we have a valid command, we'll pass it on, otherwise we'll command all zeros
     if(valid_cmd){
       //ROS_DEBUG("Slowing down... using vx, vy, vth: %.2f, %.2f, %.2f", vx, vy, vth);
@@ -633,33 +642,33 @@ namespace collvoid_local_planner {
       cmd_vel.linear.x = 0.0;
     if(std::abs(cmd_vel.linear.y)<min_vel_y_)
       cmd_vel.linear.y = 0.0;
-
-    bool valid_cmd = true; //collision_planner_.checkTrajectory(cmd_vel.linear.x, cmd_vel.linear.y, cmd_vel.angular.z,true);
-
-    if (!valid_cmd){
+    
+    
+    bool in_obstacle = me_->isInStaticObstacle();//collision_planner_.checkTrajectory(cmd_vel.linear.x, cmd_vel.linear.y, cmd_vel.angular.z,true);
+    
+    //state machine to avoid static obstacles
+    if( in_obstacle && been_in_obstacle_){ //moving backwards to procced avoiding the obstacle
       cmd_vel.angular.z = 0.0;
-      cmd_vel.linear.x = 0.0;
-      cmd_vel.linear.y = 0.0;
+      cmd_vel.linear.x = -0.5;
+      cmd_vel.linear.y = 0.0;    
     }
-
-    if (cmd_vel.linear.x == 0.0 && cmd_vel.angular.z == 0.0 && cmd_vel.linear.y == 0.0) {
+    else if (!in_obstacle && been_in_obstacle_){ // ask for a new plan	
       
-      ROS_DEBUG("Did not find a good vel, calculated best holonomic velocity was: %f, %f, cur wp %d of %d trying next waypoint", me_->velocity_.x(),me_->velocity_.y(), current_waypoint_, (int)transformed_plan_.size());
-      if (current_waypoint_ < transformed_plan_.size()-1){
-	current_waypoint_++;
-	skip_next_= true;
-      }
-      else {
-	transformed_plan_.clear();
+      	transformed_plan_.clear();
 	base_local_planner::publishPlan(transformed_plan_, g_plan_pub_);
 	base_local_planner::publishPlan(transformed_plan_, l_plan_pub_);
- 
+	
+	been_in_obstacle_ = false;
+	
 	return false;
-      }
     }
-    else {
+    else if (in_obstacle) {  	//in the obstacle	
+	been_in_obstacle_ = true;
+    }
+    else{ //valid command and not in obstacle      
       skip_next_ = false;
-    }
+    }      
+      
 
     //  if (!skip_next_ && current_waypoint_ < transformed_plan_.size()-1)
     //transformed_plan_.erase(transformed_plan_.begin()+current_waypoint_,transformed_plan_.end());
@@ -825,11 +834,13 @@ namespace collvoid_local_planner {
     boost::mutex::scoped_lock lock(me_->obstacle_lock_);
     me_->obstacle_points_.clear();
     
+    std::cout << "CollvoidLocalPlanner::obstaclesCallback" << std::endl;
     for (size_t i = 0; i < num_obst; i++) {
       geometry_msgs::PointStamped in, result;
       in.header = msg->header;
       in.point = msg->cells[i];
-      //ROS_DEBUG("obstacle at %f %f",msg->cells[i].x,msg->cells[i].y);
+      //ROS_DEBUG("Robot %s found obstacle at %f %f", my_id_.c_str(), msg->cells[i].x,msg->cells[i].y);
+      ROS_INFO("Robot %s found obstacle at %f %f", my_id_.c_str(), msg->cells[i].x,msg->cells[i].y);
       try {
 	tf_->waitForTransform(global_frame_, robot_base_frame_, msg->header.stamp, ros::Duration(0.2));
 
