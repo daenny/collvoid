@@ -36,119 +36,120 @@ namespace collvoid {
 
     void Agent::computeOrcaVelocity(Vector2 pref_velocity, bool convex) {
 
-      orca_lines_.clear();
-      orca_lines_.insert(orca_lines_.end(), additional_orca_lines_.begin(), additional_orca_lines_.end());
+        orca_lines_.clear();
+        orca_lines_.insert(orca_lines_.end(), additional_orca_lines_.begin(), additional_orca_lines_.end());
 
 
-      const size_t num_obst_lines = orca_lines_.size();
+        const size_t num_obst_lines = orca_lines_.size();
 
-      if (controlled_) {
-        /* Create agent ORCA lines. */
-        BOOST_FOREACH (AgentPtr agent, agent_neighbors_) {
-                double timestep = agent->timestep_;
-                if (timestep < EPSILON)
-                  timestep = sim_period_;
-                Line line;
-                if (!convex) {
-                  line = createOrcaLine(this, agent.get(), trunc_time_, timestep, left_pref_, cur_allowed_error_);
-                }
-                else {
-                  VO new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_, agent->footprint_,
-                                             agent->velocity_, VOS);
-                  line = createOrcaLine(new_agent_vo.combined_radius, new_agent_vo.relative_position, velocity_,
-                                        agent->velocity_, trunc_time_, timestep, left_pref_, cur_allowed_error_,
-                                        agent->controlled_);
-                }
-                orca_lines_.push_back(line);
-              }
-      }
-      size_t line_fail = linearProgram2(orca_lines_, max_speed_x_, pref_velocity, false, new_velocity_);
+        if (controlled_) {
+            /* Create agent ORCA lines. */
+            BOOST_FOREACH (AgentPtr agent, agent_neighbors_) {
+                            double timestep = agent->timestep_;
+                            if (timestep < EPSILON)
+                                timestep = sim_period_;
+                            Line line;
+                            if (!convex) {
+                                line = createOrcaLine(this, agent.get(), trunc_time_, timestep, left_pref_,
+                                                      cur_allowed_error_);
+                            }
+                            else {
+                                VO new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_,
+                                                           agent->footprint_, agent->velocity_, VOS);
+                                line = createOrcaLine(new_agent_vo.combined_radius, new_agent_vo.relative_position,
+                                                      velocity_, agent->velocity_, trunc_time_, timestep, left_pref_,
+                                                      cur_allowed_error_, agent->controlled_);
+                            }
+                            orca_lines_.push_back(line);
+                        }
+        }
+        size_t line_fail = linearProgram2(orca_lines_, max_speed_x_, pref_velocity, false, new_velocity_);
 
-      if (line_fail < orca_lines_.size()) {
-        linearProgram3(orca_lines_, num_obst_lines, line_fail, max_speed_x_, new_velocity_);
-      }
+        if (line_fail < orca_lines_.size()) {
+            linearProgram3(orca_lines_, num_obst_lines, line_fail, max_speed_x_, new_velocity_);
+        }
 
     }
 
     void Agent::computeClearpathVelocity(Vector2 pref_velocity) {
-      if (controlled_) {
-        computeAgentVOs();
-      }
-      new_velocity_ = calculateClearpathVelocity(samples_, vo_agents_, additional_orca_lines_, pref_velocity,
-                                                 max_speed_x_, use_truncation_);
+        if (controlled_) {
+            computeAgentVOs();
+        }
+        new_velocity_ = calculateClearpathVelocity(samples_, vo_agents_, additional_orca_lines_, pref_velocity,
+                                                   max_speed_x_, use_truncation_);
     }
 
     void Agent::computeSampledVelocity(Vector2 pref_velocity) {
-      if (controlled_) {
-        computeAgentVOs();
-      }
-      new_velocity_ = calculateNewVelocitySampled(samples_, vo_agents_, pref_velocity, max_speed_x_, use_truncation_);
+        if (controlled_) {
+            computeAgentVOs();
+        }
+        new_velocity_ = calculateNewVelocitySampled(samples_, vo_agents_, pref_velocity, max_speed_x_, use_truncation_);
     }
 
 
     void Agent::computeAgentVOs() {
-      BOOST_FOREACH (AgentPtr agent, agent_neighbors_) {
-              VO new_agent_vo;
-              //use footprint or radius to create VO
-              if (convex_) {
-                if (agent->controlled_) {
-                  new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_, agent->footprint_,
-                                          agent->velocity_, type_vo_);
-                }
-                else {
-                  new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_, agent->footprint_,
-                                          agent->velocity_, VOS);
-                }
-              }
-              else {
-                if (agent->controlled_) {
-                  new_agent_vo = createVO(position_, radius_, velocity_, agent->position_, agent->radius_,
-                                          agent->velocity_, type_vo_);
-                }
-                else {
-                  new_agent_vo = createVO(position_, radius_, velocity_, agent->position_, agent->radius_,
-                                          agent->velocity_, VOS);
-                }
+        BOOST_FOREACH (AgentPtr agent, agent_neighbors_) {
+                        VO new_agent_vo;
+                        //use footprint or radius to create VO
+                        if (convex_) {
+                            if (agent->controlled_) {
+                                new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_,
+                                                        agent->footprint_, agent->velocity_, type_vo_);
+                            }
+                            else {
+                                new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_,
+                                                        agent->footprint_, agent->velocity_, VOS);
+                            }
+                        }
+                        else {
+                            if (agent->controlled_) {
+                                new_agent_vo = createVO(position_, radius_, velocity_, agent->position_, agent->radius_,
+                                                        agent->velocity_, type_vo_);
+                            }
+                            else {
+                                new_agent_vo = createVO(position_, radius_, velocity_, agent->position_, agent->radius_,
+                                                        agent->velocity_, VOS);
+                            }
 
-              }
-              //truncate
-              if (use_truncation_) {
-                new_agent_vo = createTruncVO(new_agent_vo, trunc_time_);
-              }
-              vo_agents_.push_back(new_agent_vo);
+                        }
+                        //truncate
+                        if (use_truncation_) {
+                            new_agent_vo = createTruncVO(new_agent_vo, trunc_time_);
+                        }
+                        vo_agents_.push_back(new_agent_vo);
 
-            }
+                    }
     }
 
     void Agent::setLeftPref(double left_pref) {
-      this->left_pref_ = left_pref;
+        this->left_pref_ = left_pref;
     }
 
     void Agent::setRadius(double radius) {
-      this->radius_ = radius;
+        this->radius_ = radius;
     }
 
     void Agent::setTruncTime(double trunc_time) {
-      this->trunc_time_ = trunc_time;
+        this->trunc_time_ = trunc_time;
     }
 
 
     void Agent::setSimPeriod(double sim_period) {
-      sim_period_ = sim_period;
+        sim_period_ = sim_period;
     }
 
 
     //used in orca for orcalines creation...
     collvoid::Vector2 Agent::getPosition() {
-      return this->position_;
+        return this->position_;
     }
 
     collvoid::Vector2 Agent::getVelocity() {
-      return this->velocity_;
+        return this->velocity_;
     }
 
     double Agent::getRadius() {
-      return radius_;
+        return radius_;
     }
 
 }

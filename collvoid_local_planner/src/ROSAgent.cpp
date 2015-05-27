@@ -411,7 +411,7 @@ namespace collvoid {
                             double dist = distSqPointLineSegment(obst.point1, obst.point2, position_);
 
                             //ROS_INFO("dist: %f sqr: %f fr: %f", dist, sqr((abs(velocity_) + 8.0 * footprint_radius_)), footprint_radius_);
-                            if (dist < sqr((abs(velocity_) + 4.0 * footprint_radius_))) {
+                            if (dist < sqr((abs(velocity_) + 8.0 * footprint_radius_))) {
                                 if (use_obstacles_) {
                                     if (orca_) {
                                         createObstacleLine(own_footprint, obst.point1, obst.point2);
@@ -1215,12 +1215,8 @@ namespace collvoid {
                 prev = next;
                 prev_ang = ang;
             }
-            Obstacle obst;
-            obst.point1 = start;
-            obst.point2 = prev;
-            obst.last_seen = msg->header.stamp;
-            obstacles_from_laser_.push_back(obst);
-              //addInflatedObstacleFromLine(start, prev, msg->header.stamp);
+
+            addInflatedObstacleFromLine(start, prev, msg->header.stamp);
 
         }
         publishObstacleLines(obstacles_from_laser_, global_frame_, base_frame_, obstacles_pub_);
@@ -1229,16 +1225,18 @@ namespace collvoid {
 
 
     bool ROSAgent::isInStaticObstacle() {
+
         BOOST_FOREACH(Vector2 obst_center, obstacle_centers_) {
                         float dx = obst_center.x() - base_odom_.pose.pose.position.x;
                         float dy = obst_center.y() - base_odom_.pose.pose.position.y;
                         float d = sqrt(dx * dx + dy * dy);
-                        if (d < footprint_radius_ * 2.0) {
-                            ROS_WARN("dist %f", d);
+
+                        if (d < footprint_radius_ * 1.2) {
+                            ROS_WARN("%s: I think I am in collision %f", id_.c_str(), d);
                             return true;
                         }
 
-        }
+                    }
         return false;
     }
 
@@ -1252,7 +1250,7 @@ namespace collvoid {
         dx /= linelength;
         dy /= linelength;
 
-        const float thickness = footprint_radius_; //Some number
+        const float thickness = footprint_radius_ / 4.; //Some number
         const float px = thickness * (-dy); //perpendicular vector with lenght thickness * 0.5
         const float py = thickness * dx;
 
@@ -1265,11 +1263,12 @@ namespace collvoid {
         Vector2 center = Vector2((vertex1.x() + vertex4.x()) / 2, (vertex1.y() + vertex4.y()) / 2);
         Vector2 center_line = Vector2((start.x() + end.y()) / 2, (start.y() + end.y()) / 2);
 
+        center = start + end / 2.;
         //check if the obstacle is in a neighbor
         bool obs_in_neigh = false;
         float radius = 0.0;
         Vector2 neigh_pos;
-        updateAllNeighbors();
+        //updateAllNeighbors();
         for (size_t i = 0; i < agent_neighbors_.size(); i++) {
             radius = agent_neighbors_[i]->radius_ * 2;
             neigh_pos = agent_neighbors_[i]->position_;
@@ -1281,30 +1280,38 @@ namespace collvoid {
         if (!obs_in_neigh) {
             obstacle_centers_.push_back(center);
 
-            obst.point1 = vertex1;
-            obst.point2 = vertex2;
+
+            obst.point1 = start;
+            obst.point2 = end;
             obst.last_seen = stamp;
 
             obstacles_from_laser_.push_back(obst);
 
-            obst.point1 = vertex2;
-            obst.point2 = vertex3;
-            obst.last_seen = stamp;
-
-            obstacles_from_laser_.push_back(obst);
-
-            obst.point1 = vertex3;
-            obst.point2 = vertex4;
-
-            obst.last_seen = stamp;
-
-            obstacles_from_laser_.push_back(obst);
-
-            obst.point1 = vertex4;
-            obst.point2 = vertex1;
-            obst.last_seen = stamp;
-
-            obstacles_from_laser_.push_back(obst);
+            //
+            //      obst.point1 = vertex1;
+            //      obst.point2 = vertex2;
+            //      obst.last_seen = stamp;
+            //
+            //      obstacles_from_laser_.push_back(obst);
+            //
+            //      obst.point1 = vertex2;
+            //      obst.point2 = vertex3;
+            //      obst.last_seen = stamp;
+            //
+            //      obstacles_from_laser_.push_back(obst);
+            //
+            //      obst.point1 = vertex3;
+            //      obst.point2 = vertex4;
+            //
+            //      obst.last_seen = stamp;
+            //
+            //      obstacles_from_laser_.push_back(obst);
+            //
+            //      obst.point1 = vertex4;
+            //      obst.point2 = vertex1;
+            //      obst.last_seen = stamp;
+            //
+            //      obstacles_from_laser_.push_back(obst);
 
         }
     }

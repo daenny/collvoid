@@ -274,8 +274,13 @@ namespace collvoid_local_planner {
 
             setup_ = false;
             dsrv_ = new dynamic_reconfigure::Server<collvoid_local_planner::CollvoidConfig>(private_nh);
+<<<<<<< HEAD
             dynamic_reconfigure::Server<collvoid_local_planner::CollvoidConfig>::CallbackType
                     cb = boost::bind(&CollvoidLocalPlanner::reconfigureCB, this, _1, _2);
+=======
+            dynamic_reconfigure::Server<collvoid_local_planner::CollvoidConfig>::CallbackType cb = boost::bind(
+                    &CollvoidLocalPlanner::reconfigureCB, this, _1, _2);
+>>>>>>> master
             dsrv_->setCallback(cb);
 
 
@@ -663,8 +668,7 @@ namespace collvoid_local_planner {
             cmd_vel.linear.x = -0.1;
             cmd_vel.linear.y = 0.0;
         }
-        else if (false && !in_obstacle && been_in_obstacle_) { // ask for a new plan
-
+        else if (!in_obstacle && been_in_obstacle_) { // ask for a new plan
             transformed_plan_.clear();
             base_local_planner::publishPlan(transformed_plan_, g_plan_pub_);
             base_local_planner::publishPlan(transformed_plan_, l_plan_pub_);
