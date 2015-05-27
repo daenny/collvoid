@@ -274,13 +274,9 @@ namespace collvoid_local_planner {
 
             setup_ = false;
             dsrv_ = new dynamic_reconfigure::Server<collvoid_local_planner::CollvoidConfig>(private_nh);
-<<<<<<< HEAD
-            dynamic_reconfigure::Server<collvoid_local_planner::CollvoidConfig>::CallbackType
-                    cb = boost::bind(&CollvoidLocalPlanner::reconfigureCB, this, _1, _2);
-=======
+
             dynamic_reconfigure::Server<collvoid_local_planner::CollvoidConfig>::CallbackType cb = boost::bind(
                     &CollvoidLocalPlanner::reconfigureCB, this, _1, _2);
->>>>>>> master
             dsrv_->setCallback(cb);
 
 
