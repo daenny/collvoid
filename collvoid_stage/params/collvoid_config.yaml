@@ -1,5 +1,5 @@
 /noise_std: 0.0
-use_obstacles: true
+use_obstacles: false
 
 controller_frequency: 10
 
@@ -23,7 +23,7 @@ CollvoidLocalPlanner:
   left_pref: -0.05
   eps: 0.1
   type_vo: 0 #HRVO = 0, RVO = 1, VO = 2
-  orca: true #orca or VO
+  orca: false #orca or VO
   convex: true #footprint or radius
   clearpath: true #clearpath or sampling 
   num_samples: 400 #num samples

@@ -44,76 +44,115 @@
 #define RVOS 1
 #define VOS 2
 
-
+#define LEFT_PREF 0.2
 
 namespace collvoid {
 
-  VO createObstacleVO(Vector2& position1, const std::vector<Vector2>& footprint1, Vector2& vel1, Vector2& position2, const std::vector<Vector2>& footprint2);
-  VO createObstacleVO(Vector2& position1, double radius1,Vector2& vel1,  Vector2& position2, double radius2);
+    VO createObstacleVO(Vector2 &position1, const std::vector<Vector2> &footprint1, Vector2 &vel1, Vector2 &position2,
+                        const std::vector<Vector2> &footprint2);
 
-  VO createObstacleVO(Vector2& position1, double radius1, const std::vector<Vector2>& footprint1, Vector2& obst1, Vector2& obst2);
+    VO createObstacleVO(Vector2 &position1, double radius1, Vector2 &vel1, Vector2 &position2, double radius2);
 
-  
-  //Footprint based:
-  VO createVO(Vector2& position1, const std::vector<Vector2>& footprint1, Vector2& position2, const std::vector<Vector2>& footprint2, Vector2& vel2);
-  VO createRVO(Vector2& position1, const std::vector<Vector2>& footprint1, Vector2& vel1, Vector2& position2, const std::vector<Vector2>& footprint2, Vector2& vel2);
-  VO createHRVO(Vector2& position1, const std::vector<Vector2>& footprint1, Vector2& vel1, Vector2& position2, const std::vector<Vector2>& footprint2, Vector2& vel2);
-
-  VO createVO(Vector2& position1, const std::vector<Vector2>& footprint1, Vector2& vel1, Vector2& position2, const std::vector<Vector2>& footprint2, Vector2& vel2, int TYPE); 
+    VO createObstacleVO(Vector2 &position1, double radius1, const std::vector<Vector2> &footprint1, Vector2 &obst1,
+                        Vector2 &obst2);
 
 
-  //Radius based VOs
-  VO createVO(Vector2& position1, double radius1, Vector2& vel1, Vector2& position2, double radius2, Vector2& vel2, int TYPE);
- 
-  VO createVO(Vector2& position1, double radius1, Vector2& position2, double radius2, Vector2& vel2);
-  VO createRVO(Vector2& position1, double radius1, Vector2& vel1, Vector2& position2, double radius2, Vector2& vel2);
-  VO createHRVO(Vector2& position1, double radius1, Vector2& vel1, Vector2& position2, double radius2, Vector2& vel2);
+    //Footprint based:
+    VO createVO(Vector2 &position1, const std::vector<Vector2> &footprint1, Vector2 &position2,
+                const std::vector<Vector2> &footprint2, Vector2 &vel2);
+
+    VO createRVO(Vector2 &position1, const std::vector<Vector2> &footprint1, Vector2 &vel1, Vector2 &position2,
+                 const std::vector<Vector2> &footprint2, Vector2 &vel2);
+
+    VO createHRVO(Vector2 &position1, const std::vector<Vector2> &footprint1, Vector2 &vel1, Vector2 &position2,
+                  const std::vector<Vector2> &footprint2, Vector2 &vel2);
+
+    VO createVO(Vector2 &position1, const std::vector<Vector2> &footprint1, Vector2 &vel1, Vector2 &position2,
+                const std::vector<Vector2> &footprint2, Vector2 &vel2, int TYPE);
 
 
-  //Truncate
-  VO createTruncVO (VO& vo, double time);//, double combinedRadius, Vector2 relPosition);
+    //Radius based VOs
+    VO createVO(Vector2 &position1, double radius1, Vector2 &vel1, Vector2 &position2, double radius2, Vector2 &vel2,
+                int TYPE);
+
+    VO createVO(Vector2 &position1, double radius1, Vector2 &position2, double radius2, Vector2 &vel2);
+
+    VO createRVO(Vector2 &position1, double radius1, Vector2 &vel1, Vector2 &position2, double radius2, Vector2 &vel2);
+
+    VO createHRVO(Vector2 &position1, double radius1, Vector2 &vel1, Vector2 &position2, double radius2, Vector2 &vel2);
 
 
-
-  //Clearpath
-  bool isInsideVO(VO vo, Vector2 point, bool use_truncation);
-  bool isWithinAdditionalConstraints(const std::vector<Line>& additional_constraints, const Vector2& point);
-  void addCircleLineIntersections(std::vector<VelocitySample>& samples, const Vector2& pref_vel, double max_speed, bool use_truncation, const Vector2& point, const Vector2& dir);
-  void addIntersectPoint(std::vector<VelocitySample>& samples, const Vector2& pref_vel, double max_speed, bool use_truncation, Vector2 point, const std::vector<VO>& truncated_vos);
-  void addRayVelocitySamples(std::vector<VelocitySample>& samples, const Vector2& pref_vel, Vector2 point1, Vector2 dir1, Vector2 point2, Vector2 dir2, double max_speed, int TYPE);
-
-  Vector2 calculateClearpathVelocity(std::vector<VelocitySample>& samples, const std::vector<VO>& truncated_vos, const std::vector<Line>& additional_constraints, const Vector2&  pref_vel, double max_speed, bool use_truncation);
-
-  //Sample based
-  void createSamplesWithinMovementConstraints(std::vector<VelocitySample>& samples, double  cur_vel_x, double cur_vel_y, double cur_vel_theta,  double acc_lim_x, double acc_lim_y, double acc_lim_theta, double min_vel_x, double max_vel_x, double min_vel_y, double max_vel_y, double min_vel_theta, double max_vel_theta, double heading, Vector2 pref_vel, double sim_period, int num_samples, bool holo_robot);
-
-
-  double calculateVelCosts(const Vector2& test_vel, const std::vector<VO>& truncated_vos, const Vector2& pref_vel, double max_speed, bool use_truncation); 
-  Vector2 calculateNewVelocitySampled(std::vector<VelocitySample>& samples, const std::vector<VO>& truncated_vos, const Vector2& pref_vel,double max_speed, bool use_truncation);
+    //Truncate
+    VO createTruncVO(VO &vo, double time);//, double combinedRadius, Vector2 relPosition);
 
 
 
+    //Clearpath
+    bool isInsideVO(VO vo, Vector2 point, bool use_truncation);
+
+    bool isWithinAdditionalConstraints(const std::vector<Line> &additional_constraints, const Vector2 &point);
+
+    void addCircleLineIntersections(std::vector<VelocitySample> &samples, const Vector2 &pref_vel, double max_speed,
+                                    bool use_truncation, const Vector2 &point, const Vector2 &dir);
+
+    void addIntersectPoint(std::vector<VelocitySample> &samples, const Vector2 &pref_vel, double max_speed,
+                           bool use_truncation, Vector2 point, const std::vector<VO> &truncated_vos);
+
+    void addRayVelocitySamples(std::vector<VelocitySample> &samples, const std::vector<Line> &additional_constraints,
+                               const Vector2 &pref_vel, Vector2 point1, Vector2 dir1, Vector2 point2, Vector2 dir2,
+                               double max_speed, int TYPE);
+
+    Vector2 calculateClearpathVelocity(std::vector<VelocitySample> &samples, const std::vector<VO> &truncated_vos,
+                                       const std::vector<Line> &additional_constraints, const Vector2 &pref_vel,
+                                       double max_speed, bool use_truncation);
+
+    //Sample based
+    void createSamplesWithinMovementConstraints(std::vector<VelocitySample> &samples, double cur_vel_x,
+                                                double cur_vel_y, double cur_vel_theta, double acc_lim_x,
+                                                double acc_lim_y, double acc_lim_theta, double min_vel_x,
+                                                double max_vel_x, double min_vel_y, double max_vel_y,
+                                                double min_vel_theta, double max_vel_theta, double heading,
+                                                Vector2 pref_vel, double sim_period, int num_samples, bool holo_robot);
 
 
+    double calculateVelCosts(const Vector2 &test_vel, const std::vector<VO> &truncated_vos, const Vector2 &pref_vel,
+                             double max_speed, bool use_truncation);
 
-  
+    Vector2 calculateNewVelocitySampled(std::vector<VelocitySample> &samples, const std::vector<VO> &truncated_vos,
+                                        const Vector2 &pref_vel, double max_speed, bool use_truncation);
 
-  std::vector<Vector2> minkowskiSum(const std::vector<Vector2> polygon1, const std::vector<Vector2> polygon2);
-  
-  //convex hull algorithm
-  bool compareVectorsLexigraphically(const ConvexHullPoint& v1, const ConvexHullPoint& v2);
-  double cross(const ConvexHullPoint& O, const ConvexHullPoint& A, const ConvexHullPoint& B);
+
+    bool isSafeVelocity(const std::vector<VO> &truncated_vos, Vector2 vel, bool use_truncation);
+
+    double distToVO(VO vo, Vector2 point, bool use_truncation);
+
+    void createSamplesAroundOptVel(std::vector<VelocitySample> &samples, double max_dist_x,
+                                   double max_dist_y, double min_vel_x,
+                                   double max_vel_x, double min_vel_y, double max_vel_y,
+                                   Vector2 opt_vel, int num_samples);
+
+    double minDistToVOs(const std::vector<VO> &vos, Vector2 point, bool use_truncation);
+
+
+    std::vector<Vector2> minkowskiSum(const std::vector<Vector2> polygon1, const std::vector<Vector2> polygon2);
+
+    //convex hull algorithm
+    bool compareVectorsLexigraphically(const ConvexHullPoint &v1, const ConvexHullPoint &v2);
+
+    double cross(const ConvexHullPoint &O, const ConvexHullPoint &A, const ConvexHullPoint &B);
+
     // Returns a list of points on the convex hull in counter-clockwise order.
-  // Note: the last point in the returned list is the same as the first one.
-  //Wikipedia Monotone chain...   
-  std::vector<ConvexHullPoint> convexHull(std::vector<ConvexHullPoint> P, bool sorted);
-			  
-  bool compareVelocitySamples(const VelocitySample& p1, const VelocitySample& p2);
+    // Note: the last point in the returned list is the same as the first one.
+    //Wikipedia Monotone chain...
+    std::vector<ConvexHullPoint> convexHull(std::vector<ConvexHullPoint> P, bool sorted);
 
-  Vector2 intersectTwoLines(Vector2 point1, Vector2 dir1, Vector2 point2, Vector2 dir2);
-  Vector2 intersectTwoLines(Line line1, Line line2);
+    bool compareVelocitySamples(const VelocitySample &p1, const VelocitySample &p2);
 
-  
+    Vector2 intersectTwoLines(Vector2 point1, Vector2 dir1, Vector2 point2, Vector2 dir2);
+
+    Vector2 intersectTwoLines(Line line1, Line line2);
+
+
 }
 
 

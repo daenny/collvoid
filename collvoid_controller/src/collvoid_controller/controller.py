@@ -33,7 +33,7 @@ class controller(wx.Frame):
         self.robotList = []
         self.robotList.append("all")
 
-        self.reset_srv = rospy.ServiceProxy('/stageros/reset', Empty)
+        self.reset_srv = rospy.ServiceProxy('/reset_positions', Empty)
 
         static_sizer = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, "Controls"), wx.HORIZONTAL)
         sizer.Add(static_sizer, 0)

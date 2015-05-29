@@ -318,6 +318,7 @@ namespace collvoid {
 
         publishHoloSpeed(position_, new_velocity_, global_frame_, base_frame_, speed_pub_);
         publishVOs(position_, vo_agents_, use_truncation_, global_frame_, base_frame_, vo_pub_);
+
         publishPoints(position_, samples_, global_frame_, base_frame_, samples_pub_);
         publishOrcaLines(additional_orca_lines_, position_, global_frame_, base_frame_, lines_pub_);
 

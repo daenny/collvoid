@@ -38,105 +38,126 @@
 
 static const float EPSILON = 0.001f;
 
-namespace collvoid
-{
-  struct Line {
+namespace collvoid {
+    struct Line {
       Vector2 point;
       Vector2 dir;
-  };
+    };
 
-  struct VO {
-    Vector2 point;
+    struct VO {
+      Vector2 point;
 
-    Vector2 relative_position;
-    double combined_radius;
+      Vector2 relative_position;
+      double combined_radius;
 
-    Vector2 left_leg_dir;
-    Vector2 right_leg_dir;
+      Vector2 left_leg_dir;
+      Vector2 right_leg_dir;
 
-    Vector2 trunc_line_center;
-    Vector2 trunc_left;
-    Vector2 trunc_right;
-    
-  };
+      Vector2 trunc_line_center;
+      Vector2 trunc_left;
+      Vector2 trunc_right;
 
-
-  struct VelocitySample {
-    Vector2 velocity;
-    double dist_to_pref_vel;
-  };
-
-  struct ConvexHullPoint{
-    Vector2 point;
-    double weight;
-    int index;
-    int orig_index;
-  };
+    };
 
 
-  inline Vector2 projectPointOnLine(const Vector2& pointLine, const Vector2& dirLine, const Vector2& point) {
-    const double r = ((point - pointLine) * (dirLine)) / absSqr(dirLine);
-    return pointLine + r * dirLine;
-  }
+    struct VelocitySample {
+      Vector2 velocity;
+      double dist_to_pref_vel;
+    };
 
-  /*!
-   *  @brief      Computes the squared distance from a line segment with the
-   *              specified endpoints to a specified point.
-   *  @param      a               The first endpoint of the line segment.
-   *  @param      b               The second endpoint of the line segment.
-   *  @param      c               The point to which the squared distance is to
-   *                              be calculated.
-   *  @returns    The squared distance from the line segment to the point.
-   */
-  inline double distSqPointLineSegment(const Vector2& a, const Vector2& b,
-                                      const Vector2& c)
-  {
-    const double r = ((c - a) * (b - a)) / absSqr(b - a);
+    struct ConvexHullPoint {
+      Vector2 point;
+      double weight;
+      int index;
+      int orig_index;
+    };
 
-    if (r < 0.0f) {
-      return absSqr(c - a);
-    } else if (r > 1.0f) {
-      return absSqr(c - b);
-    } else {
-      return absSqr(c - (a + r * (b - a)));
+
+    inline Vector2 projectPointOnLine(const Vector2 &pointLine, const Vector2 &dirLine, const Vector2 &point) {
+      const double r = ((point - pointLine) * (dirLine)) / absSqr(dirLine);
+      return pointLine + r * dirLine;
     }
-  }
 
-  /*! 
-   *  @brief      Computes the sign from a line connecting the
-   *              specified points to a specified point.
-   *  @param      a               The first point on the line.
-   *  @param      b               The second point on the line.
-   *  @param      c               The point to which the signed distance is to
-   *                              be calculated.
-   *  @returns    Positive when the point c lies to the left of the line ab.
-   */
-  inline double signedDistPointToLineSegment(const Vector2& a, const Vector2& b, const Vector2& c)
-  {
-    return det(a - c, b - a);
-  }
 
-  inline double left(const Vector2& pointLine, const Vector2& dirLine, const Vector2& point) {
-    return signedDistPointToLineSegment(pointLine, pointLine+dirLine, point);
-  }
+     /*!
+     *  @brief      Computes the squared distance from a ray with the
+     *              specified endpoints to a specified point.
+     *  @param      a               point on the ray.
+     *  @param      b               direction of the ray
+     *  @param      c               The point to which the squared distance is to
+     *                              be calculated.
+     *  @returns    The squared distance from the ray to the point.
+     */
+    inline double distSqPointRay(const Vector2 &ray_begin, const Vector2 &ray_dir,
+                                         const Vector2 &point) {
+      const double r = ((point - ray_begin) * (ray_dir)) / absSqr(ray_dir);
 
-  inline bool leftOf(const Vector2& pointLine, const Vector2& dirLine, const Vector2& point) {
-    return signedDistPointToLineSegment(pointLine, pointLine+dirLine, point) > EPSILON;
-  }
+      if (r < 0.0f) {
+        return absSqr(point - ray_begin);
+      } else {
+        return absSqr(point - (ray_begin + r * ray_dir));
+      }
+    }
 
-  inline bool rightOf(const Vector2& pointLine, const Vector2& dirLine, const Vector2& point) {
-    return signedDistPointToLineSegment(pointLine, pointLine+dirLine, point) < -EPSILON;
-  }
 
-  inline double sign(double x){
-    return x < 0.0 ? -1.0 : 1.0;
-  }
+    /*!
+     *  @brief      Computes the squared distance from a line segment with the
+     *              specified endpoints to a specified point.
+     *  @param      a               The first endpoint of the line segment.
+     *  @param      b               The second endpoint of the line segment.
+     *  @param      c               The point to which the squared distance is to
+     *                              be calculated.
+     *  @returns    The squared distance from the line segment to the point.
+     */
+    inline double distSqPointLineSegment(const Vector2 &a, const Vector2 &b,
+                                         const Vector2 &c) {
+      const double r = ((c - a) * (b - a)) / absSqr(b - a);
 
-  inline double sqr(double a)
-  {
-    return a * a;
-  }
+      if (r < 0.0f) {
+        return absSqr(c - a);
+      } else if (r > 1.0f) {
+        return absSqr(c - b);
+      } else {
+        return absSqr(c - (a + r * (b - a)));
+      }
+    }
 
+    /*!
+     *  @brief      Computes the sign from a line connecting the
+     *              specified points to a specified point.
+     *  @param      a               The first point on the line.
+     *  @param      b               The second point on the line.
+     *  @param      c               The point to which the signed distance is to
+     *                              be calculated.
+     *  @returns    Positive when the point c lies to the left of the line ab.
+     */
+    inline double signedDistPointToLineSegment(const Vector2 &a, const Vector2 &b, const Vector2 &c) {
+      return det(a - c, b - a);
+    }
+
+    inline double left(const Vector2 &pointLine, const Vector2 &dirLine, const Vector2 &point) {
+      return signedDistPointToLineSegment(pointLine, pointLine + dirLine, point);
+    }
+
+    inline bool leftOf(const Vector2 &pointLine, const Vector2 &dirLine, const Vector2 &point) {
+      return signedDistPointToLineSegment(pointLine, pointLine + dirLine, point) > EPSILON;
+    }
+
+    inline bool leftOf(const Vector2 &pointLine, const Vector2 &dirLine, const Vector2 &point, const float left_pref) {
+      return signedDistPointToLineSegment(pointLine, pointLine + dirLine, point) > EPSILON - left_pref;
+    }
+
+    inline bool rightOf(const Vector2 &pointLine, const Vector2 &dirLine, const Vector2 &point) {
+      return signedDistPointToLineSegment(pointLine, pointLine + dirLine, point) < -EPSILON;
+    }
+
+    inline double sign(double x) {
+      return x < 0.0 ? -1.0 : 1.0;
+    }
+
+    inline double sqr(double a) {
+      return a * a;
+    }
 
 
 }

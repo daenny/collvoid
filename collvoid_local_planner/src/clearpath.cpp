@@ -249,7 +249,7 @@ namespace collvoid {
         result.left_leg_dir = Vector2(cos(ang_rel + max_ang), sin(ang_rel + max_ang));
         result.right_leg_dir = Vector2(cos(ang_rel + min_ang), sin(ang_rel + min_ang));
 
-        result.left_leg_dir = rotateVectorByAngle(result.left_leg_dir, 0.15);
+        result.left_leg_dir = rotateVectorByAngle(result.left_leg_dir, 0.05); //right pref was implemented here...
         result.right_leg_dir = rotateVectorByAngle(result.right_leg_dir, -0.05);
 
 
@@ -316,7 +316,7 @@ namespace collvoid {
     VO createRVO(Vector2 &position1, const std::vector<Vector2> &footprint1, Vector2 &vel1, Vector2 &position2,
                  const std::vector<Vector2> &footprint2, Vector2 &vel2) {
         VO result = createVO(position1, footprint1, position2, footprint2, vel2);
-        result.point = 0.5 * (vel1 + vel2); //TODO add uncertainty
+        result.point = 0.5 * (vel1 + vel2);
         return result;
 
 
@@ -359,14 +359,14 @@ namespace collvoid {
 
         }
 
-        if (leftOf(Vector2(0.0, 0.0), result.relative_position, rel_velocity)) { //left of centerline
+        if (leftOf(Vector2(0.0, 0.0), result.relative_position, rel_velocity, LEFT_PREF)) { //left of centerline
             result.point = intersectTwoLines(result.point, result.left_leg_dir, vel2,
-                                             result.right_leg_dir); // TODO add uncertainty
+                                             result.right_leg_dir);
 
         }
         else { //right of centerline
             result.point = intersectTwoLines(vel2, result.left_leg_dir, result.point,
-                                             result.right_leg_dir); // TODO add uncertainty
+                                             result.right_leg_dir);
         }
 
         return result;
@@ -433,7 +433,7 @@ namespace collvoid {
 
     VO createRVO(Vector2 &position1, double radius1, Vector2 &vel1, Vector2 &position2, double radius2, Vector2 &vel2) {
         VO result = createVO(position1, radius1, position2, radius2, vel2);
-        result.point = 0.5 * (vel1 + vel2); //TODO add uncertainty
+        result.point = 0.5 * (vel1 + vel2);
         return result;
     }
 
@@ -449,13 +449,13 @@ namespace collvoid {
             return result;
         }
 
-        if (leftOf(Vector2(0.0, 0.0), rel_position, rel_velocity)) { //left of centerline
+        if (leftOf(Vector2(0.0, 0.0), rel_position, rel_velocity, LEFT_PREF)) { //left of centerline
             result.point = intersectTwoLines(result.point, result.left_leg_dir, vel2,
-                                             result.right_leg_dir); // TODO add uncertainty
+                                             result.right_leg_dir);
         }
         else { //right of centerline
             result.point = intersectTwoLines(vel2, result.left_leg_dir, result.point,
-                                             result.right_leg_dir); // TODO add uncertainty
+                                             result.right_leg_dir);
         }
         return result;
 
@@ -541,7 +541,8 @@ namespace collvoid {
     }
 
 
-    void addRayVelocitySamples(std::vector<VelocitySample> &samples, const Vector2 &pref_vel, Vector2 point1,
+    void addRayVelocitySamples(std::vector<VelocitySample> &samples, const std::vector<Line>& additional_constraints,
+                               const Vector2 &pref_vel, Vector2 point1,
                                Vector2 dir1, Vector2 point2, Vector2 dir2, double max_speed, int TYPE) {
         double r, s;
 
@@ -574,7 +575,8 @@ namespace collvoid {
                 VelocitySample intersection_point;
                 intersection_point.velocity = Vector2(x1 + r * (x2 - x1), y1 + r * (y2 - y1));
                 intersection_point.dist_to_pref_vel = absSqr(pref_vel - intersection_point.velocity);
-                if (absSqr(intersection_point.velocity) < sqr(1.2 * max_speed)) {
+                if (isWithinAdditionalConstraints(additional_constraints, intersection_point.velocity)) {
+                    //if (absSqr(intersection_point.velocity) < sqr(1.2 * max_speed)) {
                     //ROS_ERROR("adding VelocitySample");
                     samples.push_back(intersection_point);
                     //ROS_ERROR("size of VelocitySamples %d", (int) samples->size());
@@ -712,7 +714,9 @@ namespace collvoid {
                             pref_vel_sample.velocity = intersectTwoLines(line.point, line.dir, pref_vel,
                                                                          Vector2(line.dir.y(), -line.dir.x()));
                             pref_vel_sample.dist_to_pref_vel = absSqr(pref_vel - pref_vel_sample.velocity);
-                            samples.push_back(pref_vel_sample);
+                            if (isWithinAdditionalConstraints(additional_constraints, pref_vel_sample.velocity)) {
+                                samples.push_back(pref_vel_sample);
+                            }
                         }
         }
         else {
@@ -728,8 +732,8 @@ namespace collvoid {
 
         BOOST_FOREACH(Line line, additional_constraints) {
                         BOOST_FOREACH(Line line2, additional_constraints) {
-                                        addRayVelocitySamples(samples, pref_vel, line.point, line.dir, line2.point,
-                                                              line2.dir, max_speed, LINELINE);
+                                        addRayVelocitySamples(samples, additional_constraints, pref_vel, line.point,
+                                                              line.dir, line2.point, line2.dir, max_speed, LINELINE);
                                     }
                     }
 
@@ -751,11 +755,14 @@ namespace collvoid {
 
                 //if(absSqr(leg_projection.velocity) < max_speed) { //only add if below max_speed
                 leg_projection.dist_to_pref_vel = absSqr(pref_vel - leg_projection.velocity);
-                samples.push_back(leg_projection);
+                if (isWithinAdditionalConstraints(additional_constraints, leg_projection.velocity)) {
+                    samples.push_back(leg_projection);
+                }
                 //}
 
                 if (use_truncation) {
-                    addRayVelocitySamples(samples, pref_vel, pref_vel, -truncated_vos[i].relative_position,
+                    addRayVelocitySamples(samples, additional_constraints, pref_vel, pref_vel,
+                                          -truncated_vos[i].relative_position,
                                           truncated_vos[i].trunc_left,
                                           truncated_vos[i].trunc_right - truncated_vos[i].trunc_left, max_speed,
                                           RAYSEGMENT);
@@ -779,21 +786,24 @@ namespace collvoid {
         for (int i = 0; i < (int) truncated_vos.size(); i++) {
             for (int j = 0; j < (int) additional_constraints.size(); j++) {
                 if (!use_truncation) {
-                    addRayVelocitySamples(samples, pref_vel, truncated_vos[i].point, truncated_vos[i].left_leg_dir,
+                    addRayVelocitySamples(samples, additional_constraints, pref_vel, truncated_vos[i].point,
+                                          truncated_vos[i].left_leg_dir,
                                           additional_constraints[j].point, additional_constraints[j].dir, max_speed,
                                           RAYLINE);
-                    addRayVelocitySamples(samples, pref_vel, truncated_vos[i].point, truncated_vos[i].right_leg_dir,
+                    addRayVelocitySamples(samples, additional_constraints, pref_vel, truncated_vos[i].point,
+                                          truncated_vos[i].right_leg_dir,
                                           additional_constraints[j].point, additional_constraints[j].dir, max_speed,
                                           RAYLINE);
                 }
                 else {
-                    addRayVelocitySamples(samples, pref_vel, truncated_vos[i].trunc_left, truncated_vos[i].left_leg_dir,
+                    addRayVelocitySamples(samples, additional_constraints, pref_vel, truncated_vos[i].trunc_left,
+                                          truncated_vos[i].left_leg_dir,
                                           additional_constraints[j].point, additional_constraints[j].dir, max_speed,
                                           RAYLINE);
-                    addRayVelocitySamples(samples, pref_vel, truncated_vos[i].trunc_right,
+                    addRayVelocitySamples(samples, additional_constraints, pref_vel, truncated_vos[i].trunc_right,
                                           truncated_vos[i].right_leg_dir, additional_constraints[j].point,
                                           additional_constraints[j].dir, max_speed, RAYLINE);
-                    addRayVelocitySamples(samples, pref_vel, truncated_vos[i].trunc_left,
+                    addRayVelocitySamples(samples, additional_constraints, pref_vel, truncated_vos[i].trunc_left,
                                           truncated_vos[i].trunc_right - truncated_vos[i].trunc_left,
                                           additional_constraints[j].point, additional_constraints[j].dir, max_speed,
                                           SEGMENTLINE);
@@ -803,50 +813,58 @@ namespace collvoid {
             for (int j = i + 1; j < (int) truncated_vos.size(); j++) {
 
                 if (!use_truncation) {
-                    addRayVelocitySamples(samples, pref_vel, truncated_vos[i].point, truncated_vos[i].left_leg_dir,
+                    addRayVelocitySamples(samples, additional_constraints, pref_vel, truncated_vos[i].point,
+                                          truncated_vos[i].left_leg_dir,
                                           truncated_vos[j].point, truncated_vos[j].left_leg_dir, max_speed, RAYRAY);
-                    addRayVelocitySamples(samples, pref_vel, truncated_vos[i].point, truncated_vos[i].left_leg_dir,
+                    addRayVelocitySamples(samples, additional_constraints, pref_vel, truncated_vos[i].point,
+                                          truncated_vos[i].left_leg_dir,
                                           truncated_vos[j].point, truncated_vos[j].right_leg_dir, max_speed, RAYRAY);
-                    addRayVelocitySamples(samples, pref_vel, truncated_vos[i].point, truncated_vos[i].right_leg_dir,
+                    addRayVelocitySamples(samples, additional_constraints, pref_vel, truncated_vos[i].point,
+                                          truncated_vos[i].right_leg_dir,
                                           truncated_vos[j].point, truncated_vos[j].left_leg_dir, max_speed, RAYRAY);
-                    addRayVelocitySamples(samples, pref_vel, truncated_vos[i].point, truncated_vos[i].right_leg_dir,
+                    addRayVelocitySamples(samples, additional_constraints, pref_vel, truncated_vos[i].point,
+                                          truncated_vos[i].right_leg_dir,
                                           truncated_vos[j].point, truncated_vos[j].right_leg_dir, max_speed, RAYRAY);
 
                 }
                 else {
-                    addRayVelocitySamples(samples, pref_vel, truncated_vos[i].trunc_left, truncated_vos[i].left_leg_dir,
+                    addRayVelocitySamples(samples, additional_constraints, pref_vel, truncated_vos[i].trunc_left,
+                                          truncated_vos[i].left_leg_dir,
                                           truncated_vos[j].trunc_left, truncated_vos[j].left_leg_dir, max_speed,
                                           RAYRAY);
-                    addRayVelocitySamples(samples, pref_vel, truncated_vos[i].trunc_left, truncated_vos[i].left_leg_dir,
+                    addRayVelocitySamples(samples, additional_constraints, pref_vel, truncated_vos[i].trunc_left,
+                                          truncated_vos[i].left_leg_dir,
                                           truncated_vos[j].trunc_right, truncated_vos[j].right_leg_dir, max_speed,
                                           RAYRAY);
-                    addRayVelocitySamples(samples, pref_vel, truncated_vos[i].trunc_right,
+                    addRayVelocitySamples(samples, additional_constraints, pref_vel, truncated_vos[i].trunc_right,
                                           truncated_vos[i].right_leg_dir, truncated_vos[j].trunc_left,
                                           truncated_vos[j].left_leg_dir, max_speed, RAYRAY);
-                    addRayVelocitySamples(samples, pref_vel, truncated_vos[i].trunc_right,
+                    addRayVelocitySamples(samples, additional_constraints, pref_vel, truncated_vos[i].trunc_right,
                                           truncated_vos[i].right_leg_dir, truncated_vos[j].trunc_left,
                                           truncated_vos[j].right_leg_dir, max_speed, RAYRAY);
 
 
-                    addRayVelocitySamples(samples, pref_vel, truncated_vos[i].trunc_left, truncated_vos[i].left_leg_dir,
+                    addRayVelocitySamples(samples, additional_constraints, pref_vel, truncated_vos[i].trunc_left,
+                                          truncated_vos[i].left_leg_dir,
                                           truncated_vos[j].trunc_left,
                                           truncated_vos[j].trunc_right - truncated_vos[j].trunc_left, max_speed,
                                           RAYSEGMENT); //left trunc
-                    addRayVelocitySamples(samples, pref_vel, truncated_vos[j].trunc_left, truncated_vos[j].left_leg_dir,
+                    addRayVelocitySamples(samples, additional_constraints, pref_vel, truncated_vos[j].trunc_left,
+                                          truncated_vos[j].left_leg_dir,
                                           truncated_vos[i].trunc_left,
                                           truncated_vos[i].trunc_right - truncated_vos[i].trunc_left, max_speed,
                                           RAYSEGMENT); //trunc left
 
-                    addRayVelocitySamples(samples, pref_vel, truncated_vos[i].trunc_right,
+                    addRayVelocitySamples(samples, additional_constraints, pref_vel, truncated_vos[i].trunc_right,
                                           truncated_vos[i].right_leg_dir, truncated_vos[j].trunc_left,
                                           truncated_vos[j].trunc_right - truncated_vos[j].trunc_left, max_speed,
                                           RAYSEGMENT); //right trunc
-                    addRayVelocitySamples(samples, pref_vel, truncated_vos[j].trunc_right,
+                    addRayVelocitySamples(samples, additional_constraints, pref_vel, truncated_vos[j].trunc_right,
                                           truncated_vos[j].right_leg_dir, truncated_vos[i].trunc_left,
                                           truncated_vos[i].trunc_right - truncated_vos[i].trunc_left, max_speed,
                                           RAYSEGMENT); //trunc right
 
-                    addRayVelocitySamples(samples, pref_vel, truncated_vos[i].trunc_left,
+                    addRayVelocitySamples(samples, additional_constraints, pref_vel, truncated_vos[i].trunc_left,
                                           truncated_vos[i].trunc_right - truncated_vos[i].trunc_left,
                                           truncated_vos[j].trunc_left,
                                           truncated_vos[j].trunc_right - truncated_vos[j].trunc_left, max_speed,
@@ -867,14 +885,14 @@ namespace collvoid {
 
         bool valid = false;
         bool foundOutside = false;
-        bool outside = true;
+        bool withinConstraints = true;
         int optimal = -1;
 
         for (int i = 0; i < (int) samples.size(); i++) {
-            outside = true;
+            withinConstraints = true;
             valid = true;
             if (!isWithinAdditionalConstraints(additional_constraints, samples[i].velocity)) {
-                outside = false;
+                withinConstraints = false;
             }
 
 
@@ -888,20 +906,127 @@ namespace collvoid {
                     break;
                 }
             }
-            if (valid && outside) {
-                return samples[i].velocity;
+            if (valid && withinConstraints) {
+                new_vel = samples[i].velocity;
+                break;
             }
-            if (valid && !outside && !foundOutside) {
+            if (valid && !withinConstraints && !foundOutside) {
                 optimal = truncated_vos.size();
                 new_vel = samples[i].velocity;
                 foundOutside = true;
             }
 
         }
+        double d = minDistToVOs(truncated_vos, new_vel, use_truncation);
+        ROS_ERROR("opt_vel dist %f", d);
+        // sample around optimal vel to find safe vel:
+        std::vector<VelocitySample> samples_around_opt;
+
         //    ROS_INFO("selected j %d, of size %d", optimal, (int) truncated_vos.size());
+        if (d < 0.05) { 
+        createSamplesAroundOptVel(samples_around_opt, 0.1, 0.1, max_speed, max_speed, max_speed, max_speed, new_vel,
+                                  25);
+        double bestDist = 0.0;
+        BOOST_FOREACH(VelocitySample sample, samples_around_opt) {
+                        Vector2 vel = sample.velocity;
+                        if (isWithinAdditionalConstraints(additional_constraints, vel) &&
+                            isSafeVelocity(truncated_vos, vel, use_truncation)) {
 
-
+                            double dist = minDistToVOs(truncated_vos, vel, use_truncation);
+                            if (dist > bestDist) {
+                                bestDist = dist;
+                                //ROS_WARN("best dist = %f", bestDist);
+                                new_vel = vel;
+                            }
+                        }
+                    }
+        samples.insert(samples.end(), samples_around_opt.begin(), samples_around_opt.end());
+    }
         return new_vel;
+    }
+
+
+    bool isSafeVelocity(const std::vector<VO>& truncated_vos, Vector2 vel, bool use_truncation) {
+        for (int j = 0; j < (int) truncated_vos.size(); j++) {
+            if (isInsideVO(truncated_vos[j],vel, use_truncation)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    double minDistToVOs(const std::vector<VO>& vos, Vector2 point, bool use_truncation) {
+        double dist = DBL_MAX;
+        BOOST_FOREACH(VO vo, vos) {
+                        double d = distToVO(vo, point, use_truncation);
+                        if (d < dist) {
+                            dist = d;
+                            if (d == -1.) {
+                                return dist;
+                            }
+                        }
+                    }
+        return dist;
+    }
+
+    double distToVO(VO vo, Vector2 point, bool use_truncation) {
+        if (isInsideVO(vo, point, use_truncation)) {
+            return -1.;
+        }
+        double dist;
+        if (use_truncation) {
+            if (leftOf(vo.trunc_left, vo.trunc_left-vo.trunc_right, point)) {
+                dist = sqrt(distSqPointLineSegment(vo.trunc_left, vo.trunc_right, point));
+            }
+            else if (leftOf(vo.trunc_left, vo.left_leg_dir, point)) {
+                dist = sqrt(distSqPointRay(vo.trunc_left, vo.left_leg_dir, point));
+            }
+            else {
+                dist = sqrt(distSqPointRay(vo.trunc_right, vo.right_leg_dir, point));
+            }
+        }
+        else {
+            if (leftOf(vo.point, vo.left_leg_dir, point)) {
+                dist = sqrt(distSqPointRay(vo.point, vo.left_leg_dir, point));
+            }
+            else {
+                dist = sqrt(distSqPointRay(vo.point, vo.right_leg_dir, point));
+            }
+        }
+
+        return dist;
+    }
+
+
+    void createSamplesAroundOptVel(std::vector<VelocitySample> &samples, double max_dist_x,
+                                   double max_dist_y, double min_vel_x,
+                                   double max_vel_x, double min_vel_y, double max_vel_y,
+                                   Vector2 opt_vel, int num_samples) {
+
+        double min_x, max_x, min_y, max_y;
+
+        min_x = std::max(-max_vel_x, opt_vel.x() - max_dist_x);
+        max_x = std::min(max_vel_x, opt_vel.x() + max_dist_x);
+
+        min_y = std::max(-max_vel_y, opt_vel.y() - max_dist_y);
+        max_y = std::min(max_vel_y, opt_vel.y() + max_dist_y);
+
+        double step_x, step_y;
+
+        int num_samples_per_dir = (int) std::sqrt(num_samples);
+
+        step_x = (max_x - min_x) / num_samples_per_dir;
+        step_y = (max_y - min_y) / num_samples_per_dir;
+        //ROS_ERROR("step_x, step_y (%f, %f), opt_vel (%f, %f), minx, miny %f, %f", step_x, step_y, opt_vel.x(), opt_vel.y(), min_x, min_y );
+        for (int i = 0; i < num_samples_per_dir; i++) {
+            for (int j = 0; j < num_samples_per_dir; j++) {
+                VelocitySample p;
+                p.velocity = Vector2(min_x + i * step_x, min_y + j * step_y);
+                p.dist_to_pref_vel = absSqr(p.velocity - opt_vel);
+                samples.push_back(p);
+            }
+
+        }
     }
 
 

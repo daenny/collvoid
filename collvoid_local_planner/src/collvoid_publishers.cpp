@@ -44,7 +44,7 @@ namespace collvoid {
         line_list.type = visualization_msgs::Marker::LINE_LIST;
         line_list.scale.x = 0.02;
         line_list.color.r = 0.0;
-        line_list.color.g = 1.0;
+        line_list.color.b = 1.0;
         line_list.color.a = 1.0;
         line_list.id = 0;
         geometry_msgs::Point p;
