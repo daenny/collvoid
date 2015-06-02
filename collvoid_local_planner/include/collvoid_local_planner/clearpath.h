@@ -102,7 +102,8 @@ namespace collvoid {
                                const Vector2 &pref_vel, Vector2 point1, Vector2 dir1, Vector2 point2, Vector2 dir2,
                                double max_speed, int TYPE);
 
-    Vector2 calculateClearpathVelocity(std::vector<VelocitySample> &samples, const std::vector<VO> &truncated_vos,
+    Vector2 calculateClearpathVelocity(std::vector<VelocitySample> &samples, const std::vector<VO> &all_vos,
+                                       const std::vector<VO> &thuman_vos, const std::vector<VO> &agent_vos, const std::vector<VO> &static_vos,
                                        const std::vector<Line> &additional_constraints, const Vector2 &pref_vel,
                                        double max_speed, bool use_truncation);
 

@@ -213,13 +213,14 @@ namespace collvoid {
     void ROSAgent::computeNewVelocity(Vector2 pref_velocity, geometry_msgs::Twist &cmd_vel) {
         boost::mutex::scoped_lock lock(me_lock_);
         //Forward project agents
-        setAgentParams(this);
+        double time_dif = (ros::Time::now() - this->last_seen_).toSec();
+        predictAgentParams(this, time_dif);
         updateAllNeighbors();
 
         new_velocity_ = Vector2(0.0, 0.0);
 
+        //reset
         additional_orca_lines_.clear();
-        vo_agents_.clear();
 
         //get closest agent/obstacle
         double min_dist_neigh = DBL_MAX;
@@ -238,6 +239,10 @@ namespace collvoid {
         addAccelerationConstraintsXY(max_vel_x_, acc_lim_x_, max_vel_y_, acc_lim_y_, velocity_, heading_, sim_period_,
                                      holo_robot_, additional_orca_lines_);
 
+        all_vos_.clear();
+        static_vos_.clear();
+        human_vos_.clear();
+        agent_vos_.clear();
         computeObstacles();
 
         if (orca_) {
@@ -317,7 +322,7 @@ namespace collvoid {
         radius_ -= cur_allowed_error_;
 
         publishHoloSpeed(position_, new_velocity_, global_frame_, base_frame_, speed_pub_);
-        publishVOs(position_, vo_agents_, use_truncation_, global_frame_, base_frame_, vo_pub_);
+        publishVOs(position_, all_vos_, use_truncation_, global_frame_, base_frame_, vo_pub_);
 
         publishPoints(position_, samples_, global_frame_, base_frame_, samples_pub_);
         publishOrcaLines(additional_orca_lines_, position_, global_frame_, base_frame_, lines_pub_);
@@ -342,7 +347,7 @@ namespace collvoid {
 
         //    Vector2 null_vec = Vector2(0,0);
         publishHoloSpeed(position_, new_velocity_, global_frame_, base_frame_, speed_pub_);
-        publishVOs(position_, vo_agents_, use_truncation_, global_frame_, base_frame_, vo_pub_);
+        publishVOs(position_, all_vos_, use_truncation_, global_frame_, base_frame_, vo_pub_);
         publishPoints(position_, samples_, global_frame_, base_frame_, samples_pub_);
         publishOrcaLines(additional_orca_lines_, position_, global_frame_, base_frame_, lines_pub_);
 
@@ -420,7 +425,8 @@ namespace collvoid {
                                     else {
                                         VO obstacle_vo = createObstacleVO(position_, footprint_radius_, own_footprint,
                                                                           obst.point1, obst.point2);
-                                        vo_agents_.push_back(obstacle_vo);
+                                        static_vos_.push_back(obstacle_vo);
+                                        all_vos_.push_back(obstacle_vo);
                                     }
                                 }
                                 if (dist < min_dist_obst_) {
@@ -917,19 +923,48 @@ namespace collvoid {
         }
     }
 
+
+
+
+    PredictedStatePtr ROSAgent::predictState(double time_diff, std::vector<ROSAgentPtr> agents) {
+        PredictedStatePtr predictedState(new PredictedState);
+        BOOST_FOREACH (ROSAgentPtr agent, agents) {
+                        ROSAgentPtr newAgentState = getNewAgentState(agent,time_diff);
+                        predictedState->neighbors.push_back(newAgentState);
+                    }
+        std::sort(agent_neighbors_.begin(), agent_neighbors_.end(),
+                  boost::bind(&ROSAgent::compareNeighborsPositions, this, _1, _2));
+        return predictedState;
+
+    }
+
+    ROSAgentPtr ROSAgent::getNewAgentState(ROSAgentPtr rosAgentPtr, double time_dif) {
+        ROSAgentPtr new_robot(new ROSAgent);
+        new_robot->id_ = rosAgentPtr->id_;
+        new_robot->holo_robot_ = rosAgentPtr->holo_robot_;
+        new_robot->base_odom_ = rosAgentPtr->base_odom_;
+        new_robot->minkowski_footprint_ = rosAgentPtr->minkowski_footprint_;
+
+        predictAgentParams(new_robot.get(), time_dif);
+
+        return new_robot;
+
+    }
+
     void ROSAgent::updateAllNeighbors() {
         boost::mutex::scoped_lock lock(neighbors_lock_);
         BOOST_FOREACH (AgentPtr a, agent_neighbors_) {
                         ROSAgentPtr agent = boost::dynamic_pointer_cast<ROSAgent>(a);
-                        setAgentParams(agent.get());
+                        double time_dif = (ros::Time::now() - agent->last_seen_).toSec();
+                        predictAgentParams(agent.get(), time_dif);
                     }
         std::sort(agent_neighbors_.begin(), agent_neighbors_.end(),
                   boost::bind(&ROSAgent::compareNeighborsPositions, this, _1, _2));
     }
 
 
-    void ROSAgent::setAgentParams(ROSAgent *agent) {
-        double time_dif = (ros::Time::now() - agent->last_seen_).toSec();
+    void ROSAgent::predictAgentParams(ROSAgent *agent, double time_dif) {
+
         double yaw, x_dif, y_dif, th_dif;
         //time_dif = 0.0;
 
@@ -958,7 +993,7 @@ namespace collvoid {
         }
         else {
             double dif_x, dif_y, dif_ang;
-            dif_ang = sim_period_ * agent->base_odom_.twist.twist.angular.z;
+            dif_ang = time_dif * agent->base_odom_.twist.twist.angular.z;
             dif_x = agent->base_odom_.twist.twist.linear.x * cos(dif_ang / 2.0);
             dif_y = agent->base_odom_.twist.twist.linear.x * sin(dif_ang / 2.0);
             agent->velocity_ = rotateVectorByAngle(dif_x, dif_y, (yaw + th_dif));

@@ -75,15 +75,15 @@ namespace collvoid {
         if (controlled_) {
             computeAgentVOs();
         }
-        new_velocity_ = calculateClearpathVelocity(samples_, vo_agents_, additional_orca_lines_, pref_velocity,
-                                                   max_speed_x_, use_truncation_);
+        new_velocity_ = calculateClearpathVelocity(samples_, all_vos_, human_vos_, agent_vos_, static_vos_, additional_orca_lines_,
+                                                   pref_velocity, max_speed_x_, use_truncation_);
     }
 
     void Agent::computeSampledVelocity(Vector2 pref_velocity) {
         if (controlled_) {
             computeAgentVOs();
         }
-        new_velocity_ = calculateNewVelocitySampled(samples_, vo_agents_, pref_velocity, max_speed_x_, use_truncation_);
+        new_velocity_ = calculateNewVelocitySampled(samples_, all_vos_, pref_velocity, max_speed_x_, use_truncation_);
     }
 
 
@@ -114,9 +114,16 @@ namespace collvoid {
                         }
                         //truncate
                         if (use_truncation_) {
-                            new_agent_vo = createTruncVO(new_agent_vo, trunc_time_);
+                            if (abs(agent->velocity_) < EPSILON) {
+                                new_agent_vo = createTruncVO(new_agent_vo, 2.);
+                                static_vos_.push_back(new_agent_vo);
+                            }
+                            else {
+                                new_agent_vo = createTruncVO(new_agent_vo, trunc_time_);
+                                agent_vos_.push_back(new_agent_vo);
+                            }
                         }
-                        vo_agents_.push_back(new_agent_vo);
+                        all_vos_.push_back(new_agent_vo);
 
                     }
     }

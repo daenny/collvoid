@@ -135,7 +135,7 @@ Visualization Manager:
       Marker Topic: /robot_0/speed
       Name: Marker
       Namespaces:
-        robot_0/base_link: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -143,7 +143,7 @@ Visualization Manager:
       Marker Topic: /robot_0/orca_lines
       Name: Marker
       Namespaces:
-        robot_0/base_link: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -151,7 +151,7 @@ Visualization Manager:
       Marker Topic: /robot_0/vo
       Name: Marker
       Namespaces:
-        robot_0/base_link: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Axes
@@ -168,6 +168,62 @@ Visualization Manager:
       Namespaces:
         {}
       Queue Size: 100
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Polygon
+      Topic: /robot_0/convex_hull
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Polygon
+      Topic: /robot_1/convex_hull
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Polygon
+      Topic: /robot_2/convex_hull
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Polygon
+      Topic: /robot_3/convex_hull
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Polygon
+      Topic: /robot_4/convex_hull
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Polygon
+      Topic: /robot_5/convex_hull
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Polygon
+      Topic: /robot_6/convex_hull
+      Value: true
+    - Alpha: 1
+      Class: rviz/Polygon
+      Color: 25; 255; 0
+      Enabled: true
+      Name: Polygon
+      Topic: /robot_7/convex_hull
       Value: true
   Enabled: true
   Global Options:

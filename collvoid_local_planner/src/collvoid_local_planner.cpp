@@ -643,8 +643,6 @@ namespace collvoid_local_planner {
 
         collvoid::Vector2 pref_vel = collvoid::Vector2(goal_dir.x(), goal_dir.y());
 
-        //TODO collvoid added
-
         me_->computeNewVelocity(pref_vel, cmd_vel);
 
 
@@ -656,7 +654,7 @@ namespace collvoid_local_planner {
             cmd_vel.linear.y = 0.0;
 
 
-        bool in_obstacle = me_->isInStaticObstacle();//collision_planner_.checkTrajectory(cmd_vel.linear.x, cmd_vel.linear.y, cmd_vel.angular.z,true);
+        bool in_obstacle = false; // TODO: for testitng me_->isInStaticObstacle();//collision_planner_.checkTrajectory(cmd_vel.linear.x, cmd_vel.linear.y, cmd_vel.angular.z,true);
         //in_obstacle = false;
         //state machine to avoid static obstacles
         if (in_obstacle && been_in_obstacle_) { //moving backwards to procced avoiding the obstacle

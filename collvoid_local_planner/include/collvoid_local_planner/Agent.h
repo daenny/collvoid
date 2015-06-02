@@ -101,7 +101,7 @@ namespace collvoid{
     std::vector<Line> orca_lines_, additional_orca_lines_;
 
     //VO stuff
-    std::vector<VO> vo_agents_, additional_vos_;
+    std::vector<VO> all_vos_, agent_vos_, static_vos_, human_vos_;
     std::vector<VelocitySample> samples_;
    
 
