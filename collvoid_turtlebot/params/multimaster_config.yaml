@@ -1,0 +1,2 @@
+sync_topics: [position_share, commands_robot]
+sync_remote_node: True

@@ -1,12 +1,9 @@
 <launch>
 
-  <!--- Run Robot Pose EKF -->
-  <!-- <include file="$(find collvoid_turtlebot)/launch/base.launch" /> -->
+  <!-- Run self-filter -->
+  <node name="laser_filter" pkg="turtlebot_navigation" type="laser_footprint_filter" />
 
-  <!--- Run the kinect 
-  <include file="$(find collvoid_turtlebot)/launch/kinect.launch" /> 
--->
- <!-- Run the map server -->
+  <!-- Run the map server -->
   <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_turtlebot)/world/map.yaml" output="screen"/>
 
   <!-- Run the laser -->
@@ -23,13 +20,27 @@
   <rosparam command="load" file="$(find collvoid_turtlebot)/params/params_created.yaml"/>
 
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
-    <rosparam command="load" file="$(find collvoid_turtlebot)/params/params_turtle.yaml"/>
+    <rosparam file="$(find collvoid_turtlebot)/params/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find collvoid_turtlebot)/params/costmap_common_params.yaml" command="load" ns="local_costmap" />   
+
+    <!--- configs from turtlebot navigation -->
+    <rosparam file="$(find turtlebot_navigation)/param/local_costmap_params.yaml" command="load" />   
+    <rosparam file="$(find turtlebot_navigation)/param/global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find turtlebot_navigation)/param/dwa_local_planner_params.yaml" command="load" />
+    <rosparam file="$(find turtlebot_navigation)/param/move_base_params.yaml" command="load" />
+    <rosparam file="$(find turtlebot_navigation)/param/global_planner_params.yaml" command="load" />
+    <rosparam file="$(find turtlebot_navigation)/param/navfn_global_planner_params.yaml" command="load" />
+
+    <!--- configs for collvoid -->
     <rosparam command="load" file="$(find collvoid_turtlebot)/params/collvoid_config.yaml"/>
+
     <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
     <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" />
    
     <remap from="/position_share_in" to="/position_share"/>
     <remap from="/position_share_out" to="/position_share"/>
+    <remap from="cmd_vel" to="/cmd_vel_mux/input/navi"/>
+    <remap from="scan" to="/scan_filtered"/>
 
   </node>
   
