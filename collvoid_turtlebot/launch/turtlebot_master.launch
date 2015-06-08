@@ -1,10 +1,6 @@
 <launch>
-
-  <!-- Run self-filter -->
-  <node name="laser_filter" pkg="turtlebot_navigation" type="laser_footprint_filter" />
-
   <!-- Run the map server -->
-  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_turtlebot)/world/map.yaml" output="screen"/>
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_turtlebot)/map/map.yaml" output="screen"/>
 
   <!-- Run the laser -->
   <include file="$(find collvoid_turtlebot)/launch/hokuyo.launch" />
@@ -17,8 +13,6 @@
   <node pkg="collvoid_controller" type="controllerRobots.py" name="controller_robots" output="screen" />
 
   <!--- Run collvoid -->
-  <rosparam command="load" file="$(find collvoid_turtlebot)/params/params_created.yaml"/>
-
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
     <rosparam file="$(find collvoid_turtlebot)/params/costmap_common_params.yaml" command="load" ns="global_costmap" />
     <rosparam file="$(find collvoid_turtlebot)/params/costmap_common_params.yaml" command="load" ns="local_costmap" />   

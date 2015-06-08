@@ -2,6 +2,25 @@ controller_frequency: 10
 use_obstacles: true
 
 CollvoidLocalPlanner:
+  holo_robot: false
+  wheel_base: 0.25
+  
+  max_vel_x: 0.5
+  max_vel_th: 1.5
+  min_vel_x: 0.05
+  min_vel_th: 0.1
+  min_vel_y: 0.0
+  max_vel_y: 0.0
+  min_vel_th_inplace: 0.5
+  acc_lim_x: 5.0
+  acc_lim_y: 5.0
+  acc_lim_th: 5.2
+
+  max_vel_with_obstacles: 0.5
+
+  footprint_radius: 0.22
+
+
   yaw_goal_tolerance: 0.05
   xy_goal_tolerance: 0.10
   latch_xy_goal_tolerance: true
