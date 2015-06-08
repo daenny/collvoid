@@ -1,0 +1,5 @@
+
+<launch>
+  <include file="$(find collvoid_turtlebot)/launch/master_sync.launch" />
+  <include file="$(find collvoid_turtlebot)/launch/turtlebot_master.launch" />
+</launch>
