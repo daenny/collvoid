@@ -38,7 +38,7 @@ def udp_callback(channel, data):
 
 
 def handle_msg(msg):
-    if msg.sender != name:
+    if msg.robot_id != name:
         return
     send(msg)
 
@@ -56,7 +56,7 @@ def send(msg, repeats=1):
     buff = StringIO.StringIO()
     msg.serialize(buff)
     for i in xrange(repeats):
-        lc.publish(msg.receiver, buff.getvalue())
+        lc.publish('tb', buff.getvalue())
 
 
 if __name__ == '__main__':
