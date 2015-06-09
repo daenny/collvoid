@@ -1,0 +1,22 @@
+<launch>
+  <node pkg="collvoid_turtlebot" type="lcm_ros_relay.py" name="position_share" output="screen"> 
+    <param name='module_type' value='transceiver'/>
+    <param name='lcm_channel' value='position_share'/>
+    <param name='topic' value='position_share'/>
+    <param name='msg_package' value='collvoid_msgs.msg'/>
+    <param name='msg_name' value='PoseTwistWithCovariance' />
+      
+  </node>
+
+  <node pkg="collvoid_turtlebot" type="lcm_ros_relay.py" name="commands_robot" output="screen"> 
+    <param name='module_type' value='receiver' />
+    <param name='lcm_channel' value='commands_robot'/>
+    <param name='topic' value='commands_robot'/>
+    <param name='msg_package' value='std_msgs.msg'/>
+    <param name='msg_name' value='String' />
+  </node>
+
+  <!-- <include file="$(find udp_multicast)/receiver.launch" /> -->
+
+
+</launch>

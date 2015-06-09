@@ -11,29 +11,35 @@ import StringIO
 # from msg import communication_msg
 
 lc = None
-topic = '/position_share'
-lcm_topic ='tb'
-msg_name = 'PoseTwistWithCovariance'
-package = 'collvoid_msgs.msg'
-
-module = importlib.import_module(package)
-TYPE = getattr(module, msg_name)
-
-
+lcm_channel = None
+TYPE = None
 name = None
 lcm_sub = None
 pub = None
-
+module_type=None
 
 def init_globals():
-    global lc, name, pub, lcm_sub
+    global lc, name, pub, lcm_sub,lcm_channel, TYPE, module_type
     lc = lcm.LCM("udpm://224.1.1.1:5007?ttl=2")
     name = gethostname()
     #lcm_sub = lc.subscribe(name, udp_callback)
     #if 'tb' in name:
-    lcm_sub = lc.subscribe(lcm_topic, udp_callback)
-    pub = rospy.Publisher(topic, TYPE, queue_size=1)
-    rospy.Subscriber(topic, TYPE, handle_msg)
+
+    lcm_channel=rospy.get_param('~lcm_channel')
+    topic=rospy.get_param('~topic')
+    msg_package=rospy.get_param('~msg_package')
+    msg_name=rospy.get_param('~msg_name')
+    module_type=rospy.get_param('~module_type')
+    
+    module = importlib.import_module(msg_package)
+    TYPE = getattr(module, msg_name)
+
+    if module_type in ['receiver', 'transceiver']:
+        lcm_sub = lc.subscribe(lcm_channel, udp_callback)
+        pub = rospy.Publisher(topic, TYPE, queue_size=1)
+
+    if module_type in ['sender', 'transceiver']:
+        rospy.Subscriber(topic, TYPE, handle_msg)
 
 
 def udp_callback(channel, data):
@@ -43,7 +49,7 @@ def udp_callback(channel, data):
 
 
 def handle_msg(msg):
-    if msg.robot_id != name:
+    if module_type == 'transceiver' and msg.robot_id != name:
         return
     send(msg)
 
@@ -61,7 +67,7 @@ def send(msg, repeats=1):
     buff = StringIO.StringIO()
     msg.serialize(buff)
     for i in xrange(repeats):
-        lc.publish(lcm_topic, buff.getvalue())
+        lc.publish(lcm_channel, buff.getvalue())
 
 
 if __name__ == '__main__':

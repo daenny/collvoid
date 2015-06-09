@@ -1,0 +1,7 @@
+<launch>
+  <node pkg="collvoid_controller" type="controller.py" name="controllerRobots" output="screen" />
+  <include file="$(find collvoid_turtlebot)/launch/lcm_controller.launch" />
+  <!-- <node pkg="rviz" type="rviz" name="rviz" args="-d $(find collvoid_stage)/single_view.rviz" output="screen" /> -->
+
+</launch>
+  

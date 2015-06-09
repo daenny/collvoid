@@ -1,0 +1,126 @@
+resolution 0.02 # set the resolution of the underlying raytrace model in meters
+interval_sim 100 # simulation timestep in milliseconds
+#interval_real 100
+
+window
+( 
+  size [ 800.000 600.000 ] 
+  scale 28.806 
+)
+
+define map model
+(
+  color "gray30"
+  boundary 0
+  gui_nose 0
+  gui_grid 0
+  gui_move 0
+  gui_outline 0
+  obstacle_return 1
+  gripper_return 0
+  fiducial_return 0
+  laser_return 1
+)
+
+map
+(
+  name "map"
+  size [10.5  10.5 0.5]
+  pose [0 0 0 90]
+  bitmap "map.pgm"
+)
+
+
+define hokuyo ranger
+(
+  sensor(
+    range [0.0 4.0]
+    fov 270
+    samples 270
+    size [ 0.05 0.05 0.1 ]
+  )
+  color "black"
+  ctrl "lasernoise"
+)
+
+define roomba position
+(
+  size [0.33 0.33 0.2]
+  origin [0 0 0 0]
+  gui_nose 1
+
+  # This block approximates the circular shape of a Roomba
+  hokuyo( pose [0 0 0.1 0] )
+  drive "diff"
+  bitmap "robot.png"
+)
+
+define topurg ranger
+(
+  sensor(
+    range[ 0.0 30.0 ]
+    fov 270.25
+    samples 800
+    size [ 0.05 0.05 0.1 ]
+
+    )
+  # generic model properties
+  color "black"
+)
+
+define diff_robot position
+(
+  size [0.34 0.34 0.3]
+  origin [0 0 0 0]
+  gui_nose 1
+  drive "diff"
+  wheelbase 0.25
+  topurg(pose [ 0.0 0.000 0 0.000 ])
+  bitmap "robot.png"
+  
+)
+
+define omni_robot position
+(
+  size [0.34 0.34 0.3]
+  origin [0 0 0 0]
+  gui_nose 1
+  drive "omni"
+  wheelbase 0.25
+  topurg(pose [ 0.0 0.000 0 0.000 ])
+)
+
+define pr2 position
+(
+  size [0.65 0.65 0.1]
+  origin [0 0 0 0]
+  gui_nose 1
+
+  topurg( pose [0.275 0 0.1 0] )
+  drive "omni"
+
+)
+
+
+define stick position
+(
+  size [0.6 0.4 0.1]
+  origin [0 0 0 0]
+  gui_nose 1
+
+ 	
+  hokuyo( pose [0.125 0 0.1 0] )
+  drive "omni"
+
+)
+define obst model
+(
+  size [0.4 0.4 0.4]
+  origin [0 0 0 0]
+  gui_nose 1
+)
+
+#obst( pose [ 0.0 0.0 0 45.000000 ] name "block" color "black")
+
+# robots added here automatically
+roomba( pose [ -0.0 0.0 0 0.000000 ] name "robot_0" color "blue")
