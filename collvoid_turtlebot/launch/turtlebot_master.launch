@@ -9,7 +9,7 @@
   <include file="$(find collvoid_turtlebot)/launch/amcl_turtlebot.launch"/> 
  
   <!--- Run Controller -->
-  <rosparam command="load" file="$(find collvoid_turtlebot)/goals.yaml"/>
+  <rosparam command="load" file="$(find collvoid_turtlebot)/goals_created.yaml"/>
   <node pkg="collvoid_controller" type="controllerRobots.py" name="controller_robots" output="screen" />
 
   <!--- Run collvoid -->
