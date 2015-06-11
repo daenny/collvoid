@@ -130,7 +130,7 @@ namespace collvoid {
         publish_me_period_ = 1.0 / publish_me_period_;
 
         if (standalone_) {
-            //initParams(private_nh);
+            initParams(private_nh);
         }
 
         initialized_ = true;
@@ -208,7 +208,100 @@ namespace collvoid {
 
         ROS_INFO("New Agent as me initialized");
 
+        service_ = nh.advertiseService("get_collvoid_twist", &ROSAgent::getTwistServiceCB,this);
+
     }
+
+    bool ROSAgent::getTwistServiceCB(collvoid_local_planner::GetCollvoidTwist::Request &req, collvoid_local_planner::GetCollvoidTwist::Response &res) {
+        tf::Stamped<tf::Pose> goal_pose, global_pose;
+        tf::poseStampedMsgToTF(req.goal, goal_pose);
+
+        //just get the latest available transform... for accuracy they should send
+        //goals in the frame of the planner
+        goal_pose.stamp_ = ros::Time();
+
+        try{
+            tf_->transformPose(global_frame_, goal_pose, global_pose);
+        }
+        catch(tf::TransformException& ex){
+            ROS_WARN("Failed to transform the goal pose from %s into the %s frame: %s",
+                     goal_pose.frame_id_.c_str(), global_frame_.c_str(), ex.what());
+            geometry_msgs::Twist msg;
+            res.twist = msg;
+            return false;
+        }
+
+        geometry_msgs::PoseStamped global_pose_msg;
+        tf::poseStampedTFToMsg(global_pose, global_pose_msg);
+
+        Vector2 goal = Vector2(global_pose_msg.pose.position.x, global_pose_msg.pose.position.y);
+        double ang = tf::getYaw(global_pose_msg.pose.orientation);
+
+        res.twist = computeVelocityCommand(goal, ang);
+        return true;
+    }
+
+
+    geometry_msgs::Twist ROSAgent::computeVelocityCommand(Vector2 waypoint, double goal_ang) {
+        if(!initialized_){
+            ROS_ERROR("This planner has not been initialized, please call initialize() before using this planner");
+            return geometry_msgs::Twist();
+        }
+        tf::Stamped<tf::Pose> global_pose;
+        //let's get the pose of the robot in the frame of the plan
+        global_pose.setIdentity();
+        global_pose.frame_id_ = base_frame_;
+        global_pose.stamp_ = ros::Time();
+        tf_->transformPose(global_frame_, global_pose, global_pose);
+
+        Vector2 pos = Vector2(global_pose.getOrigin().x(), global_pose.getOrigin().y());
+        Vector2 goal_dir = waypoint - pos;
+
+        geometry_msgs::Twist cmd_vel;
+        //rotate to goal:
+        if (collvoid::abs(goal_dir) < xy_goal_tolerance_) {
+            double robot_yaw = tf::getYaw(global_pose.getRotation());
+            double ang_diff = angles::shortest_angular_distance(robot_yaw, goal_ang);
+            if (fabs(ang_diff) < yaw_goal_tolerance_) {
+                return cmd_vel;
+            }
+            else {
+                double v_th_samp = ang_diff > 0.0 ? std::min(max_vel_th_,
+                                                             std::max(min_vel_th_inplace_, ang_diff)) : std::max(
+                        -1.0 * max_vel_th_,
+                        std::min(-1.0 * min_vel_th_inplace_, ang_diff));
+                v_th_samp = sign(v_th_samp) * std::max(min_vel_th_inplace_, fabs(v_th_samp));
+                cmd_vel.angular.z = v_th_samp;
+            }
+        }
+
+        else {
+            if (collvoid::abs(goal_dir) > max_vel_x_) {
+                goal_dir = max_vel_x_ * collvoid::normalize(goal_dir);
+            }
+            else if (collvoid::abs(goal_dir) < min_vel_x_) {
+                goal_dir = min_vel_x_ * 1.2* collvoid::normalize(goal_dir);
+            }
+
+            double goal_dir_ang = atan2(goal_dir.y(), goal_dir.x());
+            //ROS_INFO("Pose (%f, %f), goal (%f, %f), dir (%f, %f), ang %f", pos.x(), pos.y(), waypoint.x(), waypoint.y(), goal_dir.x(), goal_dir.y(), goal_dir_ang);
+
+
+            computeNewVelocity(goal_dir, cmd_vel);
+
+            if(std::abs(cmd_vel.angular.z)<min_vel_th_)
+                cmd_vel.angular.z = 0.0;
+            if(std::abs(cmd_vel.linear.x)<min_vel_x_)
+                cmd_vel.linear.x = 0.0;
+            if(std::abs(cmd_vel.linear.y)<min_vel_y_)
+                cmd_vel.linear.y = 0.0;
+
+            return cmd_vel;
+        }
+
+
+    }
+
 
     void ROSAgent::computeNewVelocity(Vector2 pref_velocity, geometry_msgs::Twist &cmd_vel) {
         boost::mutex::scoped_lock lock(me_lock_);
@@ -723,6 +816,12 @@ namespace collvoid {
     void ROSAgent::setWheelBase(double wheel_base) {
         wheel_base_ = wheel_base;
     }
+
+    void ROSAgent::setGoalTolerances(double xy_tolerance, double yaw_tolerance){
+        xy_goal_tolerance_ = xy_tolerance;
+        yaw_goal_tolerance_ = yaw_tolerance;
+    }
+
 
     void ROSAgent::setAccelerationConstraints(double acc_lim_x, double acc_lim_y, double acc_lim_th) {
         acc_lim_x_ = acc_lim_x;

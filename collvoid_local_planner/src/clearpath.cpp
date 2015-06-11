@@ -922,8 +922,8 @@ namespace collvoid {
         }
         if (safeSamples.size()>0) {
             new_vel = safeSamples[0].velocity;
-            double d = minDistToVOs(all_vos, new_vel, use_truncation);
-            ROS_ERROR("opt_vel dist %f", d);
+            double d = minDistToVOs(agent_vos, new_vel, use_truncation);
+            ROS_INFO("opt_vel dist %f", d);
             // sample around optimal vel to find safe vel:
             std::vector<VelocitySample> samples_around_opt;
 

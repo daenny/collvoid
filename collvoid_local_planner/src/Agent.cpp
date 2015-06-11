@@ -123,6 +123,9 @@ namespace collvoid {
                                 agent_vos_.push_back(new_agent_vo);
                             }
                         }
+                        else {
+                            agent_vos_.push_back(new_agent_vo);
+                        }
                         all_vos_.push_back(new_agent_vo);
 
                     }

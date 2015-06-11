@@ -48,18 +48,19 @@
 #include <laser_geometry/laser_geometry.h>
 
 #include <collvoid_local_planner/Agent.h>
+#include <collvoid_local_planner/GetCollvoidTwist.h>
 
 
 namespace collvoid {
     struct Obstacle {
-      Vector2 point1;
-      Vector2 point2;
-      ros::Time last_seen;
+        Vector2 point1;
+        Vector2 point2;
+        ros::Time last_seen;
     };
 
 
     struct PredictedState {
-      std::vector<boost::shared_ptr<Agent> > neighbors;
+        std::vector<boost::shared_ptr<Agent> > neighbors;
     };
 
     typedef boost::shared_ptr<PredictedState> PredictedStatePtr;
@@ -67,227 +68,239 @@ namespace collvoid {
 
     class ROSAgent : public Agent {
     public:
-      typedef boost::shared_ptr<ROSAgent> ROSAgentPtr;
+        typedef boost::shared_ptr<ROSAgent> ROSAgentPtr;
 
-      ROSAgent();
+        ROSAgent();
 
-      virtual ~ROSAgent() { };
+        virtual ~ROSAgent() { };
 
-      void init(ros::NodeHandle private_nh, tf::TransformListener *tf);
+        void init(ros::NodeHandle private_nh, tf::TransformListener *tf);
 
-      void initParams(ros::NodeHandle private_nh);
+        void initParams(ros::NodeHandle private_nh);
 
-      void initAsMe(tf::TransformListener *tf);
+        void initAsMe(tf::TransformListener *tf);
 
-      void initCommon(ros::NodeHandle nh);
+        void initCommon(ros::NodeHandle nh);
 
-      void computeNewVelocity(Vector2 pref_velocity, geometry_msgs::Twist &cmd_vel);
+        void computeNewVelocity(Vector2 pref_velocity, geometry_msgs::Twist &cmd_vel);
 
 
-      void computeOrcaVelocity(Vector2 pref_velocity);
+        void computeOrcaVelocity(Vector2 pref_velocity);
 
-      void computeClearpathVelocity(Vector2 pref_velocity);
+        void computeClearpathVelocity(Vector2 pref_velocity);
 
-      void computeSampledVelocity(Vector2 pref_velocity);
+        void computeSampledVelocity(Vector2 pref_velocity);
 
 
-      void addNHConstraints(double min_dist, Vector2 pref_velocity);
+        void addNHConstraints(double min_dist, Vector2 pref_velocity);
 
-      void addInflatedObstacleFromLine(Vector2 start, Vector2 end, ros::Time stamp);
+        void addInflatedObstacleFromLine(Vector2 start, Vector2 end, ros::Time stamp);
 
-      void computeObstacles();
+        void computeObstacles();
 
-      PredictedStatePtr predictState(double time_diff, std::vector<ROSAgentPtr> agents);
+        PredictedStatePtr predictState(double time_diff, std::vector<ROSAgentPtr> agents);
 
-      bool compareNeighborsPositions(const AgentPtr &agent1, const AgentPtr &agent2);
+        bool compareNeighborsPositions(const AgentPtr &agent1, const AgentPtr &agent2);
 
-      bool compareConvexHullPointsPosition(const ConvexHullPoint &p1, const ConvexHullPoint &p2);
+        bool compareConvexHullPointsPosition(const ConvexHullPoint &p1, const ConvexHullPoint &p2);
 
-      bool compareVectorPosition(const collvoid::Vector2 &v1, const collvoid::Vector2 &v2);
+        bool compareVectorPosition(const collvoid::Vector2 &v1, const collvoid::Vector2 &v2);
 
-      bool isInStaticObstacle();
+        bool isInStaticObstacle();
 
-      void sortObstacleLines();
+        void sortObstacleLines();
 
-      collvoid::Vector2 LineSegmentToLineSegmentIntersection(double x1, double y1, double x2, double y2, double x3,
-                                                             double y3, double x4, double y4);
+        collvoid::Vector2 LineSegmentToLineSegmentIntersection(double x1, double y1, double x2, double y2, double x3,
+                                                               double y3, double x4, double y4);
 
-      bool pointInNeighbor(collvoid::Vector2 &point);
+        bool pointInNeighbor(collvoid::Vector2 &point);
 
-      double getDistToFootprint(collvoid::Vector2 &point);
+        double getDistToFootprint(collvoid::Vector2 &point);
 
-      void computeObstacleLine(Vector2 &point);
+        void computeObstacleLine(Vector2 &point);
 
-      void createObstacleLine(std::vector<Vector2> &own_footprint, Vector2 &obst1, Vector2 &obst2);
+        void createObstacleLine(std::vector<Vector2> &own_footprint, Vector2 &obst1, Vector2 &obst2);
 
 
-      void setFootprint(geometry_msgs::PolygonStamped footprint);
+        void setFootprint(geometry_msgs::PolygonStamped footprint);
 
-      void setFootprintRadius(double footprint_radius);
+        void setFootprintRadius(double footprint_radius);
 
-      void setMinkowskiFootprintVector2(geometry_msgs::PolygonStamped minkowski_footprint);
+        void setMinkowskiFootprintVector2(geometry_msgs::PolygonStamped minkowski_footprint);
 
-      void setIsHoloRobot(bool holo_robot);
+        void setIsHoloRobot(bool holo_robot);
 
-      void setRobotBaseFrame(std::string base_link);
+        void setRobotBaseFrame(std::string base_link);
 
-      void setGlobalFrame(std::string global_frame);
+        void setGlobalFrame(std::string global_frame);
 
-      void setId(std::string id);
+        void setId(std::string id);
 
-      void setMaxVelWithObstacles(double max_vel_with_obstacles);
+        void setMaxVelWithObstacles(double max_vel_with_obstacles);
 
-      void setWheelBase(double wheel_base);
+        void setWheelBase(double wheel_base);
 
-      void setAccelerationConstraints(double acc_lim_x, double acc_lim_y, double acc_lim_th);
+        void setAccelerationConstraints(double acc_lim_x, double acc_lim_y, double acc_lim_th);
 
-      void setMinMaxSpeeds(double min_vel_x, double max_vel_x, double min_vel_y, double max_vel_y, double min_vel_th,
-                           double max_vel_th, double min_vel_th_inplace);
+        void setMinMaxSpeeds(double min_vel_x, double max_vel_x, double min_vel_y, double max_vel_y, double min_vel_th,
+                             double max_vel_th, double min_vel_th_inplace);
 
 
-      void setPublishPositionsPeriod(double publish_positions_period);
 
-      void setPublishMePeriod(double publish_me_period);
 
-      void setTimeToHolo(double time_to_holo);
+        void setPublishPositionsPeriod(double publish_positions_period);
 
-      void setTimeHorizonObst(double time_horizon_obst);
+        void setPublishMePeriod(double publish_me_period);
 
-      void setMinMaxErrorHolo(double min_error_holo, double max_error_holo);
+        void setTimeToHolo(double time_to_holo);
 
-      void setDeleteObservations(bool delete_observations);
+        void setTimeHorizonObst(double time_horizon_obst);
 
-      void setThresholdLastSeen(double threshold_last_seen); //implement!!
-      void setLocalizationEps(double eps);
+        void setMinMaxErrorHolo(double min_error_holo, double max_error_holo);
 
-      void setTypeVO(int type_vo);
+        void setDeleteObservations(bool delete_observations);
 
-      void setOrca(bool orca);
+        void setThresholdLastSeen(double threshold_last_seen); //implement!!
 
-      void setClearpath(bool clearpath);
+        void setGoalTolerances(double xy_tolerance, double yaw_tolerance);
 
-      void setConvex(bool convex);
+        void setLocalizationEps(double eps);
 
-      void setUseTruncation(bool use_truncation);
+        void setTypeVO(int type_vo);
 
-      void setNumSamples(int num_samples);
+        void setOrca(bool orca);
 
-      bool isHoloRobot();
+        void setClearpath(bool clearpath);
 
-      ros::Time lastSeen();
+        void setConvex(bool convex);
 
+        void setUseTruncation(bool use_truncation);
 
-      void positionShareCallback(const collvoid_msgs::PoseTwistWithCovariance::ConstPtr &msg);
+        void setNumSamples(int num_samples);
 
-      void amclPoseArrayWeightedCallback(const collvoid_msgs::PoseArrayWeighted::ConstPtr &msg);
+        bool isHoloRobot();
 
-      void odomCallback(const nav_msgs::Odometry::ConstPtr &msg);
+        ros::Time lastSeen();
 
 
-      ROSAgentPtr getNewAgentState(ROSAgentPtr rosAgentPtr, double time_diff);
+        void positionShareCallback(const collvoid_msgs::PoseTwistWithCovariance::ConstPtr &msg);
 
+        void amclPoseArrayWeightedCallback(const collvoid_msgs::PoseArrayWeighted::ConstPtr &msg);
 
-      void updateAllNeighbors();
+        void odomCallback(const nav_msgs::Odometry::ConstPtr &msg);
 
-      void predictAgentParams(ROSAgent *agent, double time_diff);
 
+        ROSAgentPtr getNewAgentState(ROSAgentPtr rosAgentPtr, double time_diff);
 
-      double vMaxAng();
 
-      void publishMePoseTwist();
+        void updateAllNeighbors();
 
-      geometry_msgs::PolygonStamped createFootprintMsgFromVector2(const std::vector<Vector2> &footprint);
+        void predictAgentParams(ROSAgent *agent, double time_diff);
 
-      std::vector<Vector2> rotateFootprint(const std::vector<Vector2> &footprint, double angle);
 
-      geometry_msgs::PoseStamped transformMapPoseToBaseLink(geometry_msgs::PoseStamped in);
+        double vMaxAng();
 
-      void computeNewLocUncertainty();
+        void publishMePoseTwist();
 
-      void computeNewMinkowskiFootprint();
+        geometry_msgs::PolygonStamped createFootprintMsgFromVector2(const std::vector<Vector2> &footprint);
 
-      void baseScanCallback(const sensor_msgs::LaserScan::ConstPtr &msg);
+        std::vector<Vector2> rotateFootprint(const std::vector<Vector2> &footprint, double angle);
 
-      //config
-      double publish_positions_period_;
-      double publish_me_period_;
+        geometry_msgs::PoseStamped transformMapPoseToBaseLink(geometry_msgs::PoseStamped in);
 
-      double threshold_last_seen_;
-      int num_samples_;
+        void computeNewLocUncertainty();
 
-      //helpers
-      ros::Time last_time_positions_published_;
-      ros::Time last_time_me_published_;
+        void computeNewMinkowskiFootprint();
 
-      //NH stuff
-      double min_error_holo_;
-      double max_error_holo_;
-      bool holo_robot_;
-      double time_to_holo_;
+        void baseScanCallback(const sensor_msgs::LaserScan::ConstPtr &msg);
 
-      //ORCA stuff
-      double max_vel_with_obstacles_;
-      collvoid::Vector2 holo_velocity_;
+        //config
+        double publish_positions_period_;
+        double publish_me_period_;
 
+        double threshold_last_seen_;
+        int num_samples_;
 
-      //Obstacles
-      laser_geometry::LaserProjection projector_;
+        //helpers
+        ros::Time last_time_positions_published_;
+        ros::Time last_time_me_published_;
 
-      //Obstacles
-      std::vector<Obstacle> obstacles_from_laser_;
-      //Obstacle Center
-      std::vector<Vector2> obstacle_centers_;
-      message_filters::Subscriber<sensor_msgs::LaserScan> laser_scan_sub_;
-      boost::shared_ptr<tf::MessageFilter<sensor_msgs::LaserScan> > laser_notifier;
+        //NH stuff
+        double min_error_holo_;
+        double max_error_holo_;
+        bool holo_robot_;
+        double time_to_holo_;
 
-      double min_dist_obst_;
+        //ORCA stuff
+        double max_vel_with_obstacles_;
+        collvoid::Vector2 holo_velocity_;
 
-      //obstacles
-      bool delete_observations_;
-      bool use_obstacles_;
-      std::vector<collvoid::Vector2> obstacle_points_;
-      double time_horizon_obst_;
 
-      //Agent description
-      std::string id_;
-      std::string base_frame_, global_frame_;
-      double wheel_base_;
-      geometry_msgs::PolygonStamped footprint_msg_;
-      double acc_lim_x_, acc_lim_y_, acc_lim_th_;
-      double min_vel_x_, max_vel_x_, min_vel_y_, max_vel_y_, max_vel_th_, min_vel_th_, min_vel_th_inplace_;
-      double footprint_radius_;
+        //Obstacles
+        laser_geometry::LaserProjection projector_;
 
+        //Obstacles
+        std::vector<Obstacle> obstacles_from_laser_;
+        //Obstacle Center
+        std::vector<Vector2> obstacle_centers_;
+        message_filters::Subscriber<sensor_msgs::LaserScan> laser_scan_sub_;
+        boost::shared_ptr<tf::MessageFilter<sensor_msgs::LaserScan> > laser_notifier;
 
-      bool standalone_;
-      //set automatically
-      bool initialized_;
-      bool has_polygon_footprint_;
+        double min_dist_obst_;
 
-      std::vector<std::pair<collvoid::Vector2, collvoid::Vector2> > footprint_lines_;
+        //obstacles
+        bool delete_observations_;
+        bool use_obstacles_;
+        std::vector<collvoid::Vector2> obstacle_points_;
+        double time_horizon_obst_;
 
+        //Agent description
+        std::string id_;
+        std::string base_frame_, global_frame_;
+        double wheel_base_;
+        geometry_msgs::PolygonStamped footprint_msg_;
+        double acc_lim_x_, acc_lim_y_, acc_lim_th_;
+        double min_vel_x_, max_vel_x_, min_vel_y_, max_vel_y_, max_vel_th_, min_vel_th_, min_vel_th_inplace_;
+        double footprint_radius_;
+        double xy_goal_tolerance_, yaw_goal_tolerance_;
 
-      ros::Time last_seen_;
-      nav_msgs::Odometry base_odom_;
+        bool standalone_;
+        //set automatically
+        bool initialized_;
+        bool has_polygon_footprint_;
 
-      //Predicted States
-      std::vector<PredictedStatePtr> states_;
+        std::vector<std::pair<collvoid::Vector2, collvoid::Vector2> > footprint_lines_;
 
-      //LOC uncertatiny
-      double eps_;
-      double cur_loc_unc_radius_;
 
-      //COLLVOID
-      std::vector<Vector2> minkowski_footprint_;
-      std::vector<std::pair<double, geometry_msgs::PoseStamped> > pose_array_weighted_;
+        ros::Time last_seen_;
+        nav_msgs::Odometry base_odom_;
 
-      boost::mutex me_lock_, obstacle_lock_, neighbors_lock_, convex_lock_;
+        //Predicted States
+        std::vector<PredictedStatePtr> states_;
 
-      //me stuff
-      tf::TransformListener *tf_;
+        //LOC uncertatiny
+        double eps_;
+        double cur_loc_unc_radius_;
 
-      //subscribers and publishers
-      ros::Publisher lines_pub_, neighbors_pub_, polygon_pub_, vo_pub_, me_pub_, samples_pub_, speed_pub_, position_share_pub_, obstacles_pub_;
-      ros::Subscriber amcl_posearray_sub_, position_share_sub_, odom_sub_;
+        //COLLVOID
+        std::vector<Vector2> minkowski_footprint_;
+        std::vector<std::pair<double, geometry_msgs::PoseStamped> > pose_array_weighted_;
+
+        boost::mutex me_lock_, obstacle_lock_, neighbors_lock_, convex_lock_;
+
+        //me stuff
+        tf::TransformListener *tf_;
+
+        //subscribers and publishers
+        ros::Publisher lines_pub_, neighbors_pub_, polygon_pub_, vo_pub_, me_pub_, samples_pub_, speed_pub_, position_share_pub_, obstacles_pub_;
+        ros::Subscriber amcl_posearray_sub_, position_share_sub_, odom_sub_;
+
+        // service calls
+        bool getTwistServiceCB(collvoid_local_planner::GetCollvoidTwist::Request &req, collvoid_local_planner::GetCollvoidTwist::Response &res);
+        geometry_msgs::Twist computeVelocityCommand(Vector2 waypoint, double goal_ang);
+        ros::ServiceServer service_;
+
+
 
 
     };

@@ -159,7 +159,7 @@ namespace collvoid_local_planner {
             global_frame_ = getParamDef<std::string>(private_nh, "global_frame", "/map");
             me_->setGlobalFrame(global_frame_);
             me_->setRobotBaseFrame(robot_base_frame_);
-
+            me_->setGoalTolerances(xy_goal_tolerance_, yaw_goal_tolerance_);
             //sim period
             std::string controller_frequency_param_name;
             if (!private_nh.searchParam("controller_frequency", controller_frequency_param_name))
