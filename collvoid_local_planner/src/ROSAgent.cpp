@@ -258,48 +258,26 @@ namespace collvoid {
         Vector2 goal_dir = waypoint - pos;
 
         geometry_msgs::Twist cmd_vel;
-        //rotate to goal:
-        if (collvoid::abs(goal_dir) < xy_goal_tolerance_) {
-            double robot_yaw = tf::getYaw(global_pose.getRotation());
-            double ang_diff = angles::shortest_angular_distance(robot_yaw, goal_ang);
-            if (fabs(ang_diff) < yaw_goal_tolerance_) {
-                return cmd_vel;
-            }
-            else {
-                double v_th_samp = ang_diff > 0.0 ? std::min(max_vel_th_,
-                                                             std::max(min_vel_th_inplace_, ang_diff)) : std::max(
-                        -1.0 * max_vel_th_,
-                        std::min(-1.0 * min_vel_th_inplace_, ang_diff));
-                v_th_samp = sign(v_th_samp) * std::max(min_vel_th_inplace_, fabs(v_th_samp));
-                cmd_vel.angular.z = v_th_samp;
-            }
+
+
+        if (collvoid::abs(goal_dir) > max_vel_x_) {
+            goal_dir = max_vel_x_ * collvoid::normalize(goal_dir);
         }
 
-        else {
-            if (collvoid::abs(goal_dir) > max_vel_x_) {
-                goal_dir = max_vel_x_ * collvoid::normalize(goal_dir);
-            }
-            else if (collvoid::abs(goal_dir) < min_vel_x_) {
-                goal_dir = min_vel_x_ * 1.2* collvoid::normalize(goal_dir);
-            }
-
-            double goal_dir_ang = atan2(goal_dir.y(), goal_dir.x());
-            //ROS_INFO("Pose (%f, %f), goal (%f, %f), dir (%f, %f), ang %f", pos.x(), pos.y(), waypoint.x(), waypoint.y(), goal_dir.x(), goal_dir.y(), goal_dir_ang);
+        //double goal_dir_ang = atan2(goal_dir.y(), goal_dir.x());
+        //ROS_INFO("Pose (%f, %f), goal (%f, %f), dir (%f, %f), ang %f", pos.x(), pos.y(), waypoint.x(), waypoint.y(), goal_dir.x(), goal_dir.y(), goal_dir_ang);
 
 
-            computeNewVelocity(goal_dir, cmd_vel);
+        computeNewVelocity(goal_dir, cmd_vel);
+//
+        if(std::abs(cmd_vel.angular.z)<min_vel_th_)
+            cmd_vel.angular.z = 0.0;
+        if(std::abs(cmd_vel.linear.x)<min_vel_x_)
+            cmd_vel.linear.x = 0.0;
+        if(std::abs(cmd_vel.linear.y)<min_vel_y_)
+            cmd_vel.linear.y = 0.0;
 
-            if(std::abs(cmd_vel.angular.z)<min_vel_th_)
-                cmd_vel.angular.z = 0.0;
-            if(std::abs(cmd_vel.linear.x)<min_vel_x_)
-                cmd_vel.linear.x = 0.0;
-            if(std::abs(cmd_vel.linear.y)<min_vel_y_)
-                cmd_vel.linear.y = 0.0;
-
-            return cmd_vel;
-        }
-
-
+        return cmd_vel;
     }
 
 

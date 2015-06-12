@@ -110,16 +110,16 @@ namespace collvoid {
      *                              be calculated.
      *  @returns    The squared distance from the line segment to the point.
      */
-    inline double distSqPointLineSegment(const Vector2 &a, const Vector2 &b,
-                                         const Vector2 &c) {
-      const double r = ((c - a) * (b - a)) / absSqr(b - a);
+    inline double distSqPointLineSegment(const Vector2 &seg_a, const Vector2 &seg_b,
+                                         const Vector2 &point) {
+      const double r = ((point - seg_a) * (seg_b - seg_a)) / absSqr(seg_b - seg_a);
 
       if (r < 0.0f) {
-        return absSqr(c - a);
+        return absSqr(point - seg_a);
       } else if (r > 1.0f) {
-        return absSqr(c - b);
+        return absSqr(point - seg_b);
       } else {
-        return absSqr(c - (a + r * (b - a)));
+        return absSqr(point - (seg_a + r * (seg_b - seg_a)));
       }
     }
 

@@ -707,7 +707,7 @@ namespace collvoid {
 
 
     Vector2 calculateClearpathVelocity(std::vector<VelocitySample> &samples, const std::vector<VO> &all_vos,
-                                       const std::vector<VO> &thuman_vos, const std::vector<VO> &agent_vos, const std::vector<VO> &static_vos,
+                                       const std::vector<VO> &human_vos, const std::vector<VO> &agent_vos, const std::vector<VO> &static_vos,
                                        const std::vector<Line> &additional_constraints, const Vector2 &pref_vel,
                                        double max_speed, bool use_truncation) {
 
@@ -758,9 +758,9 @@ namespace collvoid {
 
                 //if(absSqr(leg_projection.velocity) < max_speed) { //only add if below max_speed
                 leg_projection.dist_to_pref_vel = absSqr(pref_vel - leg_projection.velocity);
-                if (isWithinAdditionalConstraints(additional_constraints, leg_projection.velocity)) {
-                    samples.push_back(leg_projection);
-                }
+                //if (isWithinAdditionalConstraints(additional_constraints, leg_projection.velocity)) {
+                samples.push_back(leg_projection);
+                //}
                 //}
 
                 if (use_truncation) {
@@ -917,18 +917,23 @@ namespace collvoid {
                 optimal = all_vos.size();
                 new_vel = samples[i].velocity;
                 foundOutside = true;
+                //TODO project on movement constraints
             }
 
         }
+
         if (safeSamples.size()>0) {
             new_vel = safeSamples[0].velocity;
             double d = minDistToVOs(agent_vos, new_vel, use_truncation);
-            ROS_INFO("opt_vel dist %f", d);
+            if (d!=DBL_MAX) {
+                ros::NodeHandle nh;
+                ROS_INFO("%s opt_vel dist %f", nh.getNamespace().c_str(), d);
+            }
             // sample around optimal vel to find safe vel:
             std::vector<VelocitySample> samples_around_opt;
 
             //    ROS_INFO("selected j %d, of size %d", optimal, (int) all_vos.size());
-            if (d < 2 * EPSILON && agent_vos.size()>0) {
+            if (d < 2 * EPSILON && agent_vos.size()>0 && collvoid::abs(pref_vel)>0.1) {
                 createSamplesAroundOptVel(samples_around_opt, 0.1, 0.1, max_speed, max_speed, max_speed, max_speed, new_vel,
                                           25);
                 double bestDist = 0.0;
@@ -968,9 +973,6 @@ namespace collvoid {
                         double d = distToVO(vo, point, use_truncation);
                         if (d < dist) {
                             dist = d;
-                            if (d == -1.) {
-                                return dist;
-                            }
                         }
                     }
         return dist;
@@ -982,23 +984,19 @@ namespace collvoid {
         }
         double dist;
         if (use_truncation) {
-            if (leftOf(vo.trunc_left, vo.trunc_left-vo.trunc_right, point, 2 * EPSILON)) {
-                dist = sqrt(distSqPointLineSegment(vo.trunc_left, vo.trunc_right, point));
-            }
-            else if (leftOf(vo.trunc_left, vo.left_leg_dir, point, 2 * EPSILON)) {
-                dist = sqrt(distSqPointRay(vo.trunc_left, vo.left_leg_dir, point));
-            }
-            else {
-                dist = sqrt(distSqPointRay(vo.trunc_right, vo.right_leg_dir, point));
-            }
+            //if (leftOf(vo.trunc_left, vo.trunc_left-vo.trunc_right, point, 2 * EPSILON)) {
+            dist = sqrt(distSqPointLineSegment(vo.trunc_left, vo.trunc_right, point));
+            //}
+            //else if (leftOf(vo.trunc_left, vo.left_leg_dir, point, 2 * EPSILON)) {
+            dist = std::min(dist,sqrt(distSqPointRay(vo.trunc_left, vo.left_leg_dir, point)));
+            //}
+            //else {
+            dist = std::min(dist,sqrt(distSqPointRay(vo.trunc_right, vo.right_leg_dir, point)));
+            //}
         }
         else {
-            if (leftOf(vo.point, vo.left_leg_dir, point, 2 * EPSILON)) {
-                dist = sqrt(distSqPointRay(vo.point, vo.left_leg_dir, point));
-            }
-            else {
-                dist = sqrt(distSqPointRay(vo.point, vo.right_leg_dir, point));
-            }
+            dist = sqrt(distSqPointRay(vo.point, vo.left_leg_dir, point));
+            dist = std::min(dist, sqrt(distSqPointRay(vo.point, vo.right_leg_dir, point)));
         }
 
         return dist;

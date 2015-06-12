@@ -145,6 +145,8 @@ def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,
             launchWrite.write('    <rosparam command="load" file="$(find collvoid_stage)/params/collvoid_config.yaml" />\n')
 
         launchWrite.write('    <remap from="map" to="/map" />\n')
+        launchWrite.write('    <param name="~controlled" value="true" />\n')
+
         launchWrite.write('    <param name="~tf_prefix" value="robot_{0}" />\n'.format(x))
         launchWrite.write('    <param name="~/global_costmap/robot_base_frame" value="robot_{0}/base_link" /> \n    <param name="~/local_costmap/robot_base_frame" value="robot_{1}/base_link" /> \n    <param name="~/local_costmap/global_frame" value="robot_{0}/odom" /> \n'.format(x,x,x))
         launchWrite.write('    <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />\n')
@@ -156,6 +158,11 @@ def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,
        
         launchWrite.write('  </node> \n')
         launchWrite.write('  <node pkg="collvoid_controller" type="controllerRobots.py" name="controllerRobots" ns="robot_{0}" output="screen" />\n'.format(x))
+        launchWrite.write('  <node pkg="collvoid_controller" type="active_collision_avoidance.py" name="active_colvoid" ns="robot_{0}" output="screen">\n'.format(x))
+        launchWrite.write('    <param name="~base_frame_id" value="/robot_{0}/base_link" />\n'.format(x))
+
+        launchWrite.write('  </node> \n')
+    
     if (runExperiments):
         launchWrite.write('  <node pkg="collvoid_controller" type="watchdog.py" name="watchdog" output="screen"/>\n')
     else:

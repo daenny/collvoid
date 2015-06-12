@@ -88,7 +88,10 @@ class controller(wx.Frame):
         grid_sizer.Add(sendNextGoal, (5,1))
         self.Bind(wx.EVT_BUTTON, self.sendNextGoal, sendNextGoal)
 
-        
+        toggleActiveCollvoid = wx.Button(self,wx.ID_ANY,label="Toggle Active collvoid")
+        grid_sizer.Add(toggleActiveCollvoid, (5,2))
+        self.Bind(wx.EVT_BUTTON, self.toggleServices, toggleActiveCollvoid)
+
         grid_sizer.AddGrowableCol(0)
         self.SetSizer(sizer)
 
@@ -98,13 +101,25 @@ class controller(wx.Frame):
 
         self.subCommonPositions = rospy.Subscriber("/position_share", PoseTwistWithCovariance, self.cbCommonPositions)
         self.initialized = True
-               
+        self.services = []
+
+    def toggleServices(self, event):
+        for s in self.services:
+            try:
+                s()
+            except rospy.ServiceException as e:
+                rospy.logwarn("could not call toggle service collviod %s", e)
+        return
+
     def cbCommonPositions(self,msg):
         if not self.initialized:
             return
         if self.robotList.count(msg.robot_id) == 0:
             rospy.loginfo("robot added")
             self.robotList.append(msg.robot_id)
+            if msg.controlled:
+                s = rospy.ServiceProxy(msg.robot_id + '/toggle_active_collvoid', Empty)
+                self.services.append(s)
             self.choiceBox.Append(msg.robot_id)
 
     def sendDelayedGoal(self, event):

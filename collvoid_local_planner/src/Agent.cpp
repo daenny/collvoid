@@ -113,7 +113,7 @@ namespace collvoid {
 
                         }
                         //truncate
-                        if (use_truncation_) {
+                        if (agent->controlled_ && use_truncation_) {
                             if (abs(agent->velocity_) < EPSILON) {
                                 new_agent_vo = createTruncVO(new_agent_vo, 2.);
                                 static_vos_.push_back(new_agent_vo);
@@ -123,8 +123,17 @@ namespace collvoid {
                                 agent_vos_.push_back(new_agent_vo);
                             }
                         }
-                        else {
+                        else if(!agent->controlled_ && use_truncation_) {
+                            new_agent_vo = createTruncVO(new_agent_vo, 1000);
                             agent_vos_.push_back(new_agent_vo);
+                        }
+                        else {
+                            if (abs(agent->velocity_) < EPSILON && agent->controlled_) {
+                                static_vos_.push_back(new_agent_vo);
+                            }
+                            else {
+                                agent_vos_.push_back(new_agent_vo);
+                            }
                         }
                         all_vos_.push_back(new_agent_vo);
 
