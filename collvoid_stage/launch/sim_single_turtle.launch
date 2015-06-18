@@ -1,6 +1,6 @@
 <launch>
   <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_stage)/world/swarmlab_map.yaml"/>
-  <node pkg="stage" type="stageros" name="stageros" args="$(find collvoid_stage)/world/swarmlab_single_turtle.world" respawn="false" output="screen" />
+  <node pkg="stage_ros" type="stageros" name="stageros" args="$(find collvoid_stage)/world/swarmlab_single_turtle.world" respawn="false" output="screen" />
   <include file="$(find collvoid_stage)/launch/amcl_diff_single.launch">
   </include>
   <rosparam command="load" file="$(find collvoid_stage)/params_created.yaml"/>
@@ -28,7 +28,7 @@
 
   <!-- <node pkg="collvoid_local_planner" type="Helper" name="helper" output="screen" /> -->
 
-  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find collvoid_stage)/single_view.vcg" output="screen" />
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find collvoid_stage)/single_view.rviz" output="screen" />
 
 </launch>
   

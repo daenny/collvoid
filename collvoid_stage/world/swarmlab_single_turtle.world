@@ -16,7 +16,7 @@ define map model
   gui_grid 0
   gui_move 0
   gui_outline 0
-  obstacle_return 1
+  obstacle_return 0
   gripper_return 0
   fiducial_return 0
   laser_return 1
@@ -26,7 +26,7 @@ map
 (
   name "swarmlab_map"
   size [10.9  17.75 0.5]
-  pose [0 0 0 90]
+  pose [0 0 0 0]
   bitmap "swarmlab_map.pgm"
 )
 
@@ -40,7 +40,7 @@ define hokuyo ranger
     size [ 0.05 0.05 0.1 ]
   )
   color "black"
-  ctrl "lasernoise"
+  #ctrl "lasernoise"
 )
 
 define roomba position

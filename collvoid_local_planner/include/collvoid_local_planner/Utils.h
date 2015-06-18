@@ -64,6 +64,7 @@ namespace collvoid {
     struct VelocitySample {
       Vector2 velocity;
       double dist_to_pref_vel;
+        double cost;
     };
 
     struct ConvexHullPoint {

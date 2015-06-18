@@ -4,7 +4,7 @@ import roslib
 roslib.load_manifest('collvoid_controller')
 import rospy
 roslib.load_manifest('stage')
-import string
+#import string
 from stage.msg import Stall
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Twist

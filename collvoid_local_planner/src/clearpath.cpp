@@ -577,13 +577,13 @@ namespace collvoid {
                 VelocitySample intersection_point;
                 intersection_point.velocity = Vector2(x1 + r * (x2 - x1), y1 + r * (y2 - y1));
                 intersection_point.dist_to_pref_vel = absSqr(pref_vel - intersection_point.velocity);
-                if (isWithinAdditionalConstraints(additional_constraints, intersection_point.velocity)) {
+                //if (isWithinAdditionalConstraints(additional_constraints, intersection_point.velocity)) {
                     //if (absSqr(intersection_point.velocity) < sqr(1.2 * max_speed)) {
                     //ROS_ERROR("adding VelocitySample");
-                    samples.push_back(intersection_point);
+                samples.push_back(intersection_point);
                     //ROS_ERROR("size of VelocitySamples %d", (int) samples->size());
 
-                }
+                //}
             }
         }
     }
@@ -650,9 +650,10 @@ namespace collvoid {
                     double th_dif = min_theta + j * step_theta;
                     double x_dif = (min_x + i * step_x) * cos(heading + th_dif / 2.0);
                     double y_dif = (min_x + i * step_x) * sin(heading + th_dif / 2.0);
-                    p.dist_to_pref_vel = absSqr(Vector2(cur_vel_x, cur_vel_y));
 
                     p.velocity = Vector2(x_dif, y_dif);
+                    p.dist_to_pref_vel = absSqr(Vector2(cur_vel_x, cur_vel_y));
+
                     //p.velocity = rotateVectorByAngle(Vector2(min_x + i* step_x, 0), heading + min_theta + j * step_theta);
 
                     samples.push_back(p);
@@ -664,7 +665,7 @@ namespace collvoid {
     }
 
     Vector2 calculateNewVelocitySampled(std::vector<VelocitySample> &samples, const std::vector<VO> &truncated_vos,
-                                        const Vector2 &pref_vel, double max_speed, bool use_truncation) {
+                                        const Vector2 &pref_vel, double max_speed, const Vector2& cur_speed, bool use_truncation) {
 
         // VelocitySample pref_vel_sample;
         // pref_vel_sample.velocity = pref_vel;
@@ -682,11 +683,16 @@ namespace collvoid {
         for (int i = 0; i < (int) samples.size(); i++) {
             VelocitySample cur = samples[i];
             double cost = calculateVelCosts(cur.velocity, truncated_vos, pref_vel, max_speed, use_truncation);
-            cost += cur.dist_to_pref_vel;
+            cost += 2 * absSqr(cur.velocity - pref_vel);
+            //cost += std::min(-minDistToVOs(truncated_vos, cur.velocity, use_truncation),0.1);
+            cost += -minDistToVOs(truncated_vos, cur.velocity, use_truncation);
+            cost += 2 * absSqr(cur.velocity - cur_speed);
+
             if (cost < min_cost) {
                 min_cost = cost;
                 best_vel = cur.velocity;
             }
+            samples[i].cost = cost;
         }
         //ROS_ERROR("min_cost %f", min_cost);
         return best_vel;
@@ -695,7 +701,7 @@ namespace collvoid {
     double calculateVelCosts(const Vector2 &test_vel, const std::vector<VO> &truncated_vos, const Vector2 &pref_vel,
                              double max_speed, bool use_truncation) {
         double cost = 0.0;
-        double COST_IN_VO = 1000.0;
+        double COST_IN_VO = 2.0;
         for (int j = 0; j < (int) truncated_vos.size(); j++) {
             if (isInsideVO(truncated_vos[j], test_vel, use_truncation)) {
                 cost += (truncated_vos.size() - j) * COST_IN_VO;
@@ -969,6 +975,9 @@ namespace collvoid {
 
     double minDistToVOs(const std::vector<VO>& vos, Vector2 point, bool use_truncation) {
         double dist = DBL_MAX;
+        if (vos.size() == 0) {
+            return 1.;
+        }
         BOOST_FOREACH(VO vo, vos) {
                         double d = distToVO(vo, point, use_truncation);
                         if (d < dist) {

@@ -83,7 +83,7 @@ namespace collvoid {
         if (controlled_) {
             computeAgentVOs();
         }
-        new_velocity_ = calculateNewVelocitySampled(samples_, all_vos_, pref_velocity, max_speed_x_, use_truncation_);
+        new_velocity_ = calculateNewVelocitySampled(samples_, all_vos_, pref_velocity, max_speed_x_, velocity_, use_truncation_);
     }
 
 
@@ -124,7 +124,7 @@ namespace collvoid {
                             }
                         }
                         else if(!agent->controlled_ && use_truncation_) {
-                            new_agent_vo = createTruncVO(new_agent_vo, 1000);
+                            new_agent_vo = createTruncVO(new_agent_vo, 100);
                             agent_vos_.push_back(new_agent_vo);
                         }
                         else {

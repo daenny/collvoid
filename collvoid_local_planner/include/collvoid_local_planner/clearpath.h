@@ -120,7 +120,7 @@ namespace collvoid {
                              double max_speed, bool use_truncation);
 
     Vector2 calculateNewVelocitySampled(std::vector<VelocitySample> &samples, const std::vector<VO> &truncated_vos,
-                                        const Vector2 &pref_vel, double max_speed, bool use_truncation);
+                                        const Vector2 &pref_vel, double max_speed, const Vector2 &cur_speed, bool use_truncation);
 
 
     bool isSafeVelocity(const std::vector<VO> &truncated_vos, Vector2 vel, bool use_truncation);

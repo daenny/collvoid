@@ -158,7 +158,8 @@ namespace collvoid {
             geometry_msgs::Point p;
             p.x = pos.x() + points[i].velocity.x();
             p.y = pos.y() + points[i].velocity.y();
-            p.z = 0.1;
+            p.z = points[i].cost;
+            //p.z = 0.1;
             sphere.points.push_back(p);
             sphere.pose.position.x = p.x;
             sphere.pose.position.y = p.y;
