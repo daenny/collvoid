@@ -500,14 +500,12 @@ namespace collvoid_local_planner {
         }
         tf::Stamped<tf::Pose> global_pose;
         costmap_ros_->getRobotPose(global_pose);
-
         costmap_2d::Costmap2D *costmap = costmap_ros_->getCostmap();
-
 
         return base_local_planner::isGoalReached(*tf_,
                                                  global_plan_,
                                                  *costmap,
-                                                 global_frame_,
+                                                 costmap_ros_->getGlobalFrameID(),
                                                  global_pose,
                                                  base_odom,
                                                  rot_stopped_velocity_,
@@ -554,7 +552,7 @@ namespace collvoid_local_planner {
 
         //check to see if we've reached the goal position
         if (xy_tolerance_latch_ ||
-            (base_local_planner::getGoalPositionDistance(global_pose, goal_x, goal_y) <= xy_goal_tolerance_)) {
+            (base_local_planner::getGoalPositionDistance(global_pose, goal_x, goal_y) < xy_goal_tolerance_ - EPSILON)) {
 
             //if(base_local_planner::goalPositionReached(global_pose, goal_x, goal_y, xy_goal_tolerance_) || xy_tolerance_latch_){
 
@@ -566,7 +564,7 @@ namespace collvoid_local_planner {
             //check to see if the goal orientation has been reached
             double angle = base_local_planner::getGoalOrientationAngleDifference(global_pose, goal_th);
             //check to see if the goal orientation has been reached
-            if (fabs(angle) <= yaw_goal_tolerance_) {
+            if (fabs(angle) < yaw_goal_tolerance_ - EPSILON) {
 
                 //if(base_local_planner::goalOrientationReached(global_pose, goal_th, yaw_goal_tolerance_)){
                 //set the velocity command to zero
@@ -599,7 +597,7 @@ namespace collvoid_local_planner {
                         return false;
                 }
             }
-
+            //ROS_INFO("REACHED_GOAL");
             //publish an empty plan because we've reached our goal position
             transformed_plan_.clear();
             base_local_planner::publishPlan(transformed_plan_, g_plan_pub_);

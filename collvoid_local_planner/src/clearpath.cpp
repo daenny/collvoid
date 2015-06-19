@@ -74,8 +74,75 @@ namespace collvoid {
     // }
 
 
+    VO createObstacleVO(Vector2 &position1, const std::vector<Vector2> &footprint1, const std::vector<Vector2> &obst, Vector2 &obst_position) {
+        VO result;
+        std::vector<Vector2> mink_sum = minkowskiSum(footprint1, obst);
+        Vector2 min_left, min_right;
+        double min_ang = 0.0;
+        double max_ang = 0.0;
+        Vector2 rel_position = obst_position - position1;
+        Vector2 rel_position_normal = normal(rel_position);
+        double min_dist = abs(rel_position);
+
+        for (int i = 0; i < (int) mink_sum.size(); i++) {
+            double angle = angleBetween(rel_position, mink_sum[i]);
+            if (rightOf(Vector2(0.0, 0.0), rel_position, mink_sum[i])) {
+                if (-angle < min_ang) {
+                    min_right = mink_sum[i];
+                    min_ang = -angle;
+                }
+            }
+            else {
+                if (angle > max_ang) {
+                    min_left = mink_sum[i];
+                    max_ang = angle;
+                }
+            }
+            Vector2 project_on_rel_position = intersectTwoLines(Vector2(0.0, 0.0), rel_position,
+                                                                mink_sum[i], rel_position_normal);
+            double dist = abs(project_on_rel_position);
+            if (project_on_rel_position * rel_position < -EPSILON) {
+                //	ROS_ERROR("Collision?");
+                dist = -dist;
+
+            }
+
+            if (dist < min_dist) {
+                min_dist = dist;
+            }
+        }
+        if (min_dist < 0) {
+            result.left_leg_dir = -normalize(rel_position_normal);
+            result.right_leg_dir = -result.left_leg_dir;
+            result.relative_position = rel_position;
+            result.combined_radius = abs(rel_position) - min_dist;
+            result.point = min_dist * normalize(rel_position);
+            return result;
+
+        }
+
+        double ang_rel = atan2(rel_position.y(), rel_position.x());
+        result.left_leg_dir = Vector2(cos(ang_rel + max_ang), sin(ang_rel + max_ang));
+        result.right_leg_dir = Vector2(cos(ang_rel + min_ang), sin(ang_rel + min_ang));
+
+        result.left_leg_dir = rotateVectorByAngle(result.left_leg_dir, 0.05);
+        result.right_leg_dir = rotateVectorByAngle(result.right_leg_dir, -0.05);
+
+        result.relative_position = rel_position;
+        result.combined_radius = abs(rel_position) - min_dist;
+        result.point = Vector2(0, 0);
+
+        result.trunc_left = intersectTwoLines(result.point, result.left_leg_dir,
+                                              result.combined_radius / 4.0 * normalize(rel_position), rel_position_normal);
+        result.trunc_right = intersectTwoLines(result.point, result.right_leg_dir,
+                                               result.combined_radius / 4.0 * normalize(rel_position), rel_position_normal);
+        result.trunc_line_center = (result.trunc_left + result.trunc_right )/ 2.;
+        //result = createTruncVO(result, 6.0);
+        return result;
+    }
 
 
+    /*
     VO createObstacleVO(Vector2 &position1, double radius1, const std::vector<Vector2> &footprint1, Vector2 &obst1,
                         Vector2 &obst2) {
         VO result;
@@ -124,14 +191,11 @@ namespace collvoid {
             }
         }
         if (min_dist < 0) {
-            result.left_leg_dir = -normalize(obst1 - obst2);
+         result.left_leg_dir = -normalize(rel_position_normal);
             result.right_leg_dir = -result.left_leg_dir;
-
-            result.point = rel_position - 1.5 * radius1 * normal(result.left_leg_dir);
-            result.trunc_left = result.point;
-            result.trunc_right = result.point;
-            result.trunc_line_center= result.point;
-
+            result.relative_position = rel_position;
+            result.combined_radius = abs(rel_position) - min_dist;
+            result.point = min_dist * normalize(rel_position);
             return result;
 
         }
@@ -167,15 +231,15 @@ namespace collvoid {
         result.point = Vector2(0, 0);
 
         result.trunc_left = intersectTwoLines(result.point, result.left_leg_dir,
-                                              result.combined_radius / 2.0 * normalize(rel_position), obst2 - obst1);
+                                              result.combined_radius / 2.0 * normalize(rel_position), rel_position_normal);
         result.trunc_right = intersectTwoLines(result.point, result.right_leg_dir,
-                                               result.combined_radius / 2.0 * normalize(rel_position), obst2 - obst1);
+                                               result.combined_radius / 2.0 * normalize(rel_position), rel_position_normal);
         result.trunc_line_center = (result.trunc_left + result.trunc_right )/ 2.;
         //result = createTruncVO(result, 6.0);
         return result;
 
     }
-
+ */
     // VO createObstacleVO(Vector2& position1, double radius1,Vector2& vel1,  Vector2& position2, double radius2){
     //   VO result;
 

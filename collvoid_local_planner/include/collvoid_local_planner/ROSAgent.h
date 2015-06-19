@@ -53,8 +53,7 @@
 
 namespace collvoid {
     struct Obstacle {
-        Vector2 point1;
-        Vector2 point2;
+        std::vector<Vector2> points;
         ros::Time last_seen;
     };
 
@@ -214,6 +213,10 @@ namespace collvoid {
 
         void baseScanCallback(const sensor_msgs::LaserScan::ConstPtr &msg);
 
+        std::vector<Obstacle> getObstacles();
+
+
+
         //config
         double publish_positions_period_;
         double publish_me_period_;
@@ -299,7 +302,7 @@ namespace collvoid {
         bool getTwistServiceCB(collvoid_local_planner::GetCollvoidTwist::Request &req, collvoid_local_planner::GetCollvoidTwist::Response &res);
         geometry_msgs::Twist computeVelocityCommand(Vector2 waypoint, double goal_ang);
         ros::ServiceServer service_;
-
+        ros::ServiceClient get_obstacles_srv_;
 
 
 

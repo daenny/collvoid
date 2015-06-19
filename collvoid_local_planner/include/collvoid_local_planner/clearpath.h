@@ -55,6 +55,7 @@ namespace collvoid {
 
     VO createObstacleVO(Vector2 &position1, double radius1, const std::vector<Vector2> &footprint1, Vector2 &obst1,
                         Vector2 &obst2);
+    VO createObstacleVO(Vector2 &position1, const std::vector<Vector2> &footprint1, const std::vector<Vector2> &obst, Vector2 &obst_position);
 
 
     //Footprint based:

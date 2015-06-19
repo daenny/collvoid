@@ -1,7 +1,11 @@
 /noise_std: 0.0
-use_obstacles: false
+use_obstacles: true
 
 controller_frequency: 10
+yaw_goal_tolerance: 0.10
+xy_goal_tolerance: 0.10
+latch_xy_goal_tolerance: true
+
 
 CollvoidLocalPlanner:
   yaw_goal_tolerance: 0.10

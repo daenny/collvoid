@@ -229,17 +229,37 @@ namespace collvoid {
         line_list.id = 1;
         geometry_msgs::Point p;
         for (int i = 0; i < (int) obstacles_lines.size(); i++) {
-            if (obstacles_lines[i].point1 == obstacles_lines[i].point2) {
-                continue;
-            }
-            p.x = obstacles_lines[i].point1.x();
-            p.y = obstacles_lines[i].point1.y();
+            p.x = obstacles_lines[i].points[0].x();
+            p.y = obstacles_lines[i].points[0].y();
             line_list.points.push_back(p);
 
-            p.x = obstacles_lines[i].point2.x();
-            p.y = obstacles_lines[i].point2.y();
+            p.x = obstacles_lines[i].points[1].x();
+            p.y = obstacles_lines[i].points[1].y();
             line_list.points.push_back(p);
 
+            p.x = obstacles_lines[i].points[1].x();
+            p.y = obstacles_lines[i].points[1].y();
+            line_list.points.push_back(p);
+
+            p.x = obstacles_lines[i].points[2].x();
+            p.y = obstacles_lines[i].points[2].y();
+            line_list.points.push_back(p);
+
+            p.x = obstacles_lines[i].points[2].x();
+            p.y = obstacles_lines[i].points[2].y();
+            line_list.points.push_back(p);
+
+            p.x = obstacles_lines[i].points[3].x();
+            p.y = obstacles_lines[i].points[3].y();
+            line_list.points.push_back(p);
+
+            p.x = obstacles_lines[i].points[3].x();
+            p.y = obstacles_lines[i].points[3].y();
+            line_list.points.push_back(p);
+
+            p.x = obstacles_lines[i].points[0].x();
+            p.y = obstacles_lines[i].points[0].y();
+            line_list.points.push_back(p);
         }
         line_pub.publish(line_list);
 

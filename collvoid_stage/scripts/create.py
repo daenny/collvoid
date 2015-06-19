@@ -158,11 +158,19 @@ def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,
        
         launchWrite.write('  </node> \n')
         launchWrite.write('  <node pkg="collvoid_controller" type="controllerRobots.py" name="controllerRobots" ns="robot_{0}" output="screen" />\n'.format(x))
-        launchWrite.write('  <node pkg="collvoid_controller" type="active_collision_avoidance.py" name="active_colvoid" ns="robot_{0}" output="screen">\n'.format(x))
+        launchWrite.write('  <node pkg="collvoid_controller" type="active_collision_avoidance.py" name="active_collvoid" ns="robot_{0}" output="screen">\n'.format(x))
+
         launchWrite.write('    <param name="~base_frame_id" value="/robot_{0}/base_link" />\n'.format(x))
 
         launchWrite.write('  </node> \n')
-    
+        launchWrite.write('  <node pkg="collvoid_controller" type="detect_obstacles.py" name="detect_obstacles" ns="robot_{0}" output="screen">\n'.format(x))
+
+        launchWrite.write('    <param name="~base_frame" value="/robot_{0}/base_link" />\n'.format(x))
+
+        launchWrite.write('  </node> \n')
+
+
+        
     if (runExperiments):
         launchWrite.write('  <node pkg="collvoid_controller" type="watchdog.py" name="watchdog" output="screen"/>\n')
     else:

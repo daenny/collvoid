@@ -31,7 +31,7 @@
 #include <angles/angles.h>
 #include <boost/foreach.hpp>
 #include <boost/tuple/tuple.hpp>
-
+#include <collvoid_srvs/GetObstacles.h>
 
 #include "collvoid_local_planner/ROSAgent.h"
 
@@ -197,14 +197,16 @@ namespace collvoid {
         position_share_sub_ = nh.subscribe("/position_share_in", 10, &ROSAgent::positionShareCallback, this);
         odom_sub_ = nh.subscribe("odom", 1, &ROSAgent::odomCallback, this);
 
+        //new obstacles from python service
+        get_obstacles_srv_ = nh.serviceClient<collvoid_srvs::GetObstacles>("get_obstacles", false);
 
-        laser_scan_sub_.subscribe(nh, "base_scan", 1);
-        laser_notifier.reset(new tf::MessageFilter<sensor_msgs::LaserScan>(laser_scan_sub_, *tf_, global_frame_, 10));
-
-        laser_notifier->registerCallback(boost::bind(&ROSAgent::baseScanCallback, this, _1));
-        laser_notifier->setTolerance(ros::Duration(0.1));
-        //laser_scan_sub_ = nh.subscribe("base_scan", 1, &ROSAgent::baseScanCallback, this);
-
+        // OLD OBSTACLES
+//        laser_scan_sub_.subscribe(nh, "base_scan", 1);
+//        laser_notifier.reset(new tf::MessageFilter<sensor_msgs::LaserScan>(laser_scan_sub_, *tf_, global_frame_, 10));
+//
+//        laser_notifier->registerCallback(boost::bind(&ROSAgent::baseScanCallback, this, _1));
+//        laser_notifier->setTolerance(ros::Duration(0.1));
+//
 
         ROS_INFO("New Agent as me initialized");
 
@@ -471,6 +473,31 @@ namespace collvoid {
 
     }
 
+
+    std::vector<Obstacle> ROSAgent::getObstacles() {
+        std::vector<Obstacle> obstacles;
+        collvoid_srvs::GetObstacles srv;
+
+        if (get_obstacles_srv_.call(srv)) {
+            BOOST_FOREACH(geometry_msgs::PolygonStamped poly, srv.response.obstacles) {
+                            Obstacle obst;
+                            obst.last_seen = poly.header.stamp;
+                            BOOST_FOREACH (geometry_msgs::Point32 p, poly.polygon.points) {
+                                            Vector2 v = Vector2(p.x, p.y);
+                                            obst.points.push_back(v);
+
+                                        }
+                              obstacles.push_back(obst);
+                        }
+        }
+        else {
+            ROS_WARN("Could not get Obstacles from service");
+        }
+        publishObstacleLines(obstacles, global_frame_, base_frame_, obstacles_pub_);
+
+        return obstacles;
+    }
+
     void ROSAgent::computeObstacles() {
         boost::mutex::scoped_lock lock(obstacle_lock_);
 
@@ -479,23 +506,54 @@ namespace collvoid {
                         own_footprint.push_back(Vector2(p.x, p.y));
                         //ROS_WARN("footprint point p = (%f, %f) ", p.x, p.y);
                     }
+
+        std::vector<Obstacle> obstacles = getObstacles();
+
+        BOOST_FOREACH(Obstacle obst, obstacles) {
+                        if (use_obstacles_) {
+                            //obst.points = rotateFootprint(obst.points, heading_);
+                            Vector2 obst_center = (obst.points[0] + obst.points[2])/2.;
+                            std::vector<Vector2> obst_footprint;
+                            BOOST_FOREACH(Vector2 p, obst.points) {
+                                           obst_footprint.push_back(p-obst_center);
+                                       }
+                            if (orca_) {
+
+                                createObstacleLine(own_footprint, obst.points[0], obst.points[1]);
+                                createObstacleLine(own_footprint, obst.points[1], obst.points[2]);
+                                createObstacleLine(own_footprint, obst.points[2], obst.points[3]);
+                                createObstacleLine(own_footprint, obst.points[3], obst.points[0]);
+                            }
+                            else {
+                                Vector2 null = Vector2(0,0);
+                                VO obstacle_vo = createVO(position_, own_footprint, obst_center, obst_footprint, null);
+                                obstacle_vo = createTruncVO(obstacle_vo, 4);
+                                static_vos_.push_back(obstacle_vo);
+                                all_vos_.push_back(obstacle_vo);
+                            }
+                        }
+                    }
+
+
+        /* OLD CODE
         min_dist_obst_ = DBL_MAX;
         ros::Time cur_time = ros::Time::now();
         int i = 0;
         std::vector<int> delete_list;
-        BOOST_FOREACH(Obstacle obst, obstacles_from_laser_) {
-                        if (obst.point1 != obst.point2) {// && (cur_time - obst.last_seen).toSec() < 0.2) {
-                            double dist = distSqPointLineSegment(obst.point1, obst.point2, position_);
+
+         BOOST_FOREACH(Obstacle obst, obstacles_from_laser_) {
+                        if (obst.points[0] != obst.points[1]) {// && (cur_time - obst.last_seen).toSec() < 0.2) {
+                            double dist = distSqPointLineSegment(obst.points[0], obst.points[1], position_);
 
                             //ROS_INFO("dist: %f sqr: %f fr: %f", dist, sqr((abs(velocity_) + 8.0 * footprint_radius_)), footprint_radius_);
                             if (dist < sqr((abs(velocity_) + 8.0 * footprint_radius_))) {
                                 if (use_obstacles_) {
                                     if (orca_) {
-                                        createObstacleLine(own_footprint, obst.point1, obst.point2);
+                                        createObstacleLine(own_footprint, obst.points[0], obst.points[1]);
                                     }
                                     else {
                                         VO obstacle_vo = createObstacleVO(position_, footprint_radius_, own_footprint,
-                                                                          obst.point1, obst.point2);
+                                                                          obst.points[0], obst.points[1]);
                                         static_vos_.push_back(obstacle_vo);
                                         all_vos_.push_back(obstacle_vo);
                                     }
@@ -512,7 +570,7 @@ namespace collvoid {
                     }
         for (int i = (int) delete_list.size() - 1; i >= 0; i--) {
             obstacles_from_laser_.erase(obstacles_from_laser_.begin() + delete_list[i]);
-        }
+        }*/
 
     }
 
@@ -607,20 +665,20 @@ namespace collvoid {
     }
 
     void ROSAgent::createObstacleLine(std::vector<Vector2> &own_footprint, Vector2 &obst1, Vector2 &obst2) {
+        Vector2 null = Vector2(0,0);
+        double dist = distSqPointLineSegment(obst1, obst2, null);
 
-        double dist = distSqPointLineSegment(obst1, obst2, position_);
-
-        if (dist == absSqr(position_ - obst1)) {
+        if (dist == absSqr(obst1)) {
             computeObstacleLine(obst1);
         }
-        else if (dist == absSqr(position_ - obst2)) {
+        else if (dist == absSqr(obst2)) {
             computeObstacleLine(obst2);
         }
             // if (false) {
             // }
         else {
-            Vector2 position_obst = projectPointOnLine(obst1, obst2 - obst1, position_);
-            Vector2 rel_position = position_obst - position_;
+            Vector2 position_obst = projectPointOnLine(obst1, obst2 - obst1, null);
+            Vector2 rel_position = position_obst;
             dist = std::sqrt(dist);
             double dist_to_footprint = getDistToFootprint(rel_position);
             if (dist_to_footprint == -1) {
@@ -1392,40 +1450,10 @@ namespace collvoid {
 
         if (!obs_in_neigh) {
             obstacle_centers_.push_back(center);
-
-
-            obst.point1 = start;
-            obst.point2 = end;
+            obst.points.push_back(start);
+            obst.points.push_back(end);
             obst.last_seen = stamp;
-
             obstacles_from_laser_.push_back(obst);
-
-            //
-            //      obst.point1 = vertex1;
-            //      obst.point2 = vertex2;
-            //      obst.last_seen = stamp;
-            //
-            //      obstacles_from_laser_.push_back(obst);
-            //
-            //      obst.point1 = vertex2;
-            //      obst.point2 = vertex3;
-            //      obst.last_seen = stamp;
-            //
-            //      obstacles_from_laser_.push_back(obst);
-            //
-            //      obst.point1 = vertex3;
-            //      obst.point2 = vertex4;
-            //
-            //      obst.last_seen = stamp;
-            //
-            //      obstacles_from_laser_.push_back(obst);
-            //
-            //      obst.point1 = vertex4;
-            //      obst.point2 = vertex1;
-            //      obst.last_seen = stamp;
-            //
-            //      obstacles_from_laser_.push_back(obst);
-
         }
     }
 

@@ -11,8 +11,10 @@ import cv2
 import cv2.cv
 import numpy as np
 
-GLOBAL_FRAME = rospy.get_param('global_frame', '/map')
-BASE_FRAME = rospy.get_param('base_frame', 'base_link')
+GLOBAL_FRAME = None
+BASE_FRAME = None
+
+VISUALIZE = False
 
 def convex_hull(points):
     """Computes the convex hull of a set of 2D points.
@@ -86,7 +88,7 @@ class DetectObstacles(object):
         self.polygon_pub = rospy.Publisher('obstacle_polygons', PolygonStamped, queue_size=1)
         rospy.Subscriber('base_scan', LaserScan, self.cb_laser)
         rospy.Subscriber('/position_share', PoseTwistWithCovariance, self.cb_pose_twist)
-        rospy.Service('get_current_obstacles', GetObstacles, self.cb_get_obstacles_srv)
+        rospy.Service('get_obstacles', GetObstacles, self.cb_get_obstacles_srv)
 
     def cb_get_obstacles_srv(self, req):
         return {'obstacles': self.current_obstacles}
@@ -136,25 +138,29 @@ class DetectObstacles(object):
         for p in output_img_points:
             current_list = self.add_point(p, current_list, current_obstacles)
         h = cv2.convexHull(np.array(current_list))
-        current_obstacles.append(h)
+        rect = cv2.minAreaRect(h)
+        box = cv2.cv.BoxPoints(rect)
+        box = np.int32(box)
+        current_obstacles.append(box)
 
         current_obstacles = self.filter_obstacles(current_obstacles)
 
         self.remap_points_to_polygons(current_obstacles, max_range)
 
-        img = np.zeros([IMG_SIZE_Y, IMG_SIZE_X], dtype=np.uint8)
+        if VISUALIZE:
+            img = np.zeros([IMG_SIZE_Y, IMG_SIZE_X], dtype=np.uint8)
 
-        for p in output_img_points:
-            img[p[1]][p[0]] = 255
+            for p in output_img_points:
+                img[p[1]][p[0]] = 255
 
-        return_img = img.copy()
-        for obst in current_obstacles:
-            # output_obst = (obst/max_range * 400 + 200).astype(int)
-            cv2.drawContours(return_img, [obst], 0, 255, 2)
+            return_img = img.copy()
+            for obst in current_obstacles:
+                # output_obst = (obst/max_range * 400 + 200).astype(int)
+                cv2.drawContours(return_img, [obst], 0, 255, 2)
 
-        cv2.imshow("laser", return_img)
-        cv2.waitKey(5)
-        # cv2.convexHull(points)
+            cv2.imshow("laser", return_img)
+            cv2.waitKey(5)
+            # cv2.convexHull(points)
 
     def filter_obstacles(self, current_obstacles):
         remove_list = []
@@ -170,7 +176,10 @@ class DetectObstacles(object):
         if len(current_list) > 0:
             if np.linalg.norm(np.array(point) - np.array(current_list[-1])) > 30:
                 h = cv2.convexHull(np.array(current_list))
-                current_obstacles.append(h)
+                rect = cv2.minAreaRect(h)
+                box = cv2.cv.BoxPoints(rect)
+                box = np.int32(box)
+                current_obstacles.append(box)
                 current_list = [point]
                 return current_list
 
@@ -186,7 +195,11 @@ class DetectObstacles(object):
         if min(axis) > 20:
             current_list.pop()
             h = cv2.convexHull(np.array(current_list))
-            current_obstacles.append(h)
+            rect = cv2.minAreaRect(h)
+            box = cv2.cv.BoxPoints(rect)
+            box = np.int32(box)
+            #print box, h
+            current_obstacles.append(box)
             current_list = [point]
         return current_list
 
@@ -196,20 +209,23 @@ class DetectObstacles(object):
         for obst in obstacles:
             poly = PolygonStamped()
             poly.header.stamp = now
-            poly.header.frame_id = BASE_FRAME
+            poly.header.frame_id = GLOBAL_FRAME # BASE_FRAME
             pc = PointCloud()
             pc.header.stamp = now
             pc.header.frame_id = BASE_FRAME
             for p in obst:
                 t = Point()
-                t.x = (p[0][0]-400.)/400. * max_range
-                t.y = (p[0][1]-400.)/400. * max_range
+                t.x = (p[0]-400.)/400. * max_range
+                t.y = (p[1]-400.)/400. * max_range
                 pc.points.append(t)
-
-            # self.tf_listener.transformPointCloud(GLOBAL_FRAME, pc)
+            try:
+                pc = self.tf_listener.transformPointCloud(GLOBAL_FRAME, pc)
+            except tf.Exception as e:
+                #print e
+                continue
             poly.polygon.points = pc.points
             self.current_obstacles.append(poly)
-            self.polygon_pub.publish(poly)
+            #self.polygon_pub.publish(poly)
 
     def cb_pose_twist(self, msg):
         pass
@@ -217,6 +233,9 @@ class DetectObstacles(object):
 
 if __name__ == '__main__':
     rospy.init_node('detect_obstacles')
+    GLOBAL_FRAME = rospy.get_param('~global_frame', '/map')
+    BASE_FRAME = rospy.get_param('~base_frame', 'base_link')
+
     detector = DetectObstacles()
     rospy.spin()
 
