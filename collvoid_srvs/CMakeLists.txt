@@ -6,6 +6,7 @@ project(collvoid_srvs)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
+  collvoid_msgs
   message_generation
   message_runtime
   std_srvs
@@ -54,6 +55,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate services in the 'srv' folder
 add_service_files(
    FILES
+   GetNeighbors.srv
    GetObstacles.srv
 #   Service2.srv
 )
@@ -68,6 +70,7 @@ add_service_files(
 ## Generate added messages and services with any dependencies listed here
  generate_messages(
    DEPENDENCIES
+   collvoid_msgs
    geometry_msgs
  )
 

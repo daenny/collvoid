@@ -997,7 +997,7 @@ namespace collvoid {
             double d = minDistToVOs(agent_vos, new_vel, use_truncation);
             if (d!=DBL_MAX) {
                 ros::NodeHandle nh;
-                ROS_INFO("%s opt_vel dist %f", nh.getNamespace().c_str(), d);
+                // ROS_INFO("%s opt_vel dist %f", nh.getNamespace().c_str(), d);
             }
             // sample around optimal vel to find safe vel:
             std::vector<VelocitySample> samples_around_opt;

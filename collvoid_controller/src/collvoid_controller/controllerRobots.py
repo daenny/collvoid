@@ -42,6 +42,8 @@ class ControllerRobots():
             self.goals = rospy.get_param("/%s/goals" % self.hostname, [])
         else:
             self.goals = rospy.get_param("%sgoals" % self.hostname, [])
+            self.hostname = self.hostname.replace('/', '')
+
         if len(self.goals) > 0:
             rospy.loginfo("goals: %s" % str(self.goals))
             self.cur_goal = 0

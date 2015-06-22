@@ -73,13 +73,22 @@ catkin_package(
     pluginlib
     costmap_2d
     nav_core
-
     INCLUDE_DIRS include
     LIBRARIES collvoid_local_planner
 )
 
+
+#add_library(collvoid_dwa_local_planner src/collvoid_scoring_function.cpp src/orca.cpp src/collvoid_publishers.cpp src/clearpath.cpp)
+#add_dependencies(collvoid_dwa_local_planner ${${PROJECT_NAME}_EXPORTED_TARGETS})
+#target_link_libraries(collvoid_dwa_local_planner
+#  ${catkin_LIBRARIES}
+#  ${Boost_LIBRARIES}
+#  )
+
+
 add_library(collvoid_local_planner src/collvoid_local_planner.cpp src/Agent.cpp src/ROSAgent.cpp src/orca.cpp src/collvoid_publishers.cpp src/clearpath.cpp)
 add_dependencies(collvoid_local_planner ${${PROJECT_NAME}_EXPORTED_TARGETS})
+add_dependencies(collvoid_local_planner collvoid_msgs_gen_cpp)
 
 target_link_libraries(collvoid_local_planner
   ${catkin_LIBRARIES}
@@ -93,5 +102,5 @@ target_link_libraries(ROSAgent
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES})
 add_dependencies(ROSAgent ${${PROJECT_NAME}_EXPORTED_TARGETS})
-
+add_dependencies(ROSAgent collvoid_msgs_gen_cpp)
 

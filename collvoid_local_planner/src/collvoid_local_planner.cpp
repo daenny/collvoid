@@ -110,6 +110,9 @@ namespace collvoid_local_planner {
                 gethostname(hostname, 1023);
                 my_id_ = std::string(hostname);
             }
+            // remove funky "/" to get uniform name in python and here
+            my_id_.erase(std::remove(my_id_.begin(), my_id_.end(), '/'), my_id_.end());
+
             my_id_ = getParamDef<std::string>(private_nh, "name", my_id_);
             ROS_INFO("My name is: %s", my_id_.c_str());
 

@@ -482,8 +482,27 @@ namespace collvoid {
             BOOST_FOREACH(geometry_msgs::PolygonStamped poly, srv.response.obstacles) {
                             Obstacle obst;
                             obst.last_seen = poly.header.stamp;
+                            geometry_msgs::PointStamped in;
+                            in.header.stamp = poly.header.stamp;
+                            in.header.frame_id = poly.header.frame_id;
                             BOOST_FOREACH (geometry_msgs::Point32 p, poly.polygon.points) {
-                                            Vector2 v = Vector2(p.x, p.y);
+                                            in.point.x = p.x;
+                                            in.point.y = p.y;
+                                            geometry_msgs::PointStamped result;
+                                            try {
+                                                tf_->waitForTransform(global_frame_, base_frame_, in.header.stamp,
+                                                                      ros::Duration(0.2));
+                                                tf_->transformPoint(global_frame_, in, result);
+                                            }
+                                            catch(tf::TransformException& ex) {
+                                                ROS_WARN(
+                                                        "Failed to transform the goal pose from %s into the %s frame: %s",
+                                                        in.header.frame_id.c_str(), global_frame_.c_str(), ex.what());
+                                                continue;
+
+                                            }
+
+                                            Vector2 v = Vector2(result.point.x, result.point.y);
                                             obst.points.push_back(v);
 
                                         }
@@ -508,11 +527,19 @@ namespace collvoid {
                     }
 
         std::vector<Obstacle> obstacles = getObstacles();
-
+        min_dist_obst_ = DBL_MAX;
         BOOST_FOREACH(Obstacle obst, obstacles) {
                         if (use_obstacles_) {
                             //obst.points = rotateFootprint(obst.points, heading_);
                             Vector2 obst_center = (obst.points[0] + obst.points[2])/2.;
+                            double dist = distSqPointLineSegment(obst.points[0], obst.points[1], position_);
+                            dist = std::min(dist, distSqPointLineSegment(obst.points[1], obst.points[2], position_));
+                            dist = std::min(dist, distSqPointLineSegment(obst.points[2], obst.points[3], position_));
+                            dist = std::min(dist, distSqPointLineSegment(obst.points[0], obst.points[3], position_));
+
+                            if (dist < min_dist_obst_) {
+                                min_dist_obst_ = dist;
+                            }
                             std::vector<Vector2> obst_footprint;
                             BOOST_FOREACH(Vector2 p, obst.points) {
                                            obst_footprint.push_back(p-obst_center);

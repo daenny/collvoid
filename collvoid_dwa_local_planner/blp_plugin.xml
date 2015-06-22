@@ -1,0 +1,7 @@
+<library path="lib/libcollvoid_dwa_local_planner">
+  <class name="collvoid_dwa_local_planner/DWAPlannerROS" type="collvoid_dwa_local_planner::DWAPlannerROS" base_class_type="nav_core::BaseLocalPlanner">
+    <description>
+      A implementation of a local planner using either a DWA approach based on configuration parameters.
+    </description>
+  </class>
+</library>
