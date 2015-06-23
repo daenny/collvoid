@@ -28,7 +28,7 @@ class controller(wx.Frame):
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(sizer)
 
-        self.pub = rospy.Publisher('/commands_robot', String)
+        self.pub = rospy.Publisher('/commands_robot', String, queue_size=10)
 
         self.robotList = []
         self.robotList.append("all")

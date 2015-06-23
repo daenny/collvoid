@@ -55,6 +55,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate services in the 'srv' folder
 add_service_files(
    FILES
+   GetMe.srv
    GetNeighbors.srv
    GetObstacles.srv
 #   Service2.srv

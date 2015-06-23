@@ -29,7 +29,7 @@ class ControllerRobots():
         self.stopped = False
 
         self.client = actionlib.SimpleActionClient('move_base', MoveBaseAction)
-        self.client.wait_for_server()
+        # self.client.wait_for_server()
 
         self.circling = False
         # self.init_guess_srv = rospy.ServiceProxy("init_guess_pub", InitGuess)

@@ -1206,14 +1206,6 @@ namespace collvoid {
         return result;
     }
 
-    std::vector<Vector2> ROSAgent::rotateFootprint(const std::vector<Vector2> &footprint, double angle) {
-        std::vector<Vector2> result;
-        BOOST_FOREACH(Vector2 point, footprint) {
-                        Vector2 rotated = rotateVectorByAngle(point, angle);
-                        result.push_back(rotated);
-                    }
-        return result;
-    }
 
     geometry_msgs::PoseStamped ROSAgent::transformMapPoseToBaseLink(geometry_msgs::PoseStamped in) {
         geometry_msgs::PoseStamped result;

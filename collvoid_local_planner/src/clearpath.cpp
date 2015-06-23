@@ -746,7 +746,7 @@ namespace collvoid {
 
         for (int i = 0; i < (int) samples.size(); i++) {
             VelocitySample cur = samples[i];
-            double cost = calculateVelCosts(cur.velocity, truncated_vos, pref_vel, max_speed, use_truncation);
+            double cost = calculateVelCosts(cur.velocity, truncated_vos, use_truncation);
             cost += 2 * absSqr(cur.velocity - pref_vel);
             //cost += std::min(-minDistToVOs(truncated_vos, cur.velocity, use_truncation),0.1);
             cost += -minDistToVOs(truncated_vos, cur.velocity, use_truncation);
@@ -762,8 +762,7 @@ namespace collvoid {
         return best_vel;
     }
 
-    double calculateVelCosts(const Vector2 &test_vel, const std::vector<VO> &truncated_vos, const Vector2 &pref_vel,
-                             double max_speed, bool use_truncation) {
+    double calculateVelCosts(const Vector2 &test_vel, const std::vector<VO> &truncated_vos, bool use_truncation) {
         double cost = 0.0;
         double COST_IN_VO = 2.0;
         for (int j = 0; j < (int) truncated_vos.size(); j++) {
@@ -771,7 +770,6 @@ namespace collvoid {
                 cost += (truncated_vos.size() - j) * COST_IN_VO;
             }
         }
-        cost += absSqr(pref_vel - test_vel);
         return cost;
     }
 
@@ -1199,6 +1197,18 @@ namespace collvoid {
     Vector2 intersectTwoLines(Line line1, Line line2) {
         return intersectTwoLines(line1.point, line1.dir, line2.point, line2.dir);
     }
+
+
+
+    std::vector<Vector2> rotateFootprint(const std::vector<Vector2> &footprint, double angle) {
+        std::vector<Vector2> result;
+        BOOST_FOREACH(Vector2 point, footprint) {
+                        Vector2 rotated = rotateVectorByAngle(point, angle);
+                        result.push_back(rotated);
+        }
+        return result;
+    }
+
 
 
 }

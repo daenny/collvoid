@@ -117,8 +117,7 @@ namespace collvoid {
                                                 Vector2 pref_vel, double sim_period, int num_samples, bool holo_robot);
 
 
-    double calculateVelCosts(const Vector2 &test_vel, const std::vector<VO> &truncated_vos, const Vector2 &pref_vel,
-                             double max_speed, bool use_truncation);
+    double calculateVelCosts(const Vector2 &test_vel, const std::vector<VO> &truncated_vos, bool use_truncation);
 
     Vector2 calculateNewVelocitySampled(std::vector<VelocitySample> &samples, const std::vector<VO> &truncated_vos,
                                         const Vector2 &pref_vel, double max_speed, const Vector2 &cur_speed, bool use_truncation);
@@ -154,6 +153,7 @@ namespace collvoid {
 
     Vector2 intersectTwoLines(Line line1, Line line2);
 
+    std::vector<Vector2> rotateFootprint(const std::vector<Vector2> &footprint, double angle);
 
 }
 

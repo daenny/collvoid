@@ -6,21 +6,22 @@
     <param name="~tf_prefix" value="robot_0" />
     <param name="~odom_frame_id" value="/robot_0/odom" />
     <param name="~base_frame_id" value="/robot_0/base_link" />
-  </node>  <node pkg="move_base" type="move_base" respawn="true" name="move_base" ns="robot_0" output="screen">
-    <rosparam command="load" file="$(find collvoid_stage)/params/params_pr2.yaml" />
-    <rosparam command="load" file="$(find collvoid_stage)/params/collvoid_config.yaml" />
-    <remap from="map" to="/map" />
-    <param name="~tf_prefix" value="robot_0" />
-    <param name="~controlled" value="true" />
+   </node>
+   <!--  <node pkg="move_base" type="move_base" respawn="true" name="move_base" ns="robot_0" output="screen"> -->
+  <!--   <rosparam command="load" file="$(find collvoid_stage)/params/params_pr2.yaml" /> -->
+  <!--   <rosparam command="load" file="$(find collvoid_stage)/params/collvoid_config.yaml" /> -->
+  <!--   <remap from="map" to="/map" /> -->
+  <!--   <param name="~tf_prefix" value="robot_0" /> -->
+  <!--   <param name="~controlled" value="true" /> -->
 
-    <param name="~/global_costmap/robot_base_frame" value="robot_0/base_link" /> 
-    <param name="~/local_costmap/robot_base_frame" value="robot_0/base_link" /> 
-    <param name="~/local_costmap/global_frame" value="robot_0/odom" /> 
-    <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
-    <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" />
-    <remap from="/position_share_in" to="/position_share" />
-    <remap from="/position_share_out" to="/position_share" />
-  </node> 
+  <!--   <param name="~/global_costmap/robot_base_frame" value="robot_0/base_link" />  -->
+  <!--   <param name="~/local_costmap/robot_base_frame" value="robot_0/base_link" />  -->
+  <!--   <param name="~/local_costmap/global_frame" value="robot_0/odom" />  -->
+  <!--   <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" /> -->
+  <!--   <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" /> -->
+  <!--   <remap from="/position_share_in" to="/position_share" /> -->
+  <!--   <remap from="/position_share_out" to="/position_share" /> -->
+  <!-- </node>  -->
   <node pkg="collvoid_controller" type="controllerRobots.py" name="controllerRobots" ns="robot_0" output="screen" />
 
   <node name="fake_localization" pkg="fake_localization" ns="robot_1" type="fake_localization" respawn="false">

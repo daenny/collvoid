@@ -5,7 +5,7 @@ project(collvoid_controller)
 
 find_package(catkin REQUIRED COMPONENTS rospy std_msgs tf geometry_msgs std_srvs collvoid_local_planner)
 
-catkin_python_setup()
+# catkin_python_setup()
 catkin_package(
     DEPENDS rospy std_msgs tf geometry_msgs std_srvs collvoid_local_planner
     CATKIN_DEPENDS # TODO

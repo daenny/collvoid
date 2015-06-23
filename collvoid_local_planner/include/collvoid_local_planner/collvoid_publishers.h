@@ -50,9 +50,13 @@ namespace collvoid {
   
   void publishMePosition(ROSAgent* me, std::string base_frame, std::string name_space, ros::Publisher me_pub);
   void publishNeighborPositions(std::vector<AgentPtr>& neighbors, std::string base_frame, std::string name_space, ros::Publisher neighbors_pub);
-  
-  void fillMarkerWithROSAgent(visualization_msgs::MarkerArray& marker, ROSAgent* agent, std::string base_frame, std::string name_space);
 
+  void publishMePosition(double radius, tf::Stamped <tf::Pose> global_pose, std::string base_frame, std::string name_space, ros::Publisher me_pub);
+
+
+  void fillMarkerWithROSAgent(visualization_msgs::MarkerArray& marker, ROSAgent* agent, std::string base_frame, std::string name_space);
+    void fillMarkerWithParams(visualization_msgs::MarkerArray &marker, double radius, Vector2 position, double yaw, std::string base_frame,
+                                std::string name_space);
 }
 
 #endif

@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(collvoid_local_planner)
 # Load catkin and all dependencies required for this package
 find_package(catkin REQUIRED COMPONENTS
-roslib roscpp collvoid_msgs visualization_msgs laser_geometry tf angles base_local_planner pluginlib nav_core actionlib move_base_msgs std_srvs dynamic_reconfigure amcl)
+roslib roscpp collvoid_msgs collvoid_srvs visualization_msgs laser_geometry tf angles base_local_planner pluginlib nav_core actionlib move_base_msgs std_srvs dynamic_reconfigure amcl)
 
 # include_directories(include ${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS})
 # CATKIN_MIGRATION: removed during catkin migration
@@ -78,22 +78,30 @@ catkin_package(
 )
 
 
-#add_library(collvoid_dwa_local_planner src/collvoid_scoring_function.cpp src/orca.cpp src/collvoid_publishers.cpp src/clearpath.cpp)
-#add_dependencies(collvoid_dwa_local_planner ${${PROJECT_NAME}_EXPORTED_TARGETS})
-#target_link_libraries(collvoid_dwa_local_planner
-#  ${catkin_LIBRARIES}
-#  ${Boost_LIBRARIES}
-#  )
+add_library(collvoid_scoring_function src/collvoid_scoring_function.cpp src/orca.cpp src/collvoid_publishers.cpp src/clearpath.cpp)
+ add_dependencies(collvoid_scoring_function ${${PROJECT_NAME}_EXPORTED_TARGETS})
+ target_link_libraries(collvoid_scoring_function
+ ${catkin_LIBRARIES}
+ ${Boost_LIBRARIES}
+ )
 
 
 add_library(collvoid_local_planner src/collvoid_local_planner.cpp src/Agent.cpp src/ROSAgent.cpp src/orca.cpp src/collvoid_publishers.cpp src/clearpath.cpp)
 add_dependencies(collvoid_local_planner ${${PROJECT_NAME}_EXPORTED_TARGETS})
-add_dependencies(collvoid_local_planner collvoid_msgs_gen_cpp)
+add_dependencies(collvoid_local_planner collvoid_msgs_generate_messages_cpp)
 
 target_link_libraries(collvoid_local_planner
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
   )
+
+
+add_executable(MePublisher src/me_publisher.cpp src/clearpath.cpp)
+target_link_libraries(MePublisher
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES})
+add_dependencies(MePublisher ${${PROJECT_NAME}_EXPORTED_TARGETS})
+add_dependencies(MePublisher collvoid_msgs_generate_messages_cpp)
 
 
 
@@ -102,5 +110,5 @@ target_link_libraries(ROSAgent
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES})
 add_dependencies(ROSAgent ${${PROJECT_NAME}_EXPORTED_TARGETS})
-add_dependencies(ROSAgent collvoid_msgs_gen_cpp)
+add_dependencies(ROSAgent collvoid_msgs_generate_messages_cpp)
 

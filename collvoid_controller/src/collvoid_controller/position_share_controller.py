@@ -1,15 +1,12 @@
 #!/usr/bin/env python
 __author__ = 'danielclaes'
 import rospy
-from geometry_msgs.msg import PolygonStamped, PointStamped, Point, PoseStamped, PoseWithCovariance, Pose, Quaternion
+from geometry_msgs.msg import Pose, Quaternion
 from collvoid_msgs.msg import PoseTwistWithCovariance
 from collvoid_srvs.srv import GetNeighbors, GetNeighborsResponse
 from socket import gethostname
-from sensor_msgs.msg import LaserScan, PointCloud
 import tf
 import tf.transformations
-import cv2
-import cv2.cv
 import numpy as np
 
 RATE = rospy.get_param('~rate', 10)
@@ -26,9 +23,10 @@ class PositionShareController(object):
         else:
             self.name = self.name.replace('/', '')
 
-        rospy.loginfo("Position Share started with name: %s", self.name)
 
         self.name = rospy.get_param('~name', self.name)
+        rospy.loginfo("Position Share started with name: %s", self.name)
+
         self.neighbors = {}
 
         rospy.Subscriber('/position_share', PoseTwistWithCovariance, self.position_share_cb)
@@ -103,10 +101,6 @@ class PositionShareController(object):
             pose.position.y = cur_pose.position.y + v_x * np.sin(cur_theta + delta_theta/2.)
         return pose
 
-    def spin(self):
-        rate = rospy.Rate(RATE)
-        while rospy.is_shutdown():
-            rate.sleep()
 
 if __name__ == '__main__':
     rospy.init_node("position_share_controller")

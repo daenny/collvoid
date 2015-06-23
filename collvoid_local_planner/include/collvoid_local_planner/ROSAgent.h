@@ -203,7 +203,7 @@ namespace collvoid {
 
         geometry_msgs::PolygonStamped createFootprintMsgFromVector2(const std::vector<Vector2> &footprint);
 
-        std::vector<Vector2> rotateFootprint(const std::vector<Vector2> &footprint, double angle);
+        //std::vector<Vector2> rotateFootprint(const std::vector<Vector2> &footprint, double angle);
 
         geometry_msgs::PoseStamped transformMapPoseToBaseLink(geometry_msgs::PoseStamped in);
 
