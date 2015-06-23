@@ -1,0 +1,9 @@
+collvoid:
+  global_frame: /map
+  # base_frame: /robot_0/base_link
+  convex: true # true #footprint or radius
+  holo_robot: false
+  controlled: true
+  footprint_radius: 0.17
+  eps: 0.1
+  publish_me_frequency: 10
