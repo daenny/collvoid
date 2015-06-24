@@ -1,14 +1,15 @@
 <launch>
   <arg name="robot" />
   <arg name="type" default="turtle" />
-
+  <arg name="controlled" default="true" />
+  
   <group ns="$(arg robot)">
     
     <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
       <rosparam command="load" file="$(find collvoid_stage)/params/params_$(arg type).yaml" />
       <rosparam command="load" file="$(find collvoid_stage)/params/collvoid_config.yaml" />
       <remap from="map" to="/map" />
-      <param name="~controlled" value="true" />
+      <param name="~controlled" value="$(arg controlled)" />
       <param name="~tf_prefix" value="$(arg robot)" />
       <param name="~/global_costmap/robot_base_frame" value="$(arg robot)/base_link" /> 
       <param name="~/local_costmap/robot_base_frame" value="$(arg robot)/base_link" /> 
@@ -27,7 +28,7 @@
     </node> 
     <node pkg="collvoid_controller" type="detect_obstacles.py" name="detect_obstacles" output="screen">
       <param name="~base_frame" value="$(arg robot)/base_link" />
-    </node> 
+    </node>
 
     
   </group>

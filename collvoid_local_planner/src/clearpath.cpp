@@ -34,6 +34,8 @@
 #include <float.h>
 #include <boost/foreach.hpp>
 
+
+
 namespace collvoid {
 
 
@@ -261,11 +263,33 @@ namespace collvoid {
 
     // }
 
+    bool LineSegmentToLineSegmentIntersection(double x1, double y1, double x2, double y2,
+                                                                     double x3, double y3, double x4, double y4, Vector2& result) {
+        double r, s, d;
+        //Make sure the lines aren't parallel
+        if ((y2 - y1) / (x2 - x1) != (y4 - y3) / (x4 - x3)) {
+            d = (((x2 - x1) * (y4 - y3)) - (y2 - y1) * (x4 - x3));
+            if (d != 0) {
+                r = (((y1 - y3) * (x4 - x3)) - (x1 - x3) * (y4 - y3)) / d;
+                s = (((y1 - y3) * (x2 - x1)) - (x1 - x3) * (y2 - y1)) / d;
+                if (r >= 0 && r <= 1) {
+                    if (s >= 0 && s <= 1) {
+                        result = collvoid::Vector2(x1 + r * (x2 - x1), y1 + r * (y2 - y1));
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
 
     VO createVO(Vector2 &position1, const std::vector<Vector2> &footprint1, Vector2 &position2,
                 const std::vector<Vector2> &footprint2, Vector2 &vel2) {
         VO result;
         std::vector<Vector2> mink_sum = minkowskiSum(footprint1, footprint2);
+
+
 
         Vector2 min_left, min_right;
         double min_ang = 0.0;
@@ -274,8 +298,10 @@ namespace collvoid {
 
         Vector2 rel_position_normal = normal(rel_position);
         double min_dist = abs(rel_position);
-
+        Vector2 null;
+        bool collision = true;
         for (int i = 0; i < (int) mink_sum.size(); i++) {
+
             double angle = angleBetween(rel_position, rel_position + mink_sum[i]);
             if (rightOf(Vector2(0.0, 0.0), rel_position, rel_position + mink_sum[i])) {
                 if (-angle < min_ang) {
@@ -291,10 +317,15 @@ namespace collvoid {
             }
             Vector2 project_on_rel_position = intersectTwoLines(Vector2(0.0, 0.0), rel_position,
                                                                 rel_position + mink_sum[i], rel_position_normal);
-            double dist = abs(project_on_rel_position);
-            if (project_on_rel_position * rel_position < -EPSILON) {
-                ROS_ERROR("Collision?");
-                dist = -dist;
+
+            collvoid::Vector2 first = rel_position + mink_sum[i];
+            collvoid::Vector2 second = rel_position + mink_sum[(i+1) % mink_sum.size()];
+
+            double dist = sqrt(distSqPointLineSegment(first, second, null));
+            if (signedDistPointToLineSegment(first, second, null) < 0) {
+            // double dist = abs(project_on_rel_position);
+            //if (project_on_rel_position * rel_position < -EPSILON) {
+                collision = false;
 
             }
 
@@ -302,7 +333,9 @@ namespace collvoid {
                 min_dist = dist;
             }
         }
-        if (min_dist < 0) {
+
+        if (collision) {
+            ROS_ERROR("COLLISION?");
             result.left_leg_dir = -normalize(rel_position_normal);
             result.right_leg_dir = -result.left_leg_dir;
             result.relative_position = rel_position;
@@ -729,7 +762,10 @@ namespace collvoid {
     }
 
     Vector2 calculateNewVelocitySampled(std::vector<VelocitySample> &samples, const std::vector<VO> &truncated_vos,
-                                        const Vector2 &pref_vel, double max_speed, const Vector2& cur_speed, bool use_truncation) {
+                                        const Vector2 &pref_vel, double max_speed, const Vector2 &position, double heading, const Vector2& cur_speed, bool use_truncation,
+                                        std::vector<geometry_msgs::Point> footprint_spec,
+                                        costmap_2d::Costmap2D* costmap,
+                                        base_local_planner::WorldModel* world_model) {
 
         // VelocitySample pref_vel_sample;
         // pref_vel_sample.velocity = pref_vel;
@@ -744,23 +780,72 @@ namespace collvoid {
         double min_cost = DBL_MAX;
         Vector2 best_vel;
 
+        double cur_x, cur_y, pos_x, pos_y;
+        cur_x = position.x();
+        cur_y = position.y();
+
+
         for (int i = 0; i < (int) samples.size(); i++) {
+
             VelocitySample cur = samples[i];
             double cost = calculateVelCosts(cur.velocity, truncated_vos, use_truncation);
             cost += 2 * absSqr(cur.velocity - pref_vel);
             //cost += std::min(-minDistToVOs(truncated_vos, cur.velocity, use_truncation),0.1);
             cost += -minDistToVOs(truncated_vos, cur.velocity, use_truncation);
             cost += 2 * absSqr(cur.velocity - cur_speed);
+            pos_x = 0.1 * cur.velocity.x();
+            pos_y = 0.1 * cur.velocity.y();
+
+            double footprint_cost = footprintCost(cur_x + pos_x, cur_y + pos_y, heading, 1.0, footprint_spec, costmap, world_model);
+
+            //ROS_ERROR("footprint_cost %f", footprint_cost);
+            if (footprint_cost < 0.) {
+                samples[i].cost = -1;
+                continue;
+            }
+            samples[i].cost = cost + footprint_cost;
+
 
             if (cost < min_cost) {
                 min_cost = cost;
                 best_vel = cur.velocity;
             }
-            samples[i].cost = cost;
+
         }
         //ROS_ERROR("min_cost %f", min_cost);
         return best_vel;
     }
+
+
+    double footprintCost (
+            const double& x,
+            const double& y,
+            const double& th,
+            double scale,
+            std::vector<geometry_msgs::Point> footprint_spec,
+            costmap_2d::Costmap2D* costmap,
+            base_local_planner::WorldModel* world_model) {
+
+        //check if the footprint is legal
+        // TODO: Cache inscribed radius
+        double footprint_cost = world_model->footprintCost(x, y, th, footprint_spec);
+
+        if (footprint_cost < 0) {
+            return -6.0;
+        }
+        unsigned int cell_x, cell_y;
+
+        //we won't allow trajectories that go off the map... shouldn't happen that often anyways
+        if ( ! costmap->worldToMap(x, y, cell_x, cell_y)) {
+            return -7.0;
+        }
+
+        double occ_cost = std::max(std::max(0.0, footprint_cost), double(costmap->getCost(cell_x, cell_y)));
+
+        return occ_cost;
+    }
+
+
 
     double calculateVelCosts(const Vector2 &test_vel, const std::vector<VO> &truncated_vos, bool use_truncation) {
         double cost = 0.0;
@@ -777,7 +862,11 @@ namespace collvoid {
     Vector2 calculateClearpathVelocity(std::vector<VelocitySample> &samples, const std::vector<VO> &all_vos,
                                        const std::vector<VO> &human_vos, const std::vector<VO> &agent_vos, const std::vector<VO> &static_vos,
                                        const std::vector<Line> &additional_constraints, const Vector2 &pref_vel,
-                                       double max_speed, bool use_truncation) {
+                                       double max_speed, bool use_truncation,
+                                        const Vector2 &position, double heading,
+                                       std::vector<geometry_msgs::Point> footprint_spec,
+                                        costmap_2d::Costmap2D* costmap,
+                                        base_local_planner::WorldModel* world_model) {
 
         if (!isWithinAdditionalConstraints(additional_constraints, pref_vel)) {
             BOOST_FOREACH (Line line, additional_constraints) {
@@ -977,7 +1066,17 @@ namespace collvoid {
                     break;
                 }
             }
-            if (valid && withinConstraints) {
+
+
+            double pos_x = 0.1 * samples[i].velocity.x();
+            double pos_y = 0.1 * samples[i].velocity.y();
+
+            double footprint_cost = footprintCost(position.x() + pos_x, position.y() + pos_y, heading, 1.0, footprint_spec, costmap, world_model);
+
+            //ROS_ERROR("footprint_cost %f", footprint_cost);
+
+
+            if (valid && withinConstraints && footprint_cost >= 0.) {
                 new_vel = samples[i].velocity;
                 safeSamples.push_back(samples[i]);
             }

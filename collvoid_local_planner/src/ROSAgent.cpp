@@ -390,6 +390,20 @@ namespace collvoid {
         //account for nh error
         boost::mutex::scoped_lock lock(neighbors_lock_);
 
+
+        tf::Stamped<tf::Pose> global_pose;
+        costmap_ros_->getRobotPose(global_pose);
+        odom_pose_ = Vector2(global_pose.getOrigin().x(), global_pose.getOrigin().y());
+
+        footprint_spec_.clear();
+        BOOST_FOREACH(Vector2 v, footprint_) {
+                        geometry_msgs::Point p;
+                        p.x = v.x();
+                        p.y = v.y();
+                        footprint_spec_.push_back(p);
+                    }
+
+
         radius_ += cur_allowed_error_;
         ((Agent *) this)->computeClearpathVelocity(pref_velocity);
         radius_ -= cur_allowed_error_;
@@ -413,6 +427,18 @@ namespace collvoid {
 
         //account for nh error
         boost::mutex::scoped_lock lock(neighbors_lock_);
+
+        tf::Stamped<tf::Pose> global_pose;
+        costmap_ros_->getRobotPose(global_pose);
+        odom_pose_ = Vector2(global_pose.getOrigin().x(), global_pose.getOrigin().y());
+
+        footprint_spec_.clear();
+        BOOST_FOREACH(Vector2 v, footprint_) {
+                        geometry_msgs::Point p;
+                        p.x = v.x();
+                        p.y = v.y();
+                        footprint_spec_.push_back(p);
+                    }
 
         radius_ += cur_allowed_error_;
         ((Agent *) this)->computeSampledVelocity(pref_velocity);
@@ -554,7 +580,7 @@ namespace collvoid {
                             else {
                                 Vector2 null = Vector2(0,0);
                                 VO obstacle_vo = createVO(position_, own_footprint, obst_center, obst_footprint, null);
-                                obstacle_vo = createTruncVO(obstacle_vo, 4);
+                                obstacle_vo = createTruncVO(obstacle_vo, 2);
                                 static_vos_.push_back(obstacle_vo);
                                 all_vos_.push_back(obstacle_vo);
                             }

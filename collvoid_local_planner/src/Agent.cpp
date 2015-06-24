@@ -76,14 +76,15 @@ namespace collvoid {
             computeAgentVOs();
         }
         new_velocity_ = calculateClearpathVelocity(samples_, all_vos_, human_vos_, agent_vos_, static_vos_, additional_orca_lines_,
-                                                   pref_velocity, max_speed_x_, use_truncation_);
+                                                   pref_velocity, max_speed_x_, use_truncation_, odom_pose_, heading_, footprint_spec_, costmap_, world_model_);
     }
 
     void Agent::computeSampledVelocity(Vector2 pref_velocity) {
         if (controlled_) {
             computeAgentVOs();
         }
-        new_velocity_ = calculateNewVelocitySampled(samples_, all_vos_, pref_velocity, max_speed_x_, velocity_, use_truncation_);
+        new_velocity_ = calculateNewVelocitySampled(samples_, all_vos_, pref_velocity, max_speed_x_, odom_pose_, heading_, velocity_, use_truncation_,
+                                                    footprint_spec_, costmap_, world_model_);
     }
 
 

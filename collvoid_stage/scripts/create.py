@@ -147,6 +147,8 @@ def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,
             launchWrite.write('  <include file="$(find collvoid_stage)/launch/move_base_collvoid.launch">\n')
         launchWrite.write('    <arg name="robot" value="robot_{0}"/>\n'.format(x))
         launchWrite.write('    <arg name="type" value="{0}"/>\n'.format(type_name))
+        launchWrite.write('    <arg name="controlled" value="true"/>\n')
+
         launchWrite.write('  </include>\n')
         launchWrite.write('  <node pkg="collvoid_controller" type="controllerRobots.py" name="controllerRobots" ns="robot_{0}" output="screen" />\n'.format(x))
         launchWrite.write('\n\n')

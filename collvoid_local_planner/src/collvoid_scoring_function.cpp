@@ -29,6 +29,8 @@ namespace collvoid_scoring_function
             me_->use_truncation_ = use_truncation_;
             me_->trunc_time_ = trunc_time_;
             me_->convex_ = convex_;
+            me_->type_vo_ = HRVOS;
+
             //ROS_INFO("GOT ME");
             return true;
         }
@@ -135,7 +137,7 @@ namespace collvoid_scoring_function
         Vector2 test_vel = Vector2();
         if (fabs(vel_y) == 0.) {
                         double dif_x, dif_y, dif_ang, time_dif;
-            time_dif = 0.5;//traj.time_delta_;
+            time_dif = 1.;//traj.time_delta_;
             dif_ang = time_dif * vel_theta;
             dif_x = vel_x * cos(dif_ang / 2.0);
             dif_y = vel_x * sin(dif_ang / 2.0);

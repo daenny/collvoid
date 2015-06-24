@@ -37,81 +37,83 @@
 #include <boost/shared_ptr.hpp>
 
 namespace collvoid{
-   
-  class Agent{
-  public:
-    
-    //    Agent(){};
-    virtual ~Agent(){};
-    
-    void computeOrcaVelocity(Vector2 pref_velocity, bool convex);
 
-    void computeClearpathVelocity(Vector2 pref_velocity);
-    void computeSampledVelocity(Vector2 pref_velocity);
+    class Agent{
+    public:
 
-    
-    void computeAgentVOs();
-    
-    void setLeftPref(double left_pref);
-    void setRadius(double radius);
-    void setTruncTime(double trunc_time);
-    void setSimPeriod(double sim_period);
+        //    Agent(){};
+        virtual ~Agent(){};
 
-    double getRadius();
-    collvoid::Vector2 getPosition();
-    collvoid::Vector2 getVelocity();
+        void computeOrcaVelocity(Vector2 pref_velocity, bool convex);
 
-    
-    //config
-    double left_pref_;  
-
-    bool use_truncation_;
-    double trunc_time_;
-    double timestep_, sim_period_;
-
-    bool controlled_;
-    
-    bool orca_; // Orca or VO?
-    bool convex_; // circle approx, or mink sum?
-
-    //VO settings
-    bool clearpath_; //Clearpath or sampling based
-    int type_vo_; //0 = HRVO, 1 = RVO , 2 = VO
-   
-    //description
-    Vector2 position_;
-    double heading_;
-    Vector2 velocity_;
-
-    double radius_;
-
-    std::vector<Vector2> footprint_;
-  
+        void computeClearpathVelocity(Vector2 pref_velocity);
+        void computeSampledVelocity(Vector2 pref_velocity);
 
 
-    Vector2 new_velocity_;
-   
-    
-    //nh stuff
-    double cur_allowed_error_;
+        void computeAgentVOs();
 
-    //Orca
-    double max_speed_x_;
-    std::vector<Line> orca_lines_, additional_orca_lines_;
+        void setLeftPref(double left_pref);
+        void setRadius(double radius);
+        void setTruncTime(double trunc_time);
+        void setSimPeriod(double sim_period);
 
-    //VO stuff
-    std::vector<VO> all_vos_, agent_vos_, static_vos_, human_vos_;
-    std::vector<VelocitySample> samples_;
-   
+        double getRadius();
+        collvoid::Vector2 getPosition();
+        collvoid::Vector2 getVelocity();
 
-    
-    std::vector<boost::shared_ptr<Agent> > agent_neighbors_;
 
-    
-  };
+        //config
+        double left_pref_;
 
-  typedef boost::shared_ptr<Agent> AgentPtr;
-  
+        bool use_truncation_;
+        double trunc_time_;
+        double timestep_, sim_period_;
+
+        bool controlled_;
+
+        bool orca_; // Orca or VO?
+        bool convex_; // circle approx, or mink sum?
+
+        //VO settings
+        bool clearpath_; //Clearpath or sampling based
+        int type_vo_; //0 = HRVO, 1 = RVO , 2 = VO
+
+        //description
+        Vector2 position_, odom_pose_;
+        double heading_;
+        Vector2 velocity_;
+
+        double radius_;
+
+        std::vector<Vector2> footprint_;
+
+        std::vector<geometry_msgs::Point> footprint_spec_;
+        costmap_2d::Costmap2D* costmap_;
+        base_local_planner::WorldModel* world_model_;
+
+        Vector2 new_velocity_;
+
+
+        //nh stuff
+        double cur_allowed_error_;
+
+        //Orca
+        double max_speed_x_;
+        std::vector<Line> orca_lines_, additional_orca_lines_;
+
+        //VO stuff
+        std::vector<VO> all_vos_, agent_vos_, static_vos_, human_vos_;
+        std::vector<VelocitySample> samples_;
+
+
+
+        std::vector<boost::shared_ptr<Agent> > agent_neighbors_;
+
+
+    };
+
+    typedef boost::shared_ptr<Agent> AgentPtr;
+
 
 }
 

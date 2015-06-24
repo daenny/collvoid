@@ -216,7 +216,12 @@ namespace collvoid_local_planner {
             me_->setConvex(convex);
             me_->setUseTruncation(use_truncation);
             me_->setNumSamples(num_samples);
+            me_->costmap_ = costmap_ros->getCostmap();
+            me_->costmap_ros_ = costmap_ros;
 
+            if (me_->costmap_ != NULL) {
+                me_->world_model_ = new base_local_planner::CostmapModel(*me_->costmap_);
+            }
 
             trunc_time_ = getParamDef(private_nh, "trunc_time", 5.0);
             left_pref_ = getParamDef(private_nh, "left_pref", 0.1);

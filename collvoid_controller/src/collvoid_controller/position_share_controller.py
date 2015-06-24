@@ -99,6 +99,9 @@ class PositionShareController(object):
         else:
             pose.position.x = cur_pose.position.x + v_x * np.cos(cur_theta + delta_theta/2.)
             pose.position.y = cur_pose.position.y + v_x * np.sin(cur_theta + delta_theta/2.)
+        pose.position.x = cur_pose.position.x# + v_x * time_delta
+        pose.position.y = cur_pose.position.y# + v_y * time_delta
+      
         return pose
 
 

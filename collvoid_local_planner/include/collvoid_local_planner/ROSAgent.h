@@ -34,6 +34,8 @@
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
 
+#include <costmap_2d/costmap_2d_ros.h>
+
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
 
@@ -278,6 +280,8 @@ namespace collvoid {
         ros::Time last_seen_;
         nav_msgs::Odometry base_odom_;
 
+        costmap_2d::Costmap2DROS* costmap_ros_;
+
         //Predicted States
         std::vector<PredictedStatePtr> states_;
 
@@ -297,6 +301,7 @@ namespace collvoid {
         //subscribers and publishers
         ros::Publisher lines_pub_, neighbors_pub_, polygon_pub_, vo_pub_, me_pub_, samples_pub_, speed_pub_, position_share_pub_, obstacles_pub_;
         ros::Subscriber amcl_posearray_sub_, position_share_sub_, odom_sub_;
+
 
         // service calls
         bool getTwistServiceCB(collvoid_local_planner::GetCollvoidTwist::Request &req, collvoid_local_planner::GetCollvoidTwist::Response &res);
