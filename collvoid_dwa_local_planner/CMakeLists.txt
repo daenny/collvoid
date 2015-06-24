@@ -5,9 +5,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 find_package(catkin REQUIRED
         COMPONENTS
             base_local_planner
+            collvoid_local_planner
 	    cmake_modules
 	    costmap_2d
-	    collvoid_local_planner
             dynamic_reconfigure
             nav_core
             nav_msgs
@@ -47,8 +47,9 @@ add_library(collvoid_dwa_local_planner
     src/dwa_planner.cpp
     src/dwa_planner_ros.cpp
     src/goal_alignment_cost_function.cpp
-    src/path_alignment_cost_function.cpp)
-target_link_libraries(collvoid_dwa_local_planner base_local_planner collvoid_scoring_function ${catkin_LIBRARIES})
+    src/path_alignment_cost_function.cpp
+   )
+target_link_libraries(collvoid_dwa_local_planner base_local_planner ${catkin_LIBRARIES})
 add_dependencies(collvoid_dwa_local_planner collvoid_dwa_local_planner_gencfg)
 add_dependencies(collvoid_dwa_local_planner nav_msgs_gencpp)
 

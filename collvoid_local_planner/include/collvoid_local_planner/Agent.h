@@ -34,7 +34,6 @@
 
 #include <collvoid_local_planner/Utils.h>
 #include <collvoid_local_planner/clearpath.h>
-
 #include <boost/shared_ptr.hpp>
 
 namespace collvoid{

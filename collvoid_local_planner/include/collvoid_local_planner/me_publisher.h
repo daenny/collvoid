@@ -78,7 +78,7 @@ private:
     geometry_msgs::Twist twist_;
 
     boost::mutex me_lock_, convex_lock_;
-    std::vector<std::pair<double, geometry_msgs::PoseStamped> > pose_array_weighted_;
+    std::vector<std::pair<double, geometry_msgs::Point32> > pose_array_weighted_;
 
 };
 

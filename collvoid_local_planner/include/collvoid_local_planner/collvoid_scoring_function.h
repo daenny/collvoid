@@ -9,9 +9,17 @@
 #include <base_local_planner/trajectory_cost_function.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <collvoid_msgs/PoseTwistWithCovariance.h>
+#include <collvoid_srvs/GetNeighbors.h>
+#include <collvoid_srvs/GetMe.h>
+
+#include <visualization_msgs/MarkerArray.h>
+#include <boost/foreach.hpp>
+
 #include "collvoid_local_planner/Vector2.h"
 #include "collvoid_local_planner/Utils.h"
 #include "collvoid_local_planner/Agent.h"
+#include "collvoid_local_planner/publisher_helpers.h"
+
 
 using namespace collvoid;
 
@@ -23,13 +31,12 @@ namespace collvoid_scoring_function
     class CollvoidScoringFunction : public TrajectoryCostFunction
     {
     public:
-        CollvoidScoringFunction();
-        virtual ~CollvoidScoringFunction();
+        CollvoidScoringFunction() {};
+        ~CollvoidScoringFunction() {};
 
         void init(ros::NodeHandle nh);
         bool prepare();
         double scoreTrajectory(Trajectory &traj);
-        void setGoalPose(const geometry_msgs::PoseStamped &goal_pose) { goal_pose_ = goal_pose; }
 
     private:
         bool getMe();
@@ -43,7 +50,7 @@ namespace collvoid_scoring_function
         AgentPtr me_;
         bool use_truncation_, convex_, holo_robot_;
         double trunc_time_;
-        geometry_msgs::PoseStamped goal_pose_;
+        ros::Publisher vo_pub_, neighbors_pub_;
         ros::ServiceClient get_me_srv_, get_neighbors_srv_;
     };
 }

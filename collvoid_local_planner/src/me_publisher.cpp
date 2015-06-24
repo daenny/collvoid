@@ -100,21 +100,30 @@ void MePublisher::amclPoseArrayWeightedCallback(const collvoid_msgs::PoseArrayWe
     boost::mutex::scoped_lock lock(convex_lock_);
 
     pose_array_weighted_.clear();
-    geometry_msgs::PoseStamped in;
-    in.header = msg->header;
+    sensor_msgs::PointCloud result;
+    //in.header = msg->header;
+    sensor_msgs::PointCloud pc;
+    pc.header = msg->header;
+    pc.header.stamp = ros::Time(0);
     for (int i = 0; i < (int) msg->poses.size(); i++) {
-        in.pose = msg->poses[i];
-        geometry_msgs::PoseStamped result;
-        try {
-            tf_->waitForTransform(global_frame_, base_frame_, in.header.stamp, ros::Duration(0.2));
-            tf_->transformPose(base_frame_, in, result);
-            pose_array_weighted_.push_back(std::make_pair(msg->weights[i], result));
-        }
-        catch (tf::TransformException ex) {
-            ROS_ERROR("%s", ex.what());
-            ROS_ERROR("point transform failed");
-            break;
-        };
+
+        geometry_msgs::Point32 p;
+        p.x = msg->poses[i].position.x;
+        p.y = msg->poses[i].position.y;
+        pc.points.push_back(p);
+    }
+    try {
+        tf_->waitForTransform(global_frame_, base_frame_, pc.header.stamp, ros::Duration(0.2));
+        tf_->transformPointCloud(base_frame_, pc, result);
+
+    }
+    catch (tf::TransformException ex) {
+        ROS_ERROR("%s", ex.what());
+        ROS_ERROR("Me Publisher: AMCL callback point transform failed");
+        return;
+    };
+    for (int i = 0; i < (int) msg->poses.size(); i++) {
+        pose_array_weighted_.push_back(std::make_pair(msg->weights[i], result.points[i]));
     }
     //    if (!convex_ || orca_) {
     if (!convex_) {
@@ -142,7 +151,7 @@ void MePublisher::odomCallback(const nav_msgs::Odometry::ConstPtr &msg) {
 
         tf::Stamped <tf::Pose> global_pose;
         if (getGlobalPose(global_pose, msg->header.stamp)) {
-            publishMePosition(radius_, global_pose, global_frame_, base_frame_, me_pub_);
+            collvoid_scoring_function::publishMePosition(radius_, global_pose, global_frame_, base_frame_, me_pub_);
         }
         //publish footprint
         if (convex_) {
@@ -217,8 +226,8 @@ void MePublisher::computeNewMinkowskiFootprint() {
 
     for (int i = 0; i < (int) pose_array_weighted_.size(); i++) {
         ConvexHullPoint p;
-        p.point = Vector2(pose_array_weighted_[i].second.pose.position.x,
-                          pose_array_weighted_[i].second.pose.position.y);
+        p.point = Vector2(pose_array_weighted_[i].second.x,
+                          pose_array_weighted_[i].second.y);
         p.weight = pose_array_weighted_[i].first;
         p.index = i;
         p.orig_index = i;
@@ -281,8 +290,8 @@ void MePublisher::computeNewLocUncertainty() {
 
     for (int i = 0; i < (int) pose_array_weighted_.size(); i++) {
         ConvexHullPoint p;
-        p.point = Vector2(pose_array_weighted_[i].second.pose.position.x,
-                          pose_array_weighted_[i].second.pose.position.y);
+        p.point = Vector2(pose_array_weighted_[i].second.x,
+                          pose_array_weighted_[i].second.y);
         p.weight = pose_array_weighted_[i].first;
         p.index = i;
         p.orig_index = i;

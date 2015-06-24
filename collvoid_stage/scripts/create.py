@@ -19,14 +19,15 @@ def create_world_file(argv):
     useBagFile = False
     bagFileName = "collvoid.bag"
     useSticks = False
+    dwa = False
     try:
-        opts, args= getopt.getopt(argv, "hn:s:olxf:S", ["help","numRobots=","circleSize=","omni","localization","experiments","bagFileName=","Sticks"])
+        opts, args= getopt.getopt(argv, "hn:s:oldxf:S", ["help","numRobots=","circleSize=","omni","localization","dwa","experiments","bagFileName=","Sticks"])
     except getopt.GetoptError:
-        print 'create.py -n <numRobots> -s <circleSize> <-h> <-l> <-x> <-f> bagFile'
+        print 'create.py -n <numRobots> -s <circleSize> <-h> <-l> <-d> <-x> <-f> bagFile'
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print 'create.py -n <numRobots> -s <circleSize> <-h> <-l> <-x> <-f> bagfile'
+            print 'create.py -n <numRobots> -s <circleSize> <-h> <-l> <-d> <-x> <-f> bagfile'
             sys.exit(2)
         elif opt in ("-n","--numRobots"):
             numRobots = int(arg)
@@ -34,6 +35,9 @@ def create_world_file(argv):
             circleSize = float(arg)
         elif opt in ("-o","--omni"):
             omni = True
+        elif opt in ("-d","--dwa"):
+            dwa = True
+
         elif opt in ("-l","--localization"):
             localization = False
         elif opt in ("-x", "--experiments"):
@@ -80,7 +84,7 @@ def create_world_file(argv):
     worldFileTemp.close()
     worldFileNew.close()
     create_yaml_file(circleSize,numRobots,omni,simulation,localization,centerX,centerY,scaleRadius,useNoise, useSticks)
-    create_launch_file(numRobots,omni,runExperiments,bagFileName,localization,useBagFile, useSticks)
+    create_launch_file(numRobots,omni,runExperiments,bagFileName,localization,useBagFile, dwa, useSticks)
     
     
 def create_yaml_file(circleSize, numRobots,omni,simulation,localization,centerX,centerY,scaleRadius,useNoise, useSticks):
@@ -102,7 +106,7 @@ def create_yaml_file(circleSize, numRobots,omni,simulation,localization,centerX,
     
     yamlWrite.close()
     
-def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,useBagFile, useSticks):
+def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,useBagFile, dwa, useSticks):
     direct = commands.getoutput('rospack find collvoid_stage')
 
     launchWrite = open(direct + '/launch/sim_created.launch','w')
@@ -113,7 +117,15 @@ def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,
         launchWrite.write('  <node pkg="stage_ros" type="stageros" name="stageros" args="-g $(find collvoid_stage)/world/swarmlab_created.world" respawn="false" output="screen" />\n')
     else:
         launchWrite.write('  <node pkg="stage_ros" type="stageros" name="stageros" args="$(find collvoid_stage)/world/swarmlab_created.world" respawn="false" output="screen" />\n')
+        
+    type_name = "turtle"
+    if omni:
+        if useSticks:
+            type_name = "stick"
+        else:
+            type_name = "pr2"
 
+    launchWrite.write('\n\n')
     for x in range(numRobots):
         if (localization):
             if (omni):
@@ -129,45 +141,15 @@ def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,
             launchWrite.write('    <param name="~base_frame_id" value="/robot_{0}/base_link" />\n'.format(x))
             launchWrite.write('  </node>')
 
-
-            
-        launchWrite.write('  <node pkg="move_base" type="move_base" respawn="true" name="move_base" ns="robot_{0}" output="screen">\n'.format(x))
-        if (omni) and not useSticks:
-            launchWrite.write('    <rosparam command="load" file="$(find collvoid_stage)/params/params_pr2.yaml" />\n')
-        elif useSticks:
-            launchWrite.write('    <rosparam command="load" file="$(find collvoid_stage)/params/params_stick.yaml" />\n')
+        if dwa:
+            launchWrite.write('  <include file="$(find collvoid_stage)/launch/move_base_dwa.launch">\n')
         else:
-            launchWrite.write('    <rosparam command="load" file="$(find collvoid_stage)/params/params_turtle.yaml" />\n')
-
-        if(runExperiments):
-            launchWrite.write('    <rosparam command="load" file="$(find collvoid_stage)/params/collvoid_exp_created.yaml" />\n')
-        else:
-            launchWrite.write('    <rosparam command="load" file="$(find collvoid_stage)/params/collvoid_config.yaml" />\n')
-
-        launchWrite.write('    <remap from="map" to="/map" />\n')
-        launchWrite.write('    <param name="~controlled" value="true" />\n')
-
-        launchWrite.write('    <param name="~tf_prefix" value="robot_{0}" />\n'.format(x))
-        launchWrite.write('    <param name="~/global_costmap/robot_base_frame" value="robot_{0}/base_link" /> \n    <param name="~/local_costmap/robot_base_frame" value="robot_{1}/base_link" /> \n    <param name="~/local_costmap/global_frame" value="robot_{0}/odom" /> \n'.format(x,x,x))
-        launchWrite.write('    <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />\n')
-        launchWrite.write('    <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" />\n')
-        launchWrite.write('    <remap from="/position_share_in" to="/position_share" />\n')
-        launchWrite.write('    <remap from="/position_share_out" to="/position_share" />\n')
-
-       # launchWrite.write('    <rosparam file="$(find pr2_navigation_config)/move_base/dwa_local_planner.yaml" command="load" ns="DWAPlannerROS" />\n')
-       
-        launchWrite.write('  </node> \n')
+            launchWrite.write('  <include file="$(find collvoid_stage)/launch/move_base_collvoid.launch">\n')
+        launchWrite.write('    <arg name="robot" value="robot_{0}"/>\n'.format(x))
+        launchWrite.write('    <arg name="type" value="{0}"/>\n'.format(type_name))
+        launchWrite.write('  </include>\n')
         launchWrite.write('  <node pkg="collvoid_controller" type="controllerRobots.py" name="controllerRobots" ns="robot_{0}" output="screen" />\n'.format(x))
-        launchWrite.write('  <node pkg="collvoid_controller" type="active_collision_avoidance.py" name="active_collvoid" ns="robot_{0}" output="screen">\n'.format(x))
-
-        launchWrite.write('    <param name="~base_frame_id" value="/robot_{0}/base_link" />\n'.format(x))
-
-        launchWrite.write('  </node> \n')
-        launchWrite.write('  <node pkg="collvoid_controller" type="detect_obstacles.py" name="detect_obstacles" ns="robot_{0}" output="screen">\n'.format(x))
-
-        launchWrite.write('    <param name="~base_frame" value="/robot_{0}/base_link" />\n'.format(x))
-
-        launchWrite.write('  </node> \n')
+        launchWrite.write('\n\n')
 
 
         

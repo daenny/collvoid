@@ -60,7 +60,7 @@
 #include <base_local_planner/obstacle_cost_function.h>
 #include <base_local_planner/simple_scored_sampling_planner.h>
 
-#include <collvoid_local_planner/collvoid_scoring_function.h>
+#include "collvoid_local_planner/collvoid_scoring_function.h"
 
 #include "collvoid_dwa_local_planner/goal_alignment_cost_function.h"
 #include "collvoid_dwa_local_planner/path_alignment_cost_function.h"
@@ -175,7 +175,7 @@ namespace collvoid_dwa_local_planner
 
         GoalAlignmentCostFunction goal_alignment_cost_;
         PathAlignmentCostFunction path_alignment_cost_;
-        //collvoid_scoring_function::CollvoidScoringFunction collvoid_costs_;
+        collvoid_scoring_function::CollvoidScoringFunction collvoid_costs_;
 
         base_local_planner::SimpleScoredSamplingPlanner scored_sampling_planner_;
     };

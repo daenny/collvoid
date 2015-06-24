@@ -1,0 +1,37 @@
+<launch>
+  <arg name="robot" />
+  <arg name="type" default="turtle" />
+
+  <group ns="$(arg robot)">
+    
+    <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+      <rosparam command="load" file="$(find collvoid_stage)/params/params_$(arg type).yaml" />
+      <rosparam command="load" file="$(find collvoid_stage)/params/collvoid_config.yaml" />
+      <remap from="map" to="/map" />
+      <param name="~controlled" value="true" />
+      <param name="~tf_prefix" value="$(arg robot)" />
+      <param name="~/global_costmap/robot_base_frame" value="$(arg robot)/base_link" /> 
+      <param name="~/local_costmap/robot_base_frame" value="$(arg robot)/base_link" /> 
+      <param name="~/local_costmap/global_frame" value="$(arg robot)/odom" /> 
+      <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
+      <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" />
+      <remap from="/position_share_in" to="/position_share" />
+      <remap from="/position_share_out" to="/position_share" />
+
+      <!-- <param name="base_local_planner" value="collvoid_dwa_local_planner/DWAPlannerROS" /> -->
+      <!-- <param name="~DWAPlannerROS/global_frame_id" value="$(arg robot)/odom" />      -->
+      <!-- <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" /> -->
+    </node>
+    <node pkg="collvoid_controller" type="active_collision_avoidance.py" name="active_collvoid" output="screen">
+      <param name="~base_frame_id" value="$(arg robot)/base_link" />
+    </node> 
+    <node pkg="collvoid_controller" type="detect_obstacles.py" name="detect_obstacles" output="screen">
+      <param name="~base_frame" value="$(arg robot)/base_link" />
+    </node> 
+
+    
+  </group>
+
+
+</launch>
+

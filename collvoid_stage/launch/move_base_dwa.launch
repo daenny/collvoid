@@ -1,0 +1,34 @@
+<launch>
+  <arg name="robot" />
+  <arg name="type" default="turtle" />
+    
+  <group ns="$(arg robot)">
+
+    
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <rosparam command="load" file="$(find collvoid_stage)/params/params_$(arg type).yaml" />
+
+    <rosparam command="load" file="$(find collvoid_stage)/params/collvoid_config.yaml"/>
+    <remap from="map" to="/map" />
+
+    <param name="~tf_prefix" value="$(arg robot)" />
+    <param name="~/global_costmap/robot_base_frame" value="$(arg robot)/base_link" /> 
+    <param name="~/local_costmap/robot_base_frame" value="$(arg robot)/base_link" /> 
+    <param name="~/local_costmap/global_frame" value="$(arg robot)/odom" /> 
+    <param name="~DWAPlannerROS/global_frame_id" value="$(arg robot)/odom" />     
+    <param name="base_local_planner" value="collvoid_dwa_local_planner/DWAPlannerROS" />
+    <!-- <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" /> -->
+
+  </node>
+
+  <rosparam command="load" file="$(find collvoid_stage)/params/me_publisher_turtle.yaml"/>
+  <param name="collvoid/base_frame" value="$(arg robot)/base_link" />
+  
+  <node pkg="collvoid_local_planner" type="MePublisher" name="me_publisher" output="screen" />
+  <node pkg="collvoid_controller" type="position_share_controller.py" name="position_share_controller" output="screen" />
+
+  </group>
+
+
+</launch>
+  

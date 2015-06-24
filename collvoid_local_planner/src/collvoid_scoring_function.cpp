@@ -3,23 +3,22 @@
 //
 
 #include "collvoid_local_planner/collvoid_scoring_function.h"
-#include <collvoid_srvs/GetNeighbors.h>
-#include <collvoid_srvs/GetMe.h>
-#include <boost/foreach.hpp>
+
 
 
 namespace collvoid_scoring_function
 {
-    CollvoidScoringFunction::CollvoidScoringFunction() {
-
-    }
 
     void CollvoidScoringFunction::init(ros::NodeHandle nh) {
         get_me_srv_ = nh.serviceClient<collvoid_srvs::GetMe>("get_me");
         get_neighbors_srv_ = nh.serviceClient<collvoid_srvs::GetNeighbors>("get_neighbors");
+        neighbors_pub_ = nh.advertise<visualization_msgs::MarkerArray>("neighbors", 1);
+        vo_pub_ = nh.advertise<visualization_msgs::Marker>("vo", 1);
+
         use_truncation_ = true;
         trunc_time_ = 10;
         convex_ = true;
+        ROS_INFO("Collvoid Scoring init done!");
         //holo_robot_ = false;
     }
 
@@ -30,10 +29,11 @@ namespace collvoid_scoring_function
             me_->use_truncation_ = use_truncation_;
             me_->trunc_time_ = trunc_time_;
             me_->convex_ = convex_;
-
+            //ROS_INFO("GOT ME");
             return true;
         }
         else {
+            ROS_INFO("Collvoid Scoring: Could not get me");
             return false;
         }
     }
@@ -47,10 +47,12 @@ namespace collvoid_scoring_function
 
             std::sort(me_->agent_neighbors_.begin(), me_->agent_neighbors_.end(),
                       boost::bind(&CollvoidScoringFunction::compareNeighborsPositions, this, _1, _2));
-
+            publishNeighborPositions(me_->agent_neighbors_, "/map", "/map", neighbors_pub_);
             return true;
         }
         else {
+            ROS_INFO("Collvoid Scoring: Could not get nieghbors");
+
             return false;
         }
     }
@@ -106,6 +108,9 @@ namespace collvoid_scoring_function
         }
         // Calculate VOs
         me_->computeAgentVOs();
+
+        publishVOs(me_->position_, me_->all_vos_, use_truncation_,"/map", "/map", vo_pub_);
+
         // Add constraints - Not necessary due to sampling?
         return true;
     }
@@ -116,11 +121,12 @@ namespace collvoid_scoring_function
     {
         if (traj.getPointsSize() < 1) return 0;
 
-        double goal_heading = tf::getYaw(goal_pose_.pose.orientation);
+        //double goal_heading = tf::getYaw(goal_pose_.pose.orientation);
 
         // TODO: check if goalHeading and endPoint are in the same reference frame
         double x, y, th;
         traj.getEndpoint(x, y, th);
+        //ROS_INFO("END POINT %f, %f", x,y);
         double vel_x, vel_y, vel_theta;
         vel_x = traj.xv_;
         vel_y = traj.yv_;
@@ -129,7 +135,7 @@ namespace collvoid_scoring_function
         Vector2 test_vel = Vector2();
         if (fabs(vel_y) == 0.) {
                         double dif_x, dif_y, dif_ang, time_dif;
-            time_dif = traj.time_delta_;
+            time_dif = 0.5;//traj.time_delta_;
             dif_ang = time_dif * vel_theta;
             dif_x = vel_x * cos(dif_ang / 2.0);
             dif_y = vel_x * sin(dif_ang / 2.0);
@@ -139,11 +145,18 @@ namespace collvoid_scoring_function
             test_vel = rotateVectorByAngle(vel_x, vel_y, me_->heading_);
         }
 
+        //test_vel = Vector2(x,y);
 
         double cost = calculateVelCosts(test_vel, me_->all_vos_, me_->use_truncation_);
+        if (cost > 0) {
+            return -1;
+        }
+        cost = std::max(1.-minDistToVOs(me_->all_vos_, test_vel, use_truncation_), 0.);
+
+        //ROS_INFO("Collvoid Scoring costs: %f for vector %f, %f, speed %f, ang %f time dif %f", cost, test_vel.x(), test_vel.y(), vel_x, vel_theta, traj.time_delta_);
 
         //traj.x
 
-        return cost * getScale();
+        return cost;
     }
 }
