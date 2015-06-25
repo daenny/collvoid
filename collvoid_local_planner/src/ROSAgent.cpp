@@ -1176,6 +1176,11 @@ namespace collvoid {
                         double time_dif = (ros::Time::now() - agent->last_seen_).toSec();
                         predictAgentParams(agent.get(), time_dif);
                     }
+         BOOST_FOREACH (AgentPtr a, human_neighbors_) {
+                        ROSAgentPtr agent = boost::dynamic_pointer_cast<ROSAgent>(a);
+                        double time_dif = 0.05;
+                        predictAgentParams(agent.get(), time_dif);
+                    }
         std::sort(agent_neighbors_.begin(), agent_neighbors_.end(),
                   boost::bind(&ROSAgent::compareNeighborsPositions, this, _1, _2));
     }
