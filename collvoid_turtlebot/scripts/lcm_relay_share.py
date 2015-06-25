@@ -29,6 +29,7 @@ def init_globals():
     global lc, name, pub, lcm_sub
     lc = lcm.LCM("udpm://224.1.1.1:5007?ttl=2")
     name = gethostname()
+    print name
     #lcm_sub = lc.subscribe(name, udp_callback)
     #if 'tb' in name:
     lcm_sub = lc.subscribe(lcm_topic, udp_callback)
@@ -39,7 +40,8 @@ def init_globals():
 def udp_callback(channel, data):
     msg = TYPE()
     msg.deserialize(data)
-    pub.publish(msg)
+    if msg.robot_id != name:
+        pub.publish(msg)
 
 
 def handle_msg(msg):
