@@ -10,7 +10,7 @@
     <arg name="detection_id_offset_rear" default="2"/>
 
     <!-- With default prefix, topic and node names will be similar to those from laser_detectors.launch. Override this if you want to run both at the same time! -->
-    <arg name="node_prefix" default="laser"/>
+    <arg name="node_prefix" default="laser_leg"/>
 
     <group ns="/spencer/perception_internal/people_detection">
         <!-- Front -->

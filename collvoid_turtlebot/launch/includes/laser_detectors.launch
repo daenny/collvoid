@@ -1,5 +1,5 @@
 <launch>
-    <arg name="adaboost_model" default="lms200"/>
+    <arg name="adaboost_model" default="lms500"/>
 
     <arg name="detection_id_increment" default="20"/>
     <arg name="laser_max_distance" default="5"/>
