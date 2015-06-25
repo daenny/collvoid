@@ -45,6 +45,8 @@ def init_globals():
 def udp_callback(channel, data):
     msg = TYPE()
     msg.deserialize(data)
+    if module_type == 'transceiver' and msg.robot_id == name:
+        return
     pub.publish(msg)
 
 
@@ -57,7 +59,6 @@ def handle_msg(msg):
 def main():
     rospy.init_node('share_lcm_relay')
     init_globals()
-
     while not rospy.is_shutdown():
         lc.handle()
     lc.unsubscribe(lcm_sub)
