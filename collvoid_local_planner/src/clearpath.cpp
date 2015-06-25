@@ -264,7 +264,7 @@ namespace collvoid {
     // }
 
     bool LineSegmentToLineSegmentIntersection(double x1, double y1, double x2, double y2,
-                                                                     double x3, double y3, double x4, double y4, Vector2& result) {
+                                              double x3, double y3, double x4, double y4, Vector2& result) {
         double r, s, d;
         //Make sure the lines aren't parallel
         if ((y2 - y1) / (x2 - x1) != (y4 - y3) / (x4 - x3)) {
@@ -323,8 +323,8 @@ namespace collvoid {
 
             double dist = sqrt(distSqPointLineSegment(first, second, null));
             if (signedDistPointToLineSegment(first, second, null) < 0) {
-            // double dist = abs(project_on_rel_position);
-            //if (project_on_rel_position * rel_position < -EPSILON) {
+                // double dist = abs(project_on_rel_position);
+                //if (project_on_rel_position * rel_position < -EPSILON) {
                 collision = false;
 
             }
@@ -675,10 +675,10 @@ namespace collvoid {
                 intersection_point.velocity = Vector2(x1 + r * (x2 - x1), y1 + r * (y2 - y1));
                 intersection_point.dist_to_pref_vel = absSqr(pref_vel - intersection_point.velocity);
                 //if (isWithinAdditionalConstraints(additional_constraints, intersection_point.velocity)) {
-                    //if (absSqr(intersection_point.velocity) < sqr(1.2 * max_speed)) {
-                    //ROS_ERROR("adding VelocitySample");
+                //if (absSqr(intersection_point.velocity) < sqr(1.2 * max_speed)) {
+                //ROS_ERROR("adding VelocitySample");
                 samples.push_back(intersection_point);
-                    //ROS_ERROR("size of VelocitySamples %d", (int) samples->size());
+                //ROS_ERROR("size of VelocitySamples %d", (int) samples->size());
 
                 //}
             }
@@ -861,12 +861,12 @@ namespace collvoid {
 
     Vector2 calculateClearpathVelocity(std::vector<VelocitySample> &samples, const std::vector<VO> &all_vos,
                                        const std::vector<VO> &human_vos, const std::vector<VO> &agent_vos, const std::vector<VO> &static_vos,
-                                       const std::vector<Line> &additional_constraints, const Vector2 &pref_vel,
+                                       const std::vector<Line> &additional_constraints, const Vector2 &pref_vel,  const Vector2 &cur_vel,
                                        double max_speed, bool use_truncation,
-                                        const Vector2 &position, double heading,
+                                       const Vector2 &position, double heading,
                                        std::vector<geometry_msgs::Point> footprint_spec,
-                                        costmap_2d::Costmap2D* costmap,
-                                        base_local_planner::WorldModel* world_model) {
+                                       costmap_2d::Costmap2D* costmap,
+                                       base_local_planner::WorldModel* world_model) {
 
         if (!isWithinAdditionalConstraints(additional_constraints, pref_vel)) {
             BOOST_FOREACH (Line line, additional_constraints) {
@@ -1041,6 +1041,7 @@ namespace collvoid {
 
         std::sort(samples.begin(), samples.end(), compareVelocitySamples);
 
+        //Vector2 new_vel = evaluateClearpathSamples(samples, all_vos, agent_vos, human_vos, additional_constraints, pref_vel, max_speed, position, heading, cur_vel, use_truncation, footprint_spec, costmap, world_model);
         Vector2 new_vel; // = pref_vel;
 
         bool valid = false;
@@ -1092,37 +1093,164 @@ namespace collvoid {
         if (safeSamples.size()>0) {
             new_vel = safeSamples[0].velocity;
             double d = minDistToVOs(agent_vos, new_vel, use_truncation);
+            d = std::min(minDistToVOs(human_vos, new_vel, use_truncation), d);
             if (d!=DBL_MAX) {
                 ros::NodeHandle nh;
-                // ROS_INFO("%s opt_vel dist %f", nh.getNamespace().c_str(), d);
+                //ROS_INFO("%s opt_vel dist %f", nh.getNamespace().c_str(), d);
             }
             // sample around optimal vel to find safe vel:
             std::vector<VelocitySample> samples_around_opt;
-
+            for (size_t i=0; i< (size_t)std::max((int)safeSamples.size(), 3); i++) {
+                createSamplesAroundOptVel(samples_around_opt, 0.2, 0.2, max_speed, max_speed, max_speed, max_speed, safeSamples[i].velocity,
+                                          25);
+            }
             //    ROS_INFO("selected j %d, of size %d", optimal, (int) all_vos.size());
             if (d < 2 * EPSILON && agent_vos.size()>0 && collvoid::abs(pref_vel)>0.1) {
-                createSamplesAroundOptVel(samples_around_opt, 0.1, 0.1, max_speed, max_speed, max_speed, max_speed, new_vel,
-                                          25);
-                double bestDist = 0.0;
-                BOOST_FOREACH(VelocitySample sample, samples_around_opt) {
+                double bestDist = DBL_MAX;
+                BOOST_FOREACH(VelocitySample& sample, samples_around_opt) {
                                 Vector2 vel = sample.velocity;
                                 if (isWithinAdditionalConstraints(additional_constraints, vel) &&
                                     isSafeVelocity(all_vos, vel, use_truncation)) {
+                                     VelocitySample cur = sample;
+                                    double pos_x, pos_y;
+                                    pos_x = 0.1 * cur.velocity.x();
+                                    pos_y = 0.1 * cur.velocity.y();
 
-                                    double dist = minDistToVOs(agent_vos, vel, use_truncation);
-                                    if (dist > bestDist) {
-                                        bestDist = dist;
+                                    double footprint_cost = footprintCost(position.x() + pos_x, position.y() + pos_y, heading, 1.0, footprint_spec, costmap, world_model);
+
+
+                //ROS_ERROR("footprint_cost %f", footprint_cost);
+                                    if (footprint_cost < 0.) {
+                                        sample.cost = -100;
+
+                                        continue;
+                                    }
+                                    double cost = 0;
+                                    cost += 2 * sqrt(absSqr(cur.velocity - pref_vel));
+                                    cost += 2 * (1. - minDistToVOs(agent_vos, vel, use_truncation));
+                                    cost += 2. * ( 1. - minDistToVOs(human_vos, vel, use_truncation));
+                                    cost += 1 * sqrt(absSqr(cur.velocity - cur_vel));
+
+                                    sample.cost = cost;
+                                    if (cost < bestDist) {
+                                        bestDist = cost;
                                         //ROS_WARN("best dist = %f", bestDist);
                                         new_vel = vel;
                                     }
                                 }
+                                else {
+                                    sample.cost = -100;
+                                }
                             }
                 safeSamples.insert(safeSamples.end(), samples_around_opt.begin(), samples_around_opt.end());
             }
+
             samples = safeSamples;
         }
         return new_vel;
     }
+
+
+    Vector2 evaluateClearpathSamples(std::vector<VelocitySample> &sorted_samples, const std::vector<VO> &truncated_vos, const std::vector<VO> &agent_vos,const std::vector<VO> &human_vos,
+                                     const std::vector<Line> &additional_constraints, const Vector2 &pref_vel, double max_speed, const Vector2 &position, double heading, const Vector2& cur_speed, bool use_truncation,
+                                     std::vector<geometry_msgs::Point> footprint_spec,
+                                     costmap_2d::Costmap2D* costmap,
+                                     base_local_planner::WorldModel* world_model) {
+
+        // VelocitySample pref_vel_sample;
+        // pref_vel_sample.velocity = pref_vel;
+        // samples.push_back(pref_vel_sample);
+
+
+        // VelocitySample null_vel;
+        // null_vel.velocity = Vector2(0,0);
+        // null_vel.dist_to_pref_vel = absSqr(pref_vel);
+        // samples.push_back(null_vel);
+
+        double min_cost = DBL_MAX;
+        Vector2 best_vel;
+
+        double cur_x, cur_y, pos_x, pos_y;
+        cur_x = position.x();
+        cur_y = position.y();
+        std::vector<VelocitySample> safeSamples;
+        std::vector<VelocitySample> unsafeSamples;
+
+        double found_safe = 0;
+        for (int i = 0; i < (int) sorted_samples.size() || found_safe < 3; i++) {
+
+            VelocitySample cur = sorted_samples[i];
+
+            pos_x = 0.1 * cur.velocity.x();
+            pos_y = 0.1 * cur.velocity.y();
+
+            double footprint_cost = footprintCost(cur_x + pos_x, cur_y + pos_y, heading, 1.0, footprint_spec, costmap,
+                                                  world_model);
+
+            //ROS_ERROR("footprint_cost %f", footprint_cost);
+            if (footprint_cost < 0.) {
+                sorted_samples[i].cost = -1;
+                continue;
+            }
+            double cost = calculateVelCosts(cur.velocity, truncated_vos, use_truncation);
+            if (!isWithinAdditionalConstraints(additional_constraints, cur.velocity)) {
+                cost += 1000;
+                unsafeSamples.push_back(cur);
+            }
+            else {
+                found_safe++;
+                safeSamples.push_back(cur);
+            }
+        }
+        if (safeSamples.size() > 0) {
+            std::vector<VelocitySample> additionalSamples;
+
+            for (int i = 0; i < (int) safeSamples.size(); i++) {
+                createSamplesAroundOptVel(additionalSamples, 0.1, 0.1, max_speed, max_speed, max_speed, max_speed, safeSamples[i].velocity, 25);
+            }
+            for  (int i = 0; i < (int) additionalSamples.size(); i++) {
+                VelocitySample cur = sorted_samples[i];
+
+                pos_x = 0.1 * cur.velocity.x();
+                pos_y = 0.1 * cur.velocity.y();
+
+                double footprint_cost = footprintCost(cur_x + pos_x, cur_y + pos_y, heading, 1.0, footprint_spec, costmap,
+                                                  world_model);
+
+                //ROS_ERROR("footprint_cost %f", footprint_cost);
+                if (footprint_cost < 0.) {
+                    sorted_samples[i].cost = -1;
+                    continue;
+                }
+                if (!isWithinAdditionalConstraints(additional_constraints, cur.velocity)) {
+                    continue;
+                }
+                double cost = calculateVelCosts(cur.velocity, truncated_vos, use_truncation);
+                cost += 4 * sqrt(absSqr(cur.velocity - pref_vel));
+                //cost += std::min(-minDistToVOs(truncated_vos, cur.velocity, use_truncation),0.1);
+                cost += -minDistToVOs(agent_vos, cur.velocity, use_truncation);
+                cost += -2 * minDistToVOs(human_vos, cur.velocity, false);
+                cost += 2 * sqrt(absSqr(cur.velocity - cur_speed));
+                additionalSamples[i].cost = cost + footprint_cost;
+                if (cost < min_cost) {
+                    min_cost = cost;
+                    best_vel = cur.velocity;
+                }
+
+            }
+        }
+        else {
+            if (unsafeSamples.size()>0) {
+                return unsafeSamples[0].velocity;
+            }
+            else {
+                return Vector2();
+            }
+        }
+        //ROS_ERROR("min_cost %f", min_cost);
+        return best_vel;
+    }
+
 
 
     bool isSafeVelocity(const std::vector<VO>& truncated_vos, Vector2 vel, bool use_truncation) {
@@ -1304,7 +1432,7 @@ namespace collvoid {
         BOOST_FOREACH(Vector2 point, footprint) {
                         Vector2 rotated = rotateVectorByAngle(point, angle);
                         result.push_back(rotated);
-        }
+                    }
         return result;
     }
 

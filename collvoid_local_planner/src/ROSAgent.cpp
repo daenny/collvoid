@@ -182,6 +182,8 @@ namespace collvoid {
         //Publishers
         vo_pub_ = nh.advertise<visualization_msgs::Marker>("vo", 1);
         neighbors_pub_ = nh.advertise<visualization_msgs::MarkerArray>("neighbors", 1);
+        humans_pub_ = nh.advertise<visualization_msgs::MarkerArray>("humans_detected", 1);
+
         me_pub_ = nh.advertise<visualization_msgs::MarkerArray>("me", 1);
         lines_pub_ = nh.advertise<visualization_msgs::Marker>("orca_lines", 1);
         samples_pub_ = nh.advertise<visualization_msgs::MarkerArray>("samples", 1);
@@ -195,6 +197,7 @@ namespace collvoid {
         //Subscribers
         amcl_posearray_sub_ = nh.subscribe("particlecloud_weighted", 1, &ROSAgent::amclPoseArrayWeightedCallback, this);
         position_share_sub_ = nh.subscribe("/position_share_in", 10, &ROSAgent::positionShareCallback, this);
+        people_sub_ = nh.subscribe("humans", 2, &ROSAgent::humansCallback, this);
         odom_sub_ = nh.subscribe("odom", 1, &ROSAgent::odomCallback, this);
 
         //new obstacles from python service
@@ -1043,6 +1046,33 @@ namespace collvoid {
             last_time_positions_published_ = ros::Time::now();
             publishNeighborPositions(agent_neighbors_, global_frame_, base_frame_, neighbors_pub_);
             publishMePosition(this, global_frame_, base_frame_, me_pub_);
+        }
+    }
+    void ROSAgent::humansCallback(const collvoid_msgs::AggregatedPoseTwist::ConstPtr &agg_msg) {
+        std::vector<AgentPtr> humans;
+        BOOST_FOREACH(collvoid_msgs::PoseTwistWithCovariance msg, agg_msg->posetwists) {
+                        std::string cur_id = msg.robot_id;
+                        ROSAgentPtr agent(new ROSAgent);
+                        agent->id_ = cur_id;
+                        agent->holo_robot_ = msg.holo_robot;
+                        agent->base_odom_.pose.pose = msg.pose.pose;
+                        agent->heading_ = tf::getYaw(msg.pose.pose.orientation);
+                        agent->base_odom_.twist.twist = msg.twist.twist;
+                        agent->holo_velocity_ = Vector2(msg.holonomic_velocity.x, msg.holonomic_velocity.y);
+                        agent->radius_ = msg.radius;
+                        agent->controlled_ = msg.controlled;
+                        agent->footprint_msg_ = msg.footprint;
+                        agent->setMinkowskiFootprintVector2(msg.footprint);
+                        agent->last_seen_ = msg.header.stamp;
+                        humans.push_back(agent);
+                    }
+        human_neighbors_.clear();
+        human_neighbors_ = humans;
+
+        //publish visualization if neccessary
+        if ((ros::Time::now() - last_time_positions_published_).toSec() > publish_positions_period_) {
+            last_time_positions_published_ = ros::Time::now();
+            publishNeighborPositions(human_neighbors_, global_frame_, base_frame_, humans_pub_);
         }
     }
 

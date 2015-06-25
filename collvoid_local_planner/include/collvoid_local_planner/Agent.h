@@ -51,6 +51,7 @@ namespace collvoid{
 
 
         void computeAgentVOs();
+        void computeHumanVOs();
 
         void setLeftPref(double left_pref);
         void setRadius(double radius);
@@ -107,7 +108,7 @@ namespace collvoid{
 
 
 
-        std::vector<boost::shared_ptr<Agent> > agent_neighbors_;
+        std::vector<boost::shared_ptr<Agent> > agent_neighbors_, human_neighbors_;
 
 
     };

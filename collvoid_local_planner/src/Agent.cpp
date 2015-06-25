@@ -76,7 +76,7 @@ namespace collvoid {
             computeAgentVOs();
         }
         new_velocity_ = calculateClearpathVelocity(samples_, all_vos_, human_vos_, agent_vos_, static_vos_, additional_orca_lines_,
-                                                   pref_velocity, max_speed_x_, use_truncation_, odom_pose_, heading_, footprint_spec_, costmap_, world_model_);
+                                                   pref_velocity, velocity_, max_speed_x_, use_truncation_, odom_pose_, heading_, footprint_spec_, costmap_, world_model_);
     }
 
     void Agent::computeSampledVelocity(Vector2 pref_velocity) {
@@ -85,6 +85,29 @@ namespace collvoid {
         }
         new_velocity_ = calculateNewVelocitySampled(samples_, all_vos_, pref_velocity, max_speed_x_, odom_pose_, heading_, velocity_, use_truncation_,
                                                     footprint_spec_, costmap_, world_model_);
+    }
+
+
+       void Agent::computeHumanVOs() {
+        BOOST_FOREACH (AgentPtr agent, human_neighbors_) {
+                        VO new_agent_vo;
+                        //use footprint or radius to create VO
+                        if (convex_) {
+                            new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_,
+                                                        agent->footprint_, agent->velocity_, VOS);
+                        }
+                        else {
+                            new_agent_vo = createVO(position_, radius_, velocity_, agent->position_, agent->radius_,
+                                                        agent->velocity_, VOS);
+                        }
+                        //truncate calculate with 100 to avoid code breaking..
+                        if (use_truncation_){
+                            new_agent_vo = createTruncVO(new_agent_vo, 100);
+                        }
+                        human_vos_.push_back(new_agent_vo);
+                        all_vos_.push_back(new_agent_vo);
+
+                    }
     }
 
 

@@ -8,7 +8,7 @@ from spencer_tracking_msgs.msg import TrackedPersons, TrackedPerson
 from collvoid_msgs.msg import AggregatedPoseTwist, PoseTwistWithCovariance
 from math import sin, cos, pi
 
-global_frame = "/odom"
+global_frame = "/map"
 radius = 0.5
 
 class PeopleTracker(object):

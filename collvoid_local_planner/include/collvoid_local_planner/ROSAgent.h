@@ -40,6 +40,8 @@
 #include <boost/bind.hpp>
 
 #include <collvoid_msgs/PoseArrayWeighted.h>
+#include <collvoid_msgs/AggregatedPoseTwist.h>
+
 #include <geometry_msgs/PolygonStamped.h>
 
 #include <collvoid_msgs/PoseTwistWithCovariance.h>
@@ -185,6 +187,7 @@ namespace collvoid {
 
 
         void positionShareCallback(const collvoid_msgs::PoseTwistWithCovariance::ConstPtr &msg);
+        void humansCallback(const collvoid_msgs::AggregatedPoseTwist::ConstPtr &msg);
 
         void amclPoseArrayWeightedCallback(const collvoid_msgs::PoseArrayWeighted::ConstPtr &msg);
 
@@ -299,8 +302,8 @@ namespace collvoid {
         tf::TransformListener *tf_;
 
         //subscribers and publishers
-        ros::Publisher lines_pub_, neighbors_pub_, polygon_pub_, vo_pub_, me_pub_, samples_pub_, speed_pub_, position_share_pub_, obstacles_pub_;
-        ros::Subscriber amcl_posearray_sub_, position_share_sub_, odom_sub_;
+        ros::Publisher lines_pub_, neighbors_pub_, humans_pub_, polygon_pub_, vo_pub_, me_pub_, samples_pub_, speed_pub_, position_share_pub_, obstacles_pub_;
+        ros::Subscriber amcl_posearray_sub_, position_share_sub_, people_sub_, odom_sub_;
 
 
         // service calls

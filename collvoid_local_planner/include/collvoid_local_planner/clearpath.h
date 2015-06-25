@@ -107,12 +107,20 @@ namespace collvoid {
 
     Vector2 calculateClearpathVelocity(std::vector<VelocitySample> &samples, const std::vector<VO> &all_vos,
                                        const std::vector<VO> &human_vos, const std::vector<VO> &agent_vos, const std::vector<VO> &static_vos,
-                                       const std::vector<Line> &additional_constraints, const Vector2 &pref_vel,
+                                       const std::vector<Line> &additional_constraints, const Vector2 &pref_vel, const Vector2 &cur_vel,
                                        double max_speed, bool use_truncation,
                                         const Vector2 &position, double heading,
                                        std::vector<geometry_msgs::Point> footprint_spec,
                                         costmap_2d::Costmap2D* costmap,
                                         base_local_planner::WorldModel* world_model);
+
+    Vector2 evaluateClearpathSamples(std::vector<VelocitySample> &sorted_samples, const std::vector<VO> &truncated_vos, const std::vector<VO> &agent_vos,const std::vector<VO> &human_vos,
+                                     const std::vector<Line> &additional_constraints,
+                                     const Vector2 &pref_vel, double max_speed, const Vector2 &position, double heading, const Vector2& cur_speed, bool use_truncation,
+                                     std::vector<geometry_msgs::Point> footprint_spec,
+                                     costmap_2d::Costmap2D* costmap,
+                                     base_local_planner::WorldModel* world_model);
+
 
     //Sample based
     void createSamplesWithinMovementConstraints(std::vector<VelocitySample> &samples, double cur_vel_x,
