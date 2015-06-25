@@ -37,6 +37,14 @@
     <remap from="scan" to="/scan_filtered"/>
 
   </node>
+  <node pkg="collvoid_controller" type="active_collision_avoidance.py" name="active_collvoid" output="screen">
+    <param name="~base_frame_id" value="/base_link" />
+    <remap from="cmd_vel" to="/cmd_vel_mux/input/navi"/>
+  </node> 
+  <node pkg="collvoid_controller" type="detect_obstacles.py" name="detect_obstacles" output="screen">
+    <param name="~base_frame" value="/base_link" />
+    <remap from="base_scan" to="/scan_filtered"/>
+  </node>
   
 
 

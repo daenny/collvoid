@@ -21,7 +21,7 @@ CollvoidLocalPlanner:
   footprint_radius: 0.22
 
 
-  yaw_goal_tolerance: 0.05
+  yaw_goal_tolerance: 0.1
   xy_goal_tolerance: 0.10
   latch_xy_goal_tolerance: true
   ignore_goal_yaw: false
@@ -43,7 +43,7 @@ CollvoidLocalPlanner:
 
   type_vo: 0 #HRVO = 0, RVO = 1, VO = 2
 
-  orca: true #orca or VO
+  orca: false #orca or VO
   convex: true #footprint or radius
   clearpath: true #clearpath or sampling 
   num_samples: 400 #num samples
