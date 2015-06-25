@@ -22,7 +22,7 @@ obstacle_layer:
   z_resolution: 0.2
   z_voxels: 2
   publish_voxel_map: false
-  observation_sources:  scan bump
+  observation_sources:  scan #bump
   scan:
     sensor_frame: /laser
     data_type: LaserScan

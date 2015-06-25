@@ -230,7 +230,7 @@ namespace collvoid {
         int num_samples_;
 
         //helpers
-        ros::Time last_time_positions_published_;
+        ros::Time last_time_positions_published_, last_time_humans_published_;
         ros::Time last_time_me_published_;
 
         //NH stuff

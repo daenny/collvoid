@@ -1065,13 +1065,14 @@ namespace collvoid {
                         agent->setMinkowskiFootprintVector2(msg.footprint);
                         agent->last_seen_ = msg.header.stamp;
                         humans.push_back(agent);
+
                     }
         human_neighbors_.clear();
         human_neighbors_ = humans;
 
         //publish visualization if neccessary
-        if ((ros::Time::now() - last_time_positions_published_).toSec() > publish_positions_period_) {
-            last_time_positions_published_ = ros::Time::now();
+        if ((ros::Time::now() - last_time_humans_published_).toSec() > publish_positions_period_) {
+            last_time_humans_published_ = ros::Time::now();
             publishNeighborPositions(human_neighbors_, global_frame_, base_frame_, humans_pub_);
         }
     }

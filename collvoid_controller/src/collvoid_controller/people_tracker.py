@@ -44,6 +44,7 @@ class PeopleTracker(object):
             person.holo_robot = True
             person.robot_id = "person_" + str(track.track_id)
             person.footprint = self.footprint
+            person.radius = radius
             pose = PoseStamped()
             pose.header = msg.header
             pose.pose = track.pose.pose
