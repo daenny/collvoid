@@ -1,0 +1,20 @@
+<launch>
+    <!-- Detectors -->
+    <include file="$(find collvoid_turtlebot)/launch/include/laser_detectors.launch"/>
+    <include file="$(find collvoid_turtlebot)/launch/include/leg_detectors.launch"/>
+
+    <!-- People tracking -->
+    <include file="$(find spencer_people_tracking_launch)/launch/tracking/people_tracking.launch">
+        <arg name="rgbd" default="false"/>
+        <arg name="laser_low_confidence_detections" default="true"/>
+    </include>
+
+    <!-- Republish in posetwists for collvoid -->
+    <node pkg="collvoid_controller" type="people_tracker.py" name="people_tracker" output="screen">
+      <remap from="tracked_persons" to="/spancer/perception/tracked_persons" />
+    </node> 
+    
+    <!-- Group tracking -->
+    <!-- <include file="$(find spencer_people_tracking_launch)/launch/tracking/group_tracking.launch"/>  -->
+
+</launch>
