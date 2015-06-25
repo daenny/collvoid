@@ -8,14 +8,14 @@ from spencer_tracking_msgs.msg import TrackedPersons, TrackedPerson
 from collvoid_msgs.msg import AggregatedPoseTwist, PoseTwistWithCovariance
 from math import sin, cos, pi
 
-global_frame = "/map"
+global_frame = "/odom"
 radius = 0.5
 
 class PeopleTracker(object):
     def __init__(self):
         self.detected = []
-        self.people_pub = rospy.Publisher('people', AggregatedPoseTwist)
-        self.tf_listener = tf.Transformer()
+        self.people_pub = rospy.Publisher('people', AggregatedPoseTwist, queue_size=1)
+        self.tf_listener = tf.TransformListener()
         self.footprint = PolygonStamped()
         num_points = 32
         for i in xrange(num_points):
