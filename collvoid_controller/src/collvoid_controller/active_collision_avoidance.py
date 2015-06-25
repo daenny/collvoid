@@ -61,7 +61,7 @@ class ActiveCollisionAvoidanceController(object):
         return res.twist
 
     def spin(self):
-        r = rospy.Rate(20)
+        r = rospy.Rate(10)
         while not rospy.is_shutdown():
             if self.active:
                 self.twist_publisher.publish(self.get_twist())

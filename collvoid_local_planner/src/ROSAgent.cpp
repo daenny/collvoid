@@ -508,34 +508,34 @@ namespace collvoid {
         collvoid_srvs::GetObstacles srv;
 
         if (get_obstacles_srv_.call(srv)) {
+            sensor_msgs::PointCloud in, result;
+
+
             BOOST_FOREACH(geometry_msgs::PolygonStamped poly, srv.response.obstacles) {
                             Obstacle obst;
-                            obst.last_seen = poly.header.stamp;
-                            geometry_msgs::PointStamped in;
                             in.header.stamp = poly.header.stamp;
                             in.header.frame_id = poly.header.frame_id;
-                            BOOST_FOREACH (geometry_msgs::Point32 p, poly.polygon.points) {
-                                            in.point.x = p.x;
-                                            in.point.y = p.y;
-                                            geometry_msgs::PointStamped result;
-                                            try {
-                                                tf_->waitForTransform(global_frame_, base_frame_, in.header.stamp,
-                                                                      ros::Duration(0.2));
-                                                tf_->transformPoint(global_frame_, in, result);
-                                            }
-                                            catch(tf::TransformException& ex) {
-                                                ROS_WARN(
-                                                        "Failed to transform the goal pose from %s into the %s frame: %s",
-                                                        in.header.frame_id.c_str(), global_frame_.c_str(), ex.what());
-                                                continue;
+                            obst.last_seen = poly.header.stamp;
+                            //geometry_msgs::PointStamped in;
+                            in.points = poly.polygon.points;
+                            try {
+                                tf_->waitForTransform(global_frame_, in.header.frame_id, in.header.stamp,
+                                                      ros::Duration(0.1));
+                                tf_->transformPointCloud(global_frame_, in, result);
+                            }
+                            catch(tf::TransformException& ex) {
+                                ROS_WARN(
+                                        "Failed to transform the goal pose from %s into the %s frame: %s",
+                                        in.header.frame_id.c_str(), global_frame_.c_str(), ex.what());
+                                continue;
 
-                                            }
-
-                                            Vector2 v = Vector2(result.point.x, result.point.y);
+                            }
+                            BOOST_FOREACH (geometry_msgs::Point32 p, result.points) {
+                                            Vector2 v = Vector2(p.x, p.y);
                                             obst.points.push_back(v);
 
                                         }
-                              obstacles.push_back(obst);
+                            obstacles.push_back(obst);
                         }
         }
         else {
@@ -571,8 +571,8 @@ namespace collvoid {
                             }
                             std::vector<Vector2> obst_footprint;
                             BOOST_FOREACH(Vector2 p, obst.points) {
-                                           obst_footprint.push_back(p-obst_center);
-                                       }
+                                            obst_footprint.push_back(p-obst_center);
+                                        }
                             if (orca_) {
 
                                 createObstacleLine(own_footprint, obst.points[0], obst.points[1]);
@@ -1176,7 +1176,7 @@ namespace collvoid {
                         double time_dif = (ros::Time::now() - agent->last_seen_).toSec();
                         predictAgentParams(agent.get(), time_dif);
                     }
-         BOOST_FOREACH (AgentPtr a, human_neighbors_) {
+        BOOST_FOREACH (AgentPtr a, human_neighbors_) {
                         ROSAgentPtr agent = boost::dynamic_pointer_cast<ROSAgent>(a);
                         double time_dif = 0.05;
                         predictAgentParams(agent.get(), time_dif);
