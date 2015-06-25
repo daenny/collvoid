@@ -153,7 +153,7 @@ class DetectObstacles(object):
         for obst in obstacles:
             poly = PolygonStamped()
             poly.header.stamp = now
-            poly.header.frame_id = BASE_FRAME # GLOBAL_FRAME
+            poly.header.frame_id = GLOBAL_FRAME
             pc = PointCloud()
             pc.header.stamp = now
             pc.header.frame_id = BASE_FRAME
@@ -162,11 +162,12 @@ class DetectObstacles(object):
                 t.x = (p[0]-400.)/400. * max_range
                 t.y = (p[1]-400.)/400. * max_range
                 pc.points.append(t)
-            #try:
-            #    pc = self.tf_listener.transformPointCloud(GLOBAL_FRAME, pc)
-            #except tf.Exception as e:
-            #    #print e
-            #    continue
+            try:
+                self.tf_listener.waitForTransform(GLOBAL_FRAME, BASE_FRAME, rospy.Duration(0.2))
+                pc = self.tf_listener.transformPointCloud(GLOBAL_FRAME, pc)
+            except tf.Exception as e:
+                #print e
+                continue
             poly.polygon.points = pc.points
             self.current_obstacles.append(poly)
             #self.polygon_pub.publish(poly)
