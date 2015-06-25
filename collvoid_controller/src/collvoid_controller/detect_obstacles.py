@@ -163,7 +163,7 @@ class DetectObstacles(object):
                 t.y = (p[1]-400.)/400. * max_range
                 pc.points.append(t)
             try:
-                self.tf_listener.waitForTransform(GLOBAL_FRAME, BASE_FRAME, rospy.Duration(0.2))
+                self.tf_listener.waitForTransform(GLOBAL_FRAME, BASE_FRAME, now, rospy.Duration(0.2))
                 pc = self.tf_listener.transformPointCloud(GLOBAL_FRAME, pc)
             except tf.Exception as e:
                 #print e

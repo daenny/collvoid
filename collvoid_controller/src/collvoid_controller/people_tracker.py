@@ -57,6 +57,7 @@ class PeopleTracker(object):
 
     def transform_pose_to_global(self, pose):
         try:
+            self.tf_listener.waitForTransform(pose.header.frame_id, global_frame, pose.header.stamp, rospy.Duration(0.1))
             result = self.tf_listener.transformPose(global_frame, pose)
         except tf.Exception as e:
             rospy.logwarn("Peopletracker: could not transform pose, %s", e)

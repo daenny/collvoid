@@ -38,7 +38,7 @@ class ActiveCollisionAvoidanceController(object):
         own_pose.header.stamp = rospy.Time.now()
         own_pose.pose.orientation.w = 1
         try:
-            self.tf_listener.waitForTransform(GLOBAL_FRAME, self.base_link, rospy.Duration(0.2))
+            self.tf_listener.waitForTransform(GLOBAL_FRAME, self.base_link, own_pose.header.stamp, rospy.Duration(0.2))
             result = self.tf_listener.transformPose(GLOBAL_FRAME, own_pose)
         except tf.Exception as e:
             rospy.logwarn("%s: could not transform pose, %s", self.hostname, e)
