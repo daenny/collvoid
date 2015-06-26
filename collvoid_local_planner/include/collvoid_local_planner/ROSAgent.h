@@ -258,7 +258,6 @@ namespace collvoid {
 
         //obstacles
         bool delete_observations_;
-        bool use_obstacles_;
         std::vector<collvoid::Vector2> obstacle_points_;
         double time_horizon_obst_;
 

@@ -20,8 +20,9 @@ def create_world_file(argv):
     bagFileName = "collvoid.bag"
     useSticks = False
     dwa = False
+    extraSampling = False
     try:
-        opts, args= getopt.getopt(argv, "hn:s:oldxf:S", ["help","numRobots=","circleSize=","omni","localization","dwa","experiments","bagFileName=","Sticks"])
+        opts, args= getopt.getopt(argv, "hn:s:oldtxf:S", ["help","numRobots=","circleSize=","omni","localization","dwa","extraSampling","experiments","bagFileName=","Sticks"])
     except getopt.GetoptError:
         print 'create.py -n <numRobots> -s <circleSize> <-h> <-l> <-d> <-x> <-f> bagFile'
         sys.exit(2)
@@ -37,7 +38,8 @@ def create_world_file(argv):
             omni = True
         elif opt in ("-d","--dwa"):
             dwa = True
-
+        elif opt in ("-t", "--extraSampling"):
+            extraSampling = True
         elif opt in ("-l","--localization"):
             localization = False
         elif opt in ("-x", "--experiments"):
@@ -84,7 +86,7 @@ def create_world_file(argv):
     worldFileTemp.close()
     worldFileNew.close()
     create_yaml_file(circleSize,numRobots,omni,simulation,localization,centerX,centerY,scaleRadius,useNoise, useSticks)
-    create_launch_file(numRobots,omni,runExperiments,bagFileName,localization,useBagFile, dwa, useSticks)
+    create_launch_file(numRobots,omni,runExperiments,bagFileName,localization,useBagFile, dwa, extraSampling, useSticks)
     
     
 def create_yaml_file(circleSize, numRobots,omni,simulation,localization,centerX,centerY,scaleRadius,useNoise, useSticks):
@@ -106,7 +108,7 @@ def create_yaml_file(circleSize, numRobots,omni,simulation,localization,centerX,
     
     yamlWrite.close()
     
-def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,useBagFile, dwa, useSticks):
+def create_launch_file(numRobots,omni,runExperiments, bagFilename, localization,useBagFile, dwa, extraSampling, useSticks):
     direct = commands.getoutput('rospack find collvoid_stage')
 
     launchWrite = open(direct + '/launch/sim_created.launch','w')

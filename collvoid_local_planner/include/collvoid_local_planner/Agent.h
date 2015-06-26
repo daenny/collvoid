@@ -79,6 +79,9 @@ namespace collvoid{
         bool clearpath_; //Clearpath or sampling based
         int type_vo_; //0 = HRVO, 1 = RVO , 2 = VO
 
+        bool new_sampling_;
+        bool use_obstacles_;
+
         //description
         Vector2 position_, odom_pose_;
         double heading_;

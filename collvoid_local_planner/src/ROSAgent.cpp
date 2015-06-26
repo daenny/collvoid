@@ -160,6 +160,8 @@ namespace collvoid {
         getParam(private_nh, "use_truncation", &use_truncation_);
 
         num_samples_ = getParamDef(private_nh, "num_samples", 400);
+        new_sampling_ = getParamDef(private_nh, "new_sampling", true);
+
         type_vo_ = getParamDef(private_nh, "type_vo", 0); //HRVO
 
         trunc_time_ = getParamDef(private_nh, "trunc_time", 10.0);
@@ -547,6 +549,8 @@ namespace collvoid {
     }
 
     void ROSAgent::computeObstacles() {
+        if (use_obstacles_) {
+
         boost::mutex::scoped_lock lock(obstacle_lock_);
 
         std::vector<Vector2> own_footprint;
@@ -558,7 +562,6 @@ namespace collvoid {
         std::vector<Obstacle> obstacles = getObstacles();
         min_dist_obst_ = DBL_MAX;
         BOOST_FOREACH(Obstacle obst, obstacles) {
-                        if (use_obstacles_) {
                             //obst.points = rotateFootprint(obst.points, heading_);
                             Vector2 obst_center = (obst.points[0] + obst.points[2])/2.;
                             double dist = distSqPointLineSegment(obst.points[0], obst.points[1], position_);

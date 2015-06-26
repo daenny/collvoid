@@ -216,6 +216,7 @@ namespace collvoid_local_planner {
             me_->setConvex(convex);
             me_->setUseTruncation(use_truncation);
             me_->setNumSamples(num_samples);
+            me_->new_sampling_ = getParamDef(private_nh, "new_sampling", true);
             me_->costmap_ = costmap_ros->getCostmap();
             me_->costmap_ros_ = costmap_ros;
 

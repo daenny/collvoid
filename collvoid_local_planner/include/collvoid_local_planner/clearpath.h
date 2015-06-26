@@ -108,7 +108,7 @@ namespace collvoid {
     Vector2 calculateClearpathVelocity(std::vector<VelocitySample> &samples, const std::vector<VO> &all_vos,
                                        const std::vector<VO> &human_vos, const std::vector<VO> &agent_vos, const std::vector<VO> &static_vos,
                                        const std::vector<Line> &additional_constraints, const Vector2 &pref_vel, const Vector2 &cur_vel,
-                                       double max_speed, bool use_truncation,
+                                       double max_speed, bool use_truncation, bool new_sampling, bool use_obstacles,
                                         const Vector2 &position, double heading,
                                        std::vector<geometry_msgs::Point> footprint_spec,
                                         costmap_2d::Costmap2D* costmap,

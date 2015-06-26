@@ -1,5 +1,5 @@
 /noise_std: 0.0
-use_obstacles: true
+use_obstacles: false
 
 controller_frequency: 10
 yaw_goal_tolerance: 0.10
@@ -31,5 +31,6 @@ CollvoidLocalPlanner:
   convex: true #footprint or radius
   clearpath: true #clearpath or sampling 
   num_samples: 400 #num samples
+  new_sampling: true
   use_truncation: true #truncate vos
 

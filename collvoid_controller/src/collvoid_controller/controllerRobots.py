@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-import roslib;
-
-roslib.load_manifest('collvoid_controller')
 import rospy
 import string
 import actionlib

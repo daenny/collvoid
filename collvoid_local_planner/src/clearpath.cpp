@@ -862,7 +862,7 @@ namespace collvoid {
     Vector2 calculateClearpathVelocity(std::vector<VelocitySample> &samples, const std::vector<VO> &all_vos,
                                        const std::vector<VO> &human_vos, const std::vector<VO> &agent_vos, const std::vector<VO> &static_vos,
                                        const std::vector<Line> &additional_constraints, const Vector2 &pref_vel,  const Vector2 &cur_vel,
-                                       double max_speed, bool use_truncation,
+                                       double max_speed, bool use_truncation, bool new_sampling, bool use_obstacles,
                                        const Vector2 &position, double heading,
                                        std::vector<geometry_msgs::Point> footprint_spec,
                                        costmap_2d::Costmap2D* costmap,
@@ -1072,7 +1072,9 @@ namespace collvoid {
             double pos_x = 0.1 * samples[i].velocity.x();
             double pos_y = 0.1 * samples[i].velocity.y();
 
-            double footprint_cost = footprintCost(position.x() + pos_x, position.y() + pos_y, heading, 1.0, footprint_spec, costmap, world_model);
+            double footprint_cost = 0.;
+            if (use_obstacles)
+                footprint_cost = footprintCost(position.x() + pos_x, position.y() + pos_y, heading, 1.0, footprint_spec, costmap, world_model);
 
             //ROS_ERROR("footprint_cost %f", footprint_cost);
 
@@ -1090,7 +1092,7 @@ namespace collvoid {
 
         }
 
-        if (safeSamples.size()>0) {
+        if (safeSamples.size()>0 && new_sampling) {
             new_vel = safeSamples[0].velocity;
             double d = minDistToVOs(agent_vos, new_vel, use_truncation);
             d = std::min(minDistToVOs(human_vos, new_vel, use_truncation), d);
@@ -1116,14 +1118,18 @@ namespace collvoid {
                                     pos_x = 0.1 * cur.velocity.x();
                                     pos_y = 0.1 * cur.velocity.y();
 
-                                    double footprint_cost = footprintCost(position.x() + pos_x, position.y() + pos_y, heading, 1.0, footprint_spec, costmap, world_model);
+                                    if (use_obstacles) {
+                                        double footprint_cost = footprintCost(position.x() + pos_x,
+                                                                              position.y() + pos_y, heading, 1.0,
+                                                                              footprint_spec, costmap, world_model);
 
 
-                //ROS_ERROR("footprint_cost %f", footprint_cost);
-                                    if (footprint_cost < 0.) {
-                                        sample.cost = -100;
+                                        //ROS_ERROR("footprint_cost %f", footprint_cost);
+                                        if (footprint_cost < 0.) {
+                                            sample.cost = -100;
 
-                                        continue;
+                                            continue;
+                                        }
                                     }
                                     double cost = 0;
                                     cost += 2 * sqrt(absSqr(cur.velocity - pref_vel));
@@ -1146,6 +1152,11 @@ namespace collvoid {
             }
 
             samples = safeSamples;
+        }
+        else {
+            if (safeSamples.size()>0) {
+                new_vel = safeSamples[0].velocity;
+            }
         }
         return new_vel;
     }
