@@ -12,6 +12,7 @@
     <!-- Republish in posetwists for collvoid -->
     <node pkg="collvoid_controller" type="people_tracker.py" name="people_tracker" output="screen">
       <remap from="tracked_persons" to="/spencer/perception/tracked_persons" />
+      <remap from="people" to="humans" />
     </node> 
     
     <!-- Group tracking -->
