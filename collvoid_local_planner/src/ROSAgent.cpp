@@ -354,17 +354,25 @@ namespace collvoid {
 
             //ROS_ERROR("dif_ang %f", dif_ang);
             if (std::abs(dif_ang) > 3.0 * M_PI / 4.0) {
-                cmd_vel.angular.z = sign(last_twist_ang_) *
+                if (last_twist_ang_ != 0.0)
+                {
+                    cmd_vel.angular.z = sign(last_twist_ang_) *
                                     std::min(std::abs(dif_ang / time_to_holo_), max_vel_th_);
-                ROS_ERROR("dif_ang %f", dif_ang);
-                ROS_ERROR("base twist %f", base_odom_.twist.twist.angular.z);
-                ROS_ERROR("cmd_vel %f", cmd_vel.angular.z);
-                ROS_ERROR("last_cmd_vel %f", last_twist_ang_);
-                last_twist_ang_ = cmd_vel.angular.z;
+                }
+                else {
+                    cmd_vel.angular.z = sign(dif_ang) *
+                                        std::min(std::abs(dif_ang / time_to_holo_), max_vel_th_);
 
+                }
+//                ROS_ERROR("dif_ang %f", dif_ang);
+//                ROS_ERROR("base twist %f", base_odom_.twist.twist.angular.z);
+//                ROS_ERROR("cmd_vel %f", cmd_vel.angular.z);
+//                ROS_ERROR("last_cmd_vel %f", last_twist_ang_);
+                last_twist_ang_ = cmd_vel.angular.z;
             }
             else {
                 cmd_vel.angular.z = sign(dif_ang) * std::min(std::abs(dif_ang / time_to_holo_), max_vel_th_);
+                last_twist_ang_ = 0.;
             }
             //ROS_ERROR("vstar = %.3f", vstar);
             // if (std::abs(cmd_vel.angular.z) == max_vel_th_)

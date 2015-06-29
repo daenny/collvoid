@@ -1087,7 +1087,6 @@ namespace collvoid {
                 optimal = all_vos.size();
                 new_vel = samples[i].velocity;
                 foundOutside = true;
-                new_vel = max_speed * normalize(new_vel);
                 //TODO project on movement constraints
             }
 
@@ -1157,6 +1156,10 @@ namespace collvoid {
         else {
             if (safeSamples.size()>0) {
                 new_vel = safeSamples[0].velocity;
+            }
+            else {
+                ROS_WARN("Did not find safe velocity, chosing outside constraints");
+                new_vel = max_speed * normalize(new_vel);
             }
         }
         return new_vel;
