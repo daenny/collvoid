@@ -107,7 +107,7 @@ namespace collvoid {
                         }
                         //truncate calculate with 100 to avoid code breaking..
                         if (use_truncation_){
-                            new_agent_vo = createTruncVO(new_agent_vo, 100);
+                            new_agent_vo = createTruncVO(new_agent_vo, 20);
                         }
                         human_vos_.push_back(new_agent_vo);
                         all_vos_.push_back(new_agent_vo);

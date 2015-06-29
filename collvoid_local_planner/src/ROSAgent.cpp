@@ -352,7 +352,7 @@ namespace collvoid {
             cmd_vel.linear.x = std::min(vstar, vMaxAng());
             cmd_vel.linear.y = 0.0;
 
-            //ROS_ERROR("dif_ang %f", dif_ang);
+            ROS_ERROR("dif_ang %f", dif_ang);
             if (std::abs(dif_ang) > 3.0 * M_PI / 4.0) {
                 cmd_vel.angular.z = sign(base_odom_.twist.twist.angular.z) *
                                     std::min(std::abs(dif_ang / time_to_holo_), max_vel_th_);
@@ -494,6 +494,7 @@ namespace collvoid {
             if (max_track_speed <= 2 * min_error) {
                 max_track_speed = 2 * min_error;
             }
+            ROS_INFO("Max Track speed", max_track_speed);
             addMovementConstraintsDiffSimple(max_track_speed, heading_, additional_orca_lines_);
         }
         else {
