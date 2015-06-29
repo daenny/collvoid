@@ -95,29 +95,38 @@ namespace collvoid {
        void Agent::computeHumanVOs() {
         BOOST_FOREACH (AgentPtr agent, human_neighbors_) {
                         VO new_agent_vo;
+			bool created = false;
                         //use footprint or radius to create VO
                         if (convex_) {
                             Vector2 rel_position = agent->position_ - position_;
                             Vector2 speed = Vector2(0,0);
                             //if (fabs(atan(rel_position)-heading_ ) < M_PI/2.) {
 			    ROS_INFO("angle betwee %f", angles::shortest_angular_distance(atan(rel_position), heading_));
-			    if (angles::shortest_angular_distance(atan(rel_position), heading_)< M_PI/2.)
+			    if (angles::shortest_angular_distance(atan(rel_position), heading_)< M_PI/2.){
 			      speed = normalize(position_ - agent->position_) * abs(agent->velocity_);
-                            
-                            new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_,
-                                                        //agent->footprint_, agent->velocity_, VOS);
-						    agent->footprint_, speed, VOS);
+
+			    }
+			    if (abs(rel_position)<2.){
+			      new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_,
+						      //agent->footprint_, agent->velocity_, VOS);
+						      agent->footprint_, speed, VOS);
+			      created = true;
+			    }
+			
                         }
                         else {
                             new_agent_vo = createVO(position_, radius_, velocity_, agent->position_, agent->radius_,
                                                         agent->velocity_, VOS);
+			    created = true;
                         }
+			if (created) {
                         //truncate calculate with 100 to avoid code breaking..
-                        if (use_truncation_){
+			  if (use_truncation_){
                             new_agent_vo = createTruncVO(new_agent_vo, 20);
-                        }
-                        human_vos_.push_back(new_agent_vo);
-                        all_vos_.push_back(new_agent_vo);
+			  }
+			  human_vos_.push_back(new_agent_vo);
+			  all_vos_.push_back(new_agent_vo);
+			}
 
                     }
     }
