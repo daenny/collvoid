@@ -96,7 +96,7 @@ namespace collvoid {
                         VO new_agent_vo;
                         //use footprint or radius to create VO
                         if (convex_) {
-                            Vector2 speed = position_ - agent->position_;
+                            Vector2 speed = normalize(position_ - agent->position_) * abs(agent->velocity_);
                             new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_,
                                                         //agent->footprint_, agent->velocity_, VOS);
                              agent->footprint_, speed, VOS);
