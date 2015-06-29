@@ -1087,6 +1087,7 @@ namespace collvoid {
                 optimal = all_vos.size();
                 new_vel = samples[i].velocity;
                 foundOutside = true;
+                new_vel = max_speed * normalize(new_vel);
                 //TODO project on movement constraints
             }
 
