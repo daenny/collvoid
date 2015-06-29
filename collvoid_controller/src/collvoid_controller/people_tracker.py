@@ -9,7 +9,8 @@ from collvoid_msgs.msg import AggregatedPoseTwist, PoseTwistWithCovariance
 from math import sin, cos, pi
 
 global_frame = "/map"
-radius = 0.5
+radius = 0.4
+division = 4
 
 class PeopleTracker(object):
     def __init__(self):
@@ -41,6 +42,8 @@ class PeopleTracker(object):
             person.header.frame_id = global_frame
             person.controlled = False
             person.twist = track.twist
+            person.twist.twist.linear.x /= division
+            person.twist.twist.angular.z /= division
             person.holo_robot = True
             person.robot_id = "person_" + str(track.track_id)
             person.footprint = self.footprint
