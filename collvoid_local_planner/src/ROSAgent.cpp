@@ -494,7 +494,7 @@ namespace collvoid {
             if (max_track_speed <= 2 * min_error) {
                 max_track_speed = 2 * min_error;
             }
-            ROS_INFO("Max Track speed", max_track_speed);
+            ROS_INFO("Max Track speed %f", max_track_speed);
             addMovementConstraintsDiffSimple(max_track_speed, heading_, additional_orca_lines_);
         }
         else {
