@@ -31,6 +31,7 @@
 #include "collvoid_local_planner/Agent.h"
 #include "collvoid_local_planner/orca.h"
 #include <boost/foreach.hpp>
+#include <angles/angles.h>
 
 namespace collvoid {
 
@@ -98,12 +99,14 @@ namespace collvoid {
                         if (convex_) {
                             Vector2 rel_position = agent->position_ - position_;
                             Vector2 speed = Vector2(0,0);
-                            if (fabs(atan(rel_position)-heading_ ) < M_PI/2.) {
-                                speed = normalize(position_ - agent->position_) * abs(agent->velocity_);
-                            }
+                            //if (fabs(atan(rel_position)-heading_ ) < M_PI/2.) {
+			    ROS_INFO("angle betwee %f", angles::shortest_angular_distance(atan(rel_position), heading_));
+			    if (angles::shortest_angular_distance(atan(rel_position), heading_)< M_PI/2.)
+			      speed = normalize(position_ - agent->position_) * abs(agent->velocity_);
+                            
                             new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_,
                                                         //agent->footprint_, agent->velocity_, VOS);
-                             agent->footprint_, speed, VOS);
+						    agent->footprint_, speed, VOS);
                         }
                         else {
                             new_agent_vo = createVO(position_, radius_, velocity_, agent->position_, agent->radius_,

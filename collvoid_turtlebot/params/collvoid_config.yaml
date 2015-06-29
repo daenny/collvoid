@@ -1,5 +1,5 @@
 controller_frequency: 10
-use_obstacles: false
+use_obstacles: true
 
 CollvoidLocalPlanner:
   holo_robot: false
