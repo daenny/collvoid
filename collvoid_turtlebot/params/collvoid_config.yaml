@@ -11,7 +11,7 @@ CollvoidLocalPlanner:
   min_vel_th: 0.1
   min_vel_y: 0.0
   max_vel_y: 0.0
-  min_vel_th_inplace: 0.5
+  min_vel_th_inplace: 0.4
   acc_lim_x: 5.0
   acc_lim_y: 5.0
   acc_lim_th: 5.2
