@@ -1042,7 +1042,7 @@ namespace collvoid {
         std::sort(samples.begin(), samples.end(), compareVelocitySamples);
 
         //Vector2 new_vel = evaluateClearpathSamples(samples, all_vos, agent_vos, human_vos, additional_constraints, pref_vel, max_speed, position, heading, cur_vel, use_truncation, footprint_spec, costmap, world_model);
-        Vector2 new_vel; // = pref_vel;
+        Vector2 new_vel = Vector2(0, 0); // = pref_vel;
 
         bool valid = false;
         bool foundOutside = false;
