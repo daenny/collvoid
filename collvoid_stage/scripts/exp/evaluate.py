@@ -33,12 +33,12 @@ def twist_to_uv((x, pose)):
 
 
 if __name__ == '__main__':
-    # if not (len(sys.argv) == 2):
-    #    print "usage: evaluate.py <filename>"
-    #   sys.exit(-1)
+    if not (len(sys.argv) == 2):
+       print "usage: evaluate.py <filename>"
+       sys.exit(-1)
 
-    # fname = argv = sys.argv[1]
-    fname = "../../bags/collvoid_5_cocalu_True_extrasampling_True.bag"
+    fname = argv = sys.argv[1]
+    # fname = "../../bags/collvoid_5_cocalu_True_extrasampling_True.bag"
     print "reading %s .." % (fname)
     bag = rosbag.Bag(fname)
 
@@ -79,11 +79,12 @@ if __name__ == '__main__':
         if stopped:
             continue
         if "ground_truth" in topic:
-            continue
+            robot_name = topic[1:8]
+        #    continue
         # which run
         # run = msg.run
-        if topic == "/position_share":
-            robot_name = msg.robot_id
+        #if topic == "/position_share":
+        #    robot_name = msg.robot_id
             count += 1
             # create new run
             if len(runs) < run + 1:
@@ -249,8 +250,8 @@ if __name__ == '__main__':
         POS_V += "];\n"
 
         # saving trajectories to file
-        #matlab_fname = "./runs/%s_run%d.m" % (fname[0:-4], run)
-        matlab_fname = "../../bags/run%d.m" % run
+        matlab_fname = "./runs/%s_run%d.m" % (fname[0:-4], run)
+        #matlab_fname = "../../bags/run%d.m" % run
         print "saving trajectories to %s ..." % matlab_fname
         f = open(matlab_fname, 'w')
         f.write(POS_X)
@@ -428,4 +429,14 @@ if __name__ == '__main__':
     #    print stall
     #   print stall_resolved
     #
-    print exceeded
+    #print exceeded
+    print "collisions=[collisions %f];"%coll_total
+    print "avg_time=[avg_time %f];"%time_max_avg
+    print "avg_time_var=[avg_time_var %f];"%time_max_std
+    print "avg_distance=[avg_distance %f];"%distance_avg
+    print "avg_distance_std=[avg_distance_std %f];"%distance_std
+    print "avg_jerk_lin=[avg_jerk_lin %f];"%jerk_lin_avg
+    print "avg_jerk_lin_std=[avg_jerk_lin_std %f];"%jerk_lin_std
+    print "avg_jerk_ang=[avg_jerk_ang %f];"%jerk_ang_avg
+    print "avg_jerk_ang_std=[avg_jerk_ang_std %f];"%jerk_ang_std
+
