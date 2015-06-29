@@ -1107,7 +1107,7 @@ namespace collvoid {
                                           25);
             }
             //    ROS_INFO("selected j %d, of size %d", optimal, (int) all_vos.size());
-            if (d < 2 * EPSILON && agent_vos.size()>0 && collvoid::abs(pref_vel)>0.1) {
+            if (d < 2 * EPSILON && (agent_vos.size() + human_vos.size()) >0 && collvoid::abs(pref_vel)>0.1) {
                 double bestDist = DBL_MAX;
                 BOOST_FOREACH(VelocitySample& sample, samples_around_opt) {
                                 Vector2 vel = sample.velocity;
@@ -1134,7 +1134,7 @@ namespace collvoid {
                                     double cost = 0;
                                     cost += 2 * sqrt(absSqr(cur.velocity - pref_vel));
                                     cost += 2 * (1. - minDistToVOs(agent_vos, vel, use_truncation));
-                                    cost += 2. * ( 1. - minDistToVOs(human_vos, vel, use_truncation));
+                                    cost += 3. * ( 1. - minDistToVOs(human_vos, vel, use_truncation));
                                     cost += 1 * sqrt(absSqr(cur.velocity - cur_vel));
 
                                     sample.cost = cost;
