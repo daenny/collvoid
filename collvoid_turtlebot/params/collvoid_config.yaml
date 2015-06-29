@@ -5,13 +5,13 @@ CollvoidLocalPlanner:
   holo_robot: false
   wheel_base: 0.25
   
-  max_vel_x: 0.35
-  max_vel_th: 1.5
+  max_vel_x: 0.5
+  max_vel_th: 1.7
   min_vel_x: 0.05
   min_vel_th: 0.1
   min_vel_y: 0.0
   max_vel_y: 0.0
-  min_vel_th_inplace: 0.5
+  min_vel_th_inplace: 0.4
   acc_lim_x: 5.0
   acc_lim_y: 5.0
   acc_lim_th: 5.2

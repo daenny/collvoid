@@ -5,6 +5,11 @@
   <!-- Run the laser -->
   <include file="$(find collvoid_turtlebot)/launch/hokuyo.launch" />
 
+
+  <include file="$(find turtlebot_navigation)/launch/includes/velocity_smoother.launch.xml"/>
+  <include file="$(find turtlebot_navigation)/launch/includes/safety_controller.launch.xml"/>
+
+
   <!--- Run AMCL -->
   <include file="$(find collvoid_turtlebot)/launch/amcl_turtlebot.launch"/> 
  
@@ -33,7 +38,10 @@
    
     <remap from="/position_share_in" to="/position_share"/>
     <remap from="/position_share_out" to="/position_share"/>
-    <remap from="cmd_vel" to="/cmd_vel_mux/input/navi"/>
+    <!-- <remap from="cmd_vel" to="/cmd_vel_mux/input/navi"/> -->
+
+    <remap from="cmd_vel" to="navigation_velocity_smoother/raw_cmd_vel"/>
+
     <remap from="scan" to="/scan_filtered"/>
 
   </node>
