@@ -358,6 +358,10 @@ namespace collvoid {
                                     std::min(std::abs(dif_ang / time_to_holo_), max_vel_th_);
                 ROS_ERROR("dif_ang %f", dif_ang);
                 ROS_ERROR("base twist %f", base_odom_.twist.twist.angular.z);
+                ROS_ERROR("cmd_vel %f", cmd_vel.angular.z);
+                ROS_ERROR("last_cmd_vel %f", last_twist_ang_);
+                last_twist_ang_ = cmd_vel.angular.z;
+
             }
             else {
                 cmd_vel.angular.z = sign(dif_ang) * std::min(std::abs(dif_ang / time_to_holo_), max_vel_th_);

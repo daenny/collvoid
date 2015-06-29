@@ -275,7 +275,7 @@ namespace collvoid {
         //set automatically
         bool initialized_;
         bool has_polygon_footprint_;
-
+        double last_twist_ang_;
         std::vector<std::pair<collvoid::Vector2, collvoid::Vector2> > footprint_lines_;
 
 
