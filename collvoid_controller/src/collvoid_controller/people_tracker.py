@@ -43,6 +43,7 @@ class PeopleTracker(object):
             person.controlled = False
             person.twist = track.twist
             person.twist.twist.linear.x /= division
+            person.twist.twist.linear.y /= division
             person.twist.twist.angular.z /= division
             person.holo_robot = True
             person.robot_id = "person_" + str(track.track_id)
