@@ -280,6 +280,10 @@ namespace collvoid {
         visualization_msgs::MarkerArray sphere_list;
         sphere_list.markers.clear();
         fillMarkerWithROSAgent(sphere_list, me, base_frame, name_space);
+        for (size_t i=0; i< sphere_list.markers.size(); i++) {
+            sphere_list.markers[i].color.b = 1;
+            sphere_list.markers[i].color.r = 0;
+        }
         me_pub.publish(sphere_list);
     }
 
@@ -294,6 +298,11 @@ namespace collvoid {
 
             fillMarkerWithROSAgent(sphere_list, agent.get(), base_frame, name_space);
         }
+//        for (size_t i=0; i< sphere_list.markers.size(); i+=2) {
+//            sphere_list.markers[i].color.r = 0.2 + (i / float(sphere_list.markers.size()/2.)) * 0.8;
+//            sphere_list.markers[i+1].color.r = 0.2 + (i / float(sphere_list.markers.size()/2.)) * 0.8;
+//            //sphere_list.markers[i].color.b = 0.2 + (i /sphere_list.markers.size()) * 0.8;
+//        }
         neighbors_pub.publish(sphere_list);
     }
 

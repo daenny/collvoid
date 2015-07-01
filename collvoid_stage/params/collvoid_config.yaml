@@ -20,8 +20,8 @@ CollvoidLocalPlanner:
   max_error_holo: 0.10
   delete_observations: true
   threshold_last_seen: 0.5 #not implemented yet
-  publish_positions_frequency: 10
-  publish_me_frequency: 10
+  publish_positions_frequency: 30
+  publish_me_frequency: 30
 
   trunc_time: 10.0
   left_pref: -0.05
