@@ -1,7 +1,8 @@
 <launch>
   <arg name="robot" />
   <arg name="type" default="turtle" />
-    
+  <arg name="controlled" default="true" />
+  
   <group ns="$(arg robot)">
 
     

@@ -136,7 +136,7 @@ namespace collvoid_scoring_function
 
         Vector2 test_vel = Vector2();
         if (fabs(vel_y) == 0.) {
-                        double dif_x, dif_y, dif_ang, time_dif;
+            double dif_x, dif_y, dif_ang, time_dif;
             time_dif = 1.;//traj.time_delta_;
             dif_ang = time_dif * vel_theta;
             dif_x = vel_x * cos(dif_ang / 2.0);
