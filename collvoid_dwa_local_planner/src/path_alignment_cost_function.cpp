@@ -6,6 +6,6 @@ namespace collvoid_dwa_local_planner
 {
 double PathAlignmentCostFunction::scoreTrajectory(Trajectory &traj)
 {
-    return fabs(traj.yv_ * getScale());
+    return fabs(traj.yv_ );
 }
 }

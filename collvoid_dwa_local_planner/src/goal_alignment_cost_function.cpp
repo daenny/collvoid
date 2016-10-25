@@ -21,20 +21,17 @@
 #include <tf/tf.h>
 
 #include <math.h>
+#include <base_local_planner/goal_functions.h>
 
 namespace collvoid_dwa_local_planner
 {
-double GoalAlignmentCostFunction::scoreTrajectory(Trajectory &traj)
+double GoalAlignmentCostFunction::scoreTrajectory(base_local_planner::Trajectory &traj)
 {
     if (traj.getPointsSize() < 1) return 0;
-
     double goalHeading = tf::getYaw(goalPose_.pose.orientation);
-
-    // TODO: check if goalHeading and endPoint are in the same reference frame
     double x, y, th;
     traj.getEndpoint(x, y, th);
-    double delta_th = fabs(th - goalHeading);
-
-    return delta_th * getScale();
+    double delta_th = fabs(angles::shortest_angular_distance(th, goalHeading));
+    return delta_th / M_PI;
 }
 }

@@ -146,9 +146,10 @@ namespace collvoid_dwa_local_planner
         double sim_period_;///< @brief The number of seconds to use to compute max/min vels for dwa
         base_local_planner::Trajectory result_traj_;
 
-        double forward_point_distance_;
-        double goal_heading_sq_dist_;
-        double path_scale_;
+    double forward_point_distance_;
+    double goal_heading_sq_dist_;
+    double heading_bias_;
+    double path_scale_;
 
         std::vector<geometry_msgs::PoseStamped> global_plan_;
 
