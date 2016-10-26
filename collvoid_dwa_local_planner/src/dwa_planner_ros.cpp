@@ -99,6 +99,8 @@ void DWAPlannerROS::initialize(std::string name,
 {
     if (! isInitialized()) {
         ros::NodeHandle private_nh("~/" + name);
+        clear_costmaps_srv_ = private_nh.advertiseService("clear_local_costmap", &DWAPlannerROS::clearCostmapsService, this);
+
         g_plan_pub_ = private_nh.advertise<nav_msgs::Path>("global_plan", 1);
         l_plan_pub_ = private_nh.advertise<nav_msgs::Path>("local_plan", 1);
         tf_ = tf;
@@ -126,6 +128,15 @@ void DWAPlannerROS::initialize(std::string name,
         ROS_WARN("This planner has already been initialized, doing nothing.");
     }
 }
+
+
+bool DWAPlannerROS::clearCostmapsService(std_srvs::Empty::Request &req, std_srvs::Empty::Response &resp){
+    //clear the costmaps
+    costmap_ros_->resetLayers();
+    return true;
+}
+
+
 
 bool DWAPlannerROS::setPlan(const std::vector<geometry_msgs::PoseStamped> &orig_global_plan)
 {

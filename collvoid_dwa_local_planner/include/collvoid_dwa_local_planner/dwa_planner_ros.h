@@ -45,6 +45,8 @@
 #include <dynamic_reconfigure/server.h>
 #include <collvoid_dwa_local_planner/DWAPlannerConfig.h>
 
+#include <std_srvs/Empty.h>
+
 #include <angles/angles.h>
 
 #include <nav_msgs/Odometry.h>
@@ -114,10 +116,14 @@ private:
 
     void publishGlobalPlan(std::vector<geometry_msgs::PoseStamped> &path);
 
+    bool clearCostmapsService(std_srvs::Empty::Request &req, std_srvs::Empty::Response &resp);
+
     tf::TransformListener *tf_; ///< @brief Used for transforming point clouds
 
     // for visualisation, publishers of global and local plan
     ros::Publisher g_plan_pub_, l_plan_pub_;
+
+    ros::ServiceServer  clear_costmaps_srv_;
 
     base_local_planner::LocalPlannerUtil planner_util_;
 
