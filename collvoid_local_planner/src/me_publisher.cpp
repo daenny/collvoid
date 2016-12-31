@@ -6,7 +6,7 @@
 #include <boost/foreach.hpp>
 #include <visualization_msgs/MarkerArray.h>
 #include <costmap_2d/array_parser.h>
-
+#include <costmap_2d/footprint.h>
 #include "collvoid_local_planner/me_publisher.h"
 
 
@@ -33,6 +33,7 @@ MePublisher::MePublisher() {
 
 void MePublisher::init(ros::NodeHandle nh, tf::TransformListener *tf) {
     tf_ = tf;
+    ros::NodeHandle ns_nh("move_base/local_costmap");
     ros::NodeHandle private_nh("collvoid");
 
     //set my id
@@ -65,8 +66,7 @@ void MePublisher::init(ros::NodeHandle nh, tf::TransformListener *tf) {
     publish_me_period_ = getParamDef(private_nh, "publish_me_frequency", 10.0);
     publish_me_period_ = 1.0 / publish_me_period_;
 
-
-    getFootprint(private_nh);
+    getFootprint(ns_nh);
 
     //Publishers
     me_pub_ = nh.advertise<visualization_msgs::MarkerArray>("me", 1);
@@ -86,7 +86,7 @@ void MePublisher::init(ros::NodeHandle nh, tf::TransformListener *tf) {
 bool MePublisher::getMeCB(collvoid_srvs::GetMe::Request &req, collvoid_srvs::GetMe::Response &res){
     boost::mutex::scoped_lock(me_lock_);
     collvoid_msgs::PoseTwistWithCovariance me_msg;
-    if (createMeMsg(me_msg)) {
+    if (createMeMsg(me_msg, global_frame_)) {
         res.me = me_msg;
         return true;
     }
@@ -150,8 +150,8 @@ void MePublisher::odomCallback(const nav_msgs::Odometry::ConstPtr &msg) {
         publishMePoseTwist();
 
         tf::Stamped <tf::Pose> global_pose;
-        if (getGlobalPose(global_pose, msg->header.stamp)) {
-            collvoid_scoring_function::publishMePosition(radius_, global_pose, global_frame_, base_frame_, me_pub_);
+        if (getGlobalPose(global_pose, global_frame_, msg->header.stamp)) {
+            collvoid::publishMePosition(radius_, global_pose, global_frame_, base_frame_, me_pub_);
         }
         //publish footprint
         if (convex_) {
@@ -162,15 +162,15 @@ void MePublisher::odomCallback(const nav_msgs::Odometry::ConstPtr &msg) {
 }
 
 
-bool MePublisher::getGlobalPose(tf::Stamped <tf::Pose> &global_pose, const ros::Time stamp) {
+bool MePublisher::getGlobalPose(tf::Stamped <tf::Pose> &global_pose, std::string target_frame, const ros::Time stamp) {
     //let's get the pose of the robot in the frame of the plan
     global_pose.setIdentity();
     global_pose.frame_id_ = base_frame_;
     global_pose.stamp_ = stamp;
     //global_pose.setRotation(tf::createIdentityQuaternion());
     try {
-        tf_->waitForTransform(global_frame_, base_frame_, global_pose.stamp_, ros::Duration(0.2));
-        tf_->transformPose(global_frame_, global_pose, global_pose);
+        tf_->waitForTransform(target_frame, base_frame_, global_pose.stamp_, ros::Duration(0.2));
+        tf_->transformPose(target_frame, global_pose, global_pose);
     }
     catch (tf::TransformException ex) {
         ROS_ERROR("%s", ex.what());
@@ -181,11 +181,11 @@ bool MePublisher::getGlobalPose(tf::Stamped <tf::Pose> &global_pose, const ros::
 
 }
 
-bool MePublisher::createMeMsg(collvoid_msgs::PoseTwistWithCovariance &me_msg) {
+bool MePublisher::createMeMsg(collvoid_msgs::PoseTwistWithCovariance &me_msg, std::string target_frame) {
     me_msg.header.stamp = ros::Time::now();
     me_msg.header.frame_id = base_frame_;
     tf::Stamped <tf::Pose> global_pose;
-    if (getGlobalPose(global_pose, me_msg.header.stamp)) {
+    if (getGlobalPose(global_pose, target_frame, me_msg.header.stamp)) {
         geometry_msgs::PoseStamped pose_msg;
         tf::poseStampedTFToMsg(global_pose, pose_msg);
         me_msg.pose.pose = pose_msg.pose;
@@ -212,7 +212,7 @@ bool MePublisher::createMeMsg(collvoid_msgs::PoseTwistWithCovariance &me_msg) {
 
 void MePublisher::publishMePoseTwist() {
     collvoid_msgs::PoseTwistWithCovariance me_msg;
-    if (createMeMsg(me_msg)) {
+    if (createMeMsg(me_msg, global_frame_)) {
         position_share_pub_.publish(me_msg);
     }
 }
@@ -337,172 +337,46 @@ geometry_msgs::PolygonStamped MePublisher::createFootprintMsgFromVector2(const s
 }
 
 
-
-void MePublisher::writeFootprintToParam( ros::NodeHandle& nh )
-{
-    std::ostringstream oss;
-    bool first = true;
-    for( unsigned int i = 0; i < footprint_msg_.polygon.points.size(); i++ )
-    {
-        geometry_msgs::Point32& p = footprint_msg_.polygon.points[ i ];
-        if( first )
-        {
-            oss << "[[" << p.x << "," << p.y << "]";
-            first = false;
-        }
-        else
-        {
-            oss << ",[" << p.x << "," << p.y << "]";
-        }
-    }
-    oss << "]";
-    nh.setParam( "footprint", oss.str().c_str() );
-}
-
 void MePublisher::getFootprint(ros::NodeHandle private_nh){
-    getParam(private_nh, "footprint_radius", &footprint_radius_);
+    getParam(private_nh, "robot_radius", &footprint_radius_);
     radius_ = footprint_radius_;
     std::string full_param_name;
-
+    std::vector< geometry_msgs::Point > footprint;
     if( private_nh.searchParam( "footprint", full_param_name ))
     {
+        ROS_ERROR("FOUND FOODPRINT");
         XmlRpc::XmlRpcValue footprint_xmlrpc;
         private_nh.getParam( full_param_name, footprint_xmlrpc );
         if( footprint_xmlrpc.getType() == XmlRpc::XmlRpcValue::TypeString &&
             footprint_xmlrpc != "" && footprint_xmlrpc != "[]" )
         {
-            if( readFootprintFromString( std::string( footprint_xmlrpc )))
+            if( costmap_2d::makeFootprintFromString( std::string( footprint_xmlrpc ), footprint))
             {
-                writeFootprintToParam( private_nh );
-                return;
+                //writeFootprintToParam( private_nh );
+
+
             }
+            else
+                ROS_ERROR("Could not read footprint");
         }
         else if( footprint_xmlrpc.getType() == XmlRpc::XmlRpcValue::TypeArray )
         {
-            readFootprintFromXMLRPC( footprint_xmlrpc, full_param_name );
-            writeFootprintToParam( private_nh );
-            return;
+            footprint = costmap_2d::makeFootprintFromXMLRPC( footprint_xmlrpc, full_param_name );
+            //writeFootprintToParam( private_nh );
         }
     }
     else {
-        setFootprintFromRadius(radius_);
+        footprint = costmap_2d::makeFootprintFromRadius(radius_);
     }
-
-}
-
-bool MePublisher::readFootprintFromString( const std::string& footprint_string )
-{
-    std::string error;
-    std::vector<std::vector<float> > vvf = costmap_2d::parseVVF( footprint_string, error );
-    if( error != "" )
-    {
-        ROS_ERROR( "Error parsing footprint parameter: '%s'", error.c_str() );
-        ROS_ERROR( "  Footprint string was '%s'.", footprint_string.c_str() );
-        return false;
-    }
-
-    // convert vvf into points.
-    if( vvf.size() < 3 )
-    {
-        ROS_ERROR( "You must specify at least three points for the robot footprint, reverting to previous footprint." );
-        return false;
-    }
-    geometry_msgs::PolygonStamped footprint;
-    footprint.polygon.points.reserve( vvf.size() );
-    for( unsigned int i = 0; i < vvf.size(); i++ )
-    {
-        if( vvf[ i ].size() == 2 )
-        {
-            geometry_msgs::Point32 point;
-            point.x = vvf[ i ][ 0 ];
-            point.y = vvf[ i ][ 1 ];
-            point.z = 0;
-            footprint.polygon.points.push_back( point );
-        }
-        else
-        {
-            ROS_ERROR( "Points in the footprint specification must be pairs of numbers.  Found a point with %d numbers.",
-                       int( vvf[ i ].size() ));
-            return false;
-        }
-    }
-
-    footprint_msg_ = footprint;
-    setMinkowskiFootprintVector2(footprint_msg_);
-    return true;
-}
-
-
-void MePublisher::setFootprintFromRadius( double radius )
-{
-    //only coverting round footprints for now
-    geometry_msgs::PolygonStamped footprint;
-    double angle = 0;
-    double step = 2 * M_PI / 32;
-    while (angle < 2 * M_PI) {
+    for (size_t i=0; i<footprint.size(); ++i) {
         geometry_msgs::Point32 pt;
-        pt.x = radius_ * cos(angle);
-        pt.y = radius_ * sin(angle);
-        pt.z = 0.0;
-        footprint.polygon.points.push_back(pt);
-        angle += step;
+        pt.x = (float)footprint.at(i).x;
+        pt.y = (float)footprint.at(i).y;
+        pt.z = (float)footprint.at(i).z;
+        footprint_msg_.polygon.points.push_back(pt);
     }
-    footprint_msg_ = footprint;
     setMinkowskiFootprintVector2(footprint_msg_);
-
 }
-
-double getNumberFromXMLRPC( XmlRpc::XmlRpcValue& value, const std::string& full_param_name )
-{
-    // Make sure that the value we're looking at is either a double or an int.
-    if( value.getType() != XmlRpc::XmlRpcValue::TypeInt &&
-        value.getType() != XmlRpc::XmlRpcValue::TypeDouble )
-    {
-        std::string& value_string = value;
-        ROS_FATAL( "Values in the footprint specification (param %s) must be numbers. Found value %s.",
-                   full_param_name.c_str(), value_string.c_str() );
-        throw std::runtime_error("Values in the footprint specification must be numbers");
-    }
-    return value.getType() == XmlRpc::XmlRpcValue::TypeInt ? (int)(value) : (double)(value);
-}
-
-
-void MePublisher::readFootprintFromXMLRPC( XmlRpc::XmlRpcValue& footprint_xmlrpc,
-                                           const std::string& full_param_name )
-{
-    // Make sure we have an array of at least 3 elements.
-    if( footprint_xmlrpc.getType() != XmlRpc::XmlRpcValue::TypeArray ||
-        footprint_xmlrpc.size() < 3 )
-    {
-        ROS_FATAL( "The footprint must be specified as list of lists on the parameter server, %s was specified as %s",
-                   full_param_name.c_str(), std::string( footprint_xmlrpc ).c_str() );
-        throw std::runtime_error( "The footprint must be specified as list of lists on the parameter server with at least 3 points eg: [[x1, y1], [x2, y2], ..., [xn, yn]]");
-    }
-
-    std::vector<geometry_msgs::Point> footprint;
-    geometry_msgs::Point pt;
-
-    for( int i = 0; i < footprint_xmlrpc.size(); ++i )
-    {
-        // Make sure each element of the list is an array of size 2. (x and y coordinates)
-        XmlRpc::XmlRpcValue point = footprint_xmlrpc[ i ];
-        if( point.getType() != XmlRpc::XmlRpcValue::TypeArray ||
-            point.size() != 2 )
-        {
-            ROS_FATAL( "The footprint (parameter %s) must be specified as list of lists on the parameter server eg: [[x1, y1], [x2, y2], ..., [xn, yn]], but this spec is not of that form.",
-                       full_param_name.c_str() );
-            throw std::runtime_error( "The footprint must be specified as list of lists on the parameter server eg: [[x1, y1], [x2, y2], ..., [xn, yn]], but this spec is not of that form" );
-        }
-
-        pt.x = getNumberFromXMLRPC( point[ 0 ], full_param_name );
-        pt.y = getNumberFromXMLRPC( point[ 1 ], full_param_name );
-
-        footprint.push_back( pt );
-    }
-}
-
-
-
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "me_publisher");

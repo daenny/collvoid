@@ -31,32 +31,29 @@
 #define COLLVOID_PUBLISHERS_H
 
 /* #include <ros/ros.h> */
-#include <visualization_msgs/Marker.h>
+#include <ros/ros.h>
+#include <tf/tf.h>
 #include <visualization_msgs/MarkerArray.h>
-#include "collvoid_local_planner/ROSAgent.h"
+#include "collvoid_local_planner/Vector2.h"
+#include "collvoid_local_planner/Agent.h"
 
 namespace collvoid {
 
-  #define MAX_POINTS_ 400
-  
-  void publishHoloSpeed(Vector2 pos, Vector2 vel, std::string base_frame, std::string name_space, ros::Publisher speed_pub);
-  
-  void publishVOs(Vector2& pos, const std::vector<VO>& truncated_vos, bool use_truncation, std::string base_frame, std::string name_space, ros::Publisher vo_pub);
-  
-  void publishPoints(Vector2& pos, const std::vector<VelocitySample>& points, std::string base_frame, std::string name_space, ros::Publisher samples_pub);
-  void publishOrcaLines(const std::vector<Line>& orca_lines, Vector2& position, std::string base_frame, std::string name_space, ros::Publisher line_pub);
+#define MAX_POINTS_ 400
 
-  void publishObstacleLines(const std::vector<Obstacle>& obstacles_lines, std::string base_frame, std::string name_space, ros::Publisher line_pub);
-  
-  void publishMePosition(ROSAgent* me, std::string base_frame, std::string name_space, ros::Publisher me_pub);
-  void publishNeighborPositions(std::vector<AgentPtr>& neighbors, std::string base_frame, std::string name_space, ros::Publisher neighbors_pub);
+    void publishHoloSpeed(Vector2 pos, Vector2 vel, std::string base_frame, std::string name_space, ros::Publisher speed_pub);
 
-  void publishMePosition(double radius, tf::Stamped <tf::Pose> global_pose, std::string base_frame, std::string name_space, ros::Publisher me_pub);
+    void publishVOs(Vector2& pos, const std::vector<VO>& truncated_vos, bool use_truncation, std::string base_frame, std::string name_space, ros::Publisher vo_pub);
 
+    void publishPoints(Vector2& pos, const std::vector<VelocitySample>& points, std::string base_frame, std::string name_space, ros::Publisher samples_pub);
+    void publishOrcaLines(const std::vector<Line>& orca_lines, Vector2& position, std::string base_frame, std::string name_space, ros::Publisher line_pub);
 
-  void fillMarkerWithROSAgent(visualization_msgs::MarkerArray& marker, ROSAgent* agent, std::string base_frame, std::string name_space);
+    void publishNeighborPositionsBare(std::vector<AgentPtr>& neighbors, std::string base_frame, std::string name_space, ros::Publisher neighbors_pub);
+
+    void publishMePosition(double radius, tf::Stamped <tf::Pose> global_pose, std::string base_frame, std::string name_space, ros::Publisher me_pub);
+
     void fillMarkerWithParams(visualization_msgs::MarkerArray &marker, double radius, Vector2 position, double yaw, std::string base_frame,
-                                std::string name_space);
+                              std::string name_space);
 }
 
 #endif

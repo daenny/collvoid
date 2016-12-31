@@ -18,7 +18,7 @@
 #include "collvoid_local_planner/Vector2.h"
 #include "collvoid_local_planner/Utils.h"
 #include "collvoid_local_planner/Agent.h"
-#include "collvoid_local_planner/publisher_helpers.h"
+#include "collvoid_local_planner/collvoid_publishers.h"
 
 
 using namespace collvoid;
@@ -46,12 +46,13 @@ namespace collvoid_scoring_function
 
         AgentPtr createAgentFromMsg(collvoid_msgs::PoseTwistWithCovariance &msg);
 
-
         AgentPtr me_;
-        bool use_truncation_, convex_, holo_robot_;
-        double trunc_time_;
-        ros::Publisher vo_pub_, neighbors_pub_;
+        bool use_truncation_, convex_;
+        double trunc_time_, max_dist_vo_;
+        ros::Publisher vo_pub_, neighbors_pub_, samples_pub_;
         ros::ServiceClient get_me_srv_, get_neighbors_srv_;
+
+        std::vector<VelocitySample> points;
     };
 }
 

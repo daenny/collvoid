@@ -1,0 +1,7 @@
+<library path="lib/libcollvoid_wiggle_recovery">
+  <class name="collvoid_wiggle_recovery/WiggleRecovery" type="collvoid_wiggle_recovery::WiggleRecovery" base_class_type="nav_core::RecoveryBehavior">
+    <description>
+      A recovery behavior that performs a 360 degree in-place rotation to attempt to clear out space.
+    </description>
+  </class>
+</library>

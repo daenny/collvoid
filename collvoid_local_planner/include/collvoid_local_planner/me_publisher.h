@@ -20,7 +20,7 @@
 #include "collvoid_local_planner/clearpath.h"
 #include "collvoid_local_planner/Utils.h"
 #include "collvoid_local_planner/Vector2.h"
-#include "collvoid_local_planner/publisher_helpers.h"
+#include "collvoid_local_planner/collvoid_publishers.h"
 
 
 using namespace collvoid;
@@ -41,14 +41,10 @@ private:
     void setMinkowskiFootprintVector2(geometry_msgs::PolygonStamped minkowski_footprint);
     geometry_msgs::PolygonStamped createFootprintMsgFromVector2(const std::vector<Vector2> &footprint);
     void getFootprint(ros::NodeHandle private_nh);
-    void readFootprintFromXMLRPC( XmlRpc::XmlRpcValue& footprint_xmlrpc, const std::string& full_param_name );
-    void setFootprintFromRadius( double radius );
-    void writeFootprintToParam( ros::NodeHandle& nh );
-    bool readFootprintFromString( const std::string& footprint_string );
     bool getMeCB(collvoid_srvs::GetMe::Request &req, collvoid_srvs::GetMe::Response &res);
 
-    bool getGlobalPose(tf::Stamped <tf::Pose> &global_pose, const ros::Time stamp);
-    bool createMeMsg(collvoid_msgs::PoseTwistWithCovariance &me_msg);
+    bool getGlobalPose(tf::Stamped <tf::Pose> &global_pose, std::string target_frame, const ros::Time stamp);
+    bool createMeMsg(collvoid_msgs::PoseTwistWithCovariance &me_msg, std::string target_frame);
 
 
     //Agent description

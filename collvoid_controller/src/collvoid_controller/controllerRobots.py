@@ -6,7 +6,8 @@ import math
 import random
 # from collvoid_local_planner.srv import InitGuess
 from std_msgs.msg import String
-from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
+from std_srvs.srv import Empty
+from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped, Quaternion
 from nav_msgs.msg import Odometry
 from socket import gethostname
 from collvoid_msgs.msg import PoseTwistWithCovariance
@@ -37,9 +38,9 @@ class ControllerRobots():
         if self.hostname == "/":
             self.hostname = gethostname()
             self.goals = rospy.get_param("/%s/goals" % self.hostname, [])
-            self.hostname = self.hostname.replace('/', '')
         else:
             self.goals = rospy.get_param("%sgoals" % self.hostname, [])
+        self.hostname = self.hostname.replace('/', '')
 
         if len(self.goals) > 0:
             rospy.loginfo("goals: %s" % str(self.goals))
@@ -56,16 +57,14 @@ class ControllerRobots():
         self.sub_goal = rospy.Subscriber("/goal", PoseStamped, self.cb_goal)
         self.sub_ground_truth = rospy.Subscriber("base_pose_ground_truth", Odometry, self.cb_ground_truth)
 
+        self.reset_srv = rospy.ServiceProxy('move_base/DWAPlannerROS/clear_local_costmap', Empty)
 
     def return_cur_goal(self):
         goal = MoveBaseGoal()
         goal.target_pose.pose.position.x = self.goals["x"][self.cur_goal]
         goal.target_pose.pose.position.y = self.goals["y"][self.cur_goal]
         q = tf.transformations.quaternion_from_euler(0, 0, self.goals["ang"][self.cur_goal], axes='sxyz')
-        goal.target_pose.pose.orientation.x = q[0]
-        goal.target_pose.pose.orientation.y = q[1]
-        goal.target_pose.pose.orientation.z = q[2]
-        goal.target_pose.pose.orientation.w = q[3]
+        goal.target_pose.pose.orientation = Quaternion(*q)
 
         goal.target_pose.header.frame_id = "/map"
         return goal
@@ -87,7 +86,7 @@ class ControllerRobots():
         self.sent_goal = MoveBaseGoal()
         self.sent_goal.target_pose.pose.position = msg.pose.position
         self.sent_goal.target_pose.pose.orientation = msg.pose.orientation
-        self.sent_goal.target_pose.header = msg.header;
+        self.sent_goal.target_pose.header = msg.header
         print str(self.sent_goal)
 
     def cb_ground_truth(self, msg):
@@ -120,35 +119,43 @@ class ControllerRobots():
 
     def cb_commands_robot(self, msg):
         # print msg.data
-        if msg.data == "all WP change" or msg.data == "%s WP change" % self.hostname:
+        if "all" not in msg.data and self.hostname not in msg.data:
+            return
+
+        if "WP Change" in msg.data:
             self.stopped = not self.stopped
 
         if self.stopped:
             rospy.loginfo("I am stopped %s", self.hostname)
             return
 
-        if msg.data == "all init Guess":
+        if "init Guess" in msg.data:
             self.publish_init_guess(0.01, self.noise_std)
 
-        if msg.data == "all Stop" or msg.data == "%s Stop" % self.hostname:
+        if "Restart" in msg.data:
+            try:
+                self.reset_srv()
+            except rospy.ServiceException as e:
+                rospy.logwarn(e)
+
+        if "Stop" in msg.data:
             self.client.cancel_all_goals()
 
-        if msg.data == "all Start" or msg.data == "%s Start" % self.hostname:
+        if "Start" in msg.data:
             self.client.send_goal(self.cur_goal_msg)
 
-        if msg.data == "all circle" or msg.data == "%s circle" % self.hostname:
+        if "circle" in msg.data:
             self.circling = not self.circling
             rospy.loginfo("Set circling to %s", str(self.circling))
-        if msg.data == "all next Goal" or msg.data == "%s next Goal" % self.hostname:
+        if "next Goal" in msg.data:
             self.cur_goal += 1
             if self.cur_goal == self.num_goals:
                 self.cur_goal = 0
             self.cur_goal_msg = self.return_cur_goal()
             self.client.send_goal(self.cur_goal_msg)
-
             rospy.loginfo("Send new Goal")
 
-        if msg.data == "all send delayed Goal" or msg.data == "%s send delayed Goal" % self.hostname:
+        if "send delayed Goal" in msg.data:
             self.client.send_goal(self.sent_goal)
 
 

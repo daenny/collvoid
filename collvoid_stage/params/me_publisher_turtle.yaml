@@ -4,6 +4,10 @@ collvoid:
   convex: true # true #footprint or radius
   holo_robot: false
   controlled: true
-  footprint_radius: 0.17
+  #footprint_radius: 0.22
   eps: 0.1
   publish_me_frequency: 10
+
+  use_truncation: true
+  trunctime: 6.0
+  max_dist_vo: 1.0

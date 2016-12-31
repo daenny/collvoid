@@ -1,5 +1,5 @@
 /noise_std: 0.0
-use_obstacles: false
+use_obstacles: true
 
 controller_frequency: 10
 yaw_goal_tolerance: 0.10

@@ -154,7 +154,7 @@ namespace collvoid_local_planner {
                                  min_vel_th_inplace_);
 
             //set radius
-            getParam(private_nh, "footprint_radius", &radius_);
+            getParam(private_nh, "robot_radius", &radius_);
             me_->setFootprintRadius(radius_);
 
             //set frames

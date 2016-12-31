@@ -54,9 +54,9 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-    #TODO DEPENDENCIES geometry_msgs std_msgs
-)
+#generate_messages(
+#    #TODO DEPENDENCIES geometry_msgs std_msgs
+#)
 
 # catkin_package parameters: http://ros.org/doc/groovy/api/catkin/html/dev_guide/generated_cmake_api.html#catkin-package
 # TODO: fill in what other packages will need to use this package

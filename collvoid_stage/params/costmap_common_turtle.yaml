@@ -1,0 +1,63 @@
+map_type: costmap
+#Set the tolerance we're willing to have for tf transforms
+transform_tolerance: 0.3
+
+#footprint: [[-0.325, -0.325], [-0.325, 0.325], [0.325, 0.325], [0.46, 0.0], [0.325, -0.325]]
+robot_radius: 0.22
+
+footprint_padding: 0.01
+
+#cost_scaling_factor and inflation_radius were now moved to the inflation_layer ns
+inflation_layer:
+  enabled:              true
+  cost_scaling_factor:  10.0  # exponential rate at which the obstacle cost drops off (default: 10)
+  inflation_radius:     0.25  # was 0.26 in previoys configuration
+
+static_layer:
+  enabled:              true
+
+obstacle_layer:
+  enabled:              true
+  max_obstacle_height:  2.0
+  origin_z:             0
+  z_resolution:         2
+  z_voxels:             1
+  unknown_threshold:    15
+  mark_threshold:       0
+  combination_method:   1
+  track_unknown_space:  true    #true needed for disabling global path planning through unknown space
+  obstacle_range: 2.5
+  raytrace_range: 3.0
+  publish_voxel_map: true
+  observation_sources: base_scan python_node
+  base_scan:
+    data_type: LaserScan
+    topic: base_scan
+    expected_update_rate: 0.2
+    observation_persistence: 0.0
+    marking: true
+    clearing: true
+    min_obstacle_height: -0.1
+    max_obstacle_height: 2.
+
+stationary_robots:
+  enabled:              true
+  max_obstacle_height:  2.0
+  obstacle_range: 2
+  raytrace_range: 4.0
+  publish_voxel_map: true
+
+  observation_sources: python_node python_node_clearing
+  python_node_clearing:
+    data_type: LaserScan
+    topic: clearing_scan
+    observation_persistence: 0.0
+    marking: false
+    clearing: true
+
+  python_node:
+    data_type: PointCloud2
+    topic: stationary_robots
+    observation_persistence: 0.0
+    marking: true
+    clearing: false

@@ -8,21 +8,17 @@
 #include <ros/ros.h>
 #include <tf/tf.h>
 #include <visualization_msgs/MarkerArray.h>
-#include "collvoid_local_planner/Vector2.h"
-#include "collvoid_local_planner/Agent.h"
+#include "collvoid_local_planner/ROSAgent.h"
 
 using namespace collvoid;
 
-namespace collvoid_scoring_function {
-    void publishVOs(Vector2 &pos, const std::vector<VO> &truncated_vos, bool use_truncation, std::string base_frame,
-                    std::string name_space, ros::Publisher vo_pub);
+namespace collvoid {
 
-    void fillMarkerWithParams(visualization_msgs::MarkerArray &marker, double radius, Vector2 position, double yaw,
-                              std::string base_frame,
-                              std::string name_space);
+    void publishObstacleLines(const std::vector<Obstacle>& obstacles_lines, std::string base_frame, std::string name_space, ros::Publisher line_pub);
 
-    void publishMePosition(double radius, tf::Stamped<tf::Pose> global_pose, std::string base_frame,
-                           std::string name_space, ros::Publisher me_pub);
+    void publishMePosition(ROSAgent* me, std::string base_frame, std::string name_space, ros::Publisher me_pub);
+
+    void fillMarkerWithROSAgent(visualization_msgs::MarkerArray& marker, ROSAgent* agent, std::string base_frame, std::string name_space);
 
     void publishNeighborPositions(std::vector<AgentPtr> &neighbors, std::string frame, std::string name_space,
                                   ros::Publisher neighbors_pub);

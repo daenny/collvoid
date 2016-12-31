@@ -74,6 +74,8 @@ void DWAPlanner::reconfigure(DWAPlannerConfig &config)
     occdist_scale_ = config.occdist_scale;
     obstacle_costs_.setScale(resolution * occdist_scale_);
 
+    collvoid_costs_.setScale(config.collvoid_scale);
+
     stop_time_buffer_ = config.stop_time_buffer;
     oscillation_costs_.setOscillationResetDist(config.oscillation_reset_dist, config.oscillation_reset_angle);
     forward_point_distance_ = config.forward_point_distance;
@@ -170,7 +172,7 @@ DWAPlanner::DWAPlanner(std::string name, base_local_planner::LocalPlannerUtil *p
     ros::NodeHandle nh;
     collvoid_costs_.init(nh);
     double collvoid_scale;
-    private_nh.param("collvoid_scale", collvoid_scale, 32.);
+    private_nh.param("collvoid_scale", collvoid_scale, 12.);
 
     collvoid_costs_.setScale(collvoid_scale);
 
@@ -182,9 +184,9 @@ DWAPlanner::DWAPlanner(std::string name, base_local_planner::LocalPlannerUtil *p
     critics.push_back(&goal_front_costs_); // prefers trajectories that make the nose go towards (local) nose goal
     critics.push_back(&collvoid_costs_); // tries to adapt collvoid settings
 
-    //critics.push_back(&alignment_costs_); // prefers trajectories that keep the robot nose on nose path
-    critics.push_back(&path_alignment_cost_);
-    critics.push_back(&goal_alignment_cost_);
+    critics.push_back(&alignment_costs_); // prefers trajectories that keep the robot nose on nose path
+    //critics.push_back(&path_alignment_cost_);
+    //critics.push_back(&goal_alignment_cost_);
     critics.push_back(&path_costs_); // prefers trajectories on global path
     critics.push_back(&goal_costs_); // prefers trajectories that go towards (local) goal, based on wave propagation
 
@@ -238,17 +240,20 @@ bool DWAPlanner::checkTrajectory(Eigen::Vector3f pos,
     geometry_msgs::PoseStamped goal_pose = global_plan_.back();
     Eigen::Vector3f goal(goal_pose.pose.position.x, goal_pose.pose.position.y, tf::getYaw(goal_pose.pose.orientation));
     base_local_planner::LocalPlannerLimits limits = planner_util_->getCurrentLimits();
-
-    generator_.initialise(pos, vel, goal, &limits, vsamples_);
+    generator_.initialise(pos,
+        vel,
+        goal,
+        &limits,
+        vsamples_);
     generator_.generateTrajectory(pos, vel, vel_samples, traj);
-
+    double scale = collvoid_costs_.getScale();
+    collvoid_costs_.setScale(0);
     double cost = scored_sampling_planner_.scoreTrajectory(traj, -1);
-
+    collvoid_costs_.setScale(scale);
     //if the trajectory is a legal one... the check passes
-    if (cost >= 0) {
-        return true;
+    if(cost >= 0) {
+      return true;
     }
-
     ROS_WARN("Invalid Trajectory %f, %f, %f, cost: %f", vel_samples[0], vel_samples[1], vel_samples[2], cost);
 
     //otherwise the check fails
@@ -287,10 +292,16 @@ void DWAPlanner::updatePlanAndLocalCosts(tf::Stamped<tf::Pose> global_pose,
     // turning towards goal orientation causes instability when the
     // robot needs to make a 180 degree turn at the end
     std::vector<geometry_msgs::PoseStamped> front_global_plan = global_plan_;
+    double angle_to_goal = atan2(goal_pose.pose.position.y - pos[1], goal_pose.pose.position.x - pos[0]);
+    front_global_plan.back().pose.position.x = front_global_plan.back().pose.position.x +
+      forward_point_distance_ * cos(angle_to_goal);
+    front_global_plan.back().pose.position.y = front_global_plan.back().pose.position.y + forward_point_distance_ *
+      sin(angle_to_goal);
 
+    goal_front_costs_.setTargetPoses(front_global_plan);
+    
     // keeping the nose on the path
     if (sq_dist > goal_heading_sq_dist_) {
-        double angle_to_goal = atan2(goal_pose.pose.position.y - pos[1], goal_pose.pose.position.x - pos[0]);
         front_global_plan.back().pose.position.x = front_global_plan.back().pose.position.x + forward_point_distance_ * cos(angle_to_goal);
         front_global_plan.back().pose.position.y = front_global_plan.back().pose.position.y + forward_point_distance_ * sin(angle_to_goal);
         double resolution = planner_util_->getCostmap()->getResolution();
@@ -303,8 +314,6 @@ void DWAPlanner::updatePlanAndLocalCosts(tf::Stamped<tf::Pose> global_pose,
         alignment_costs_.setScale(0.0);
         goal_alignment_cost_.setScale(heading_bias_);
     }
-
-    goal_front_costs_.setTargetPoses(front_global_plan);
 }
 
 
@@ -328,7 +337,11 @@ base_local_planner::Trajectory DWAPlanner::findBestPath(tf::Stamped<tf::Pose> gl
     base_local_planner::LocalPlannerLimits limits = planner_util_->getCurrentLimits();
 
     // prepare cost functions and generators for this run
-    generator_.initialise(pos, vel, goal, &limits, vsamples_);
+    generator_.initialise(pos,
+        vel,
+        goal,
+        &limits,
+        vsamples_);
 
     result_traj_.cost_ = -7;
     // find best trajectory by sampling and scoring the samples

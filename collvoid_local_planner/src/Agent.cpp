@@ -137,7 +137,7 @@ namespace collvoid {
                         VO new_agent_vo;
                         //use footprint or radius to create VO
                         if (convex_) {
-                            if (agent->controlled_) {
+                            if (agent->controlled_ && abs(agent->velocity_) > EPSILON)  {
                                 new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_,
                                                         agent->footprint_, agent->velocity_, type_vo_);
                             }
@@ -147,7 +147,7 @@ namespace collvoid {
                             }
                         }
                         else {
-                            if (agent->controlled_) {
+                            if (agent->controlled_  && abs(agent->velocity_) > EPSILON) {
                                 new_agent_vo = createVO(position_, radius_, velocity_, agent->position_, agent->radius_,
                                                         agent->velocity_, type_vo_);
                             }
@@ -160,7 +160,7 @@ namespace collvoid {
                         //truncate
                         if (agent->controlled_ && use_truncation_) {
                             if (abs(agent->velocity_) < EPSILON) {
-                                new_agent_vo = createTruncVO(new_agent_vo, 2.);
+                                new_agent_vo = createTruncVO(new_agent_vo, 2);
                                 static_vos_.push_back(new_agent_vo);
                             }
                             else {

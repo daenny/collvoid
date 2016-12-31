@@ -13,12 +13,16 @@ namespace collvoid_scoring_function
         get_me_srv_ = nh.serviceClient<collvoid_srvs::GetMe>("get_me");
         get_neighbors_srv_ = nh.serviceClient<collvoid_srvs::GetNeighbors>("get_neighbors");
         neighbors_pub_ = nh.advertise<visualization_msgs::MarkerArray>("neighbors", 1);
+        samples_pub_ = nh.advertise<visualization_msgs::MarkerArray>("samples", 1);
         vo_pub_ = nh.advertise<visualization_msgs::Marker>("vo", 1);
 
-        use_truncation_ = true;
-        trunc_time_ = 10;
-        convex_ = true;
-        ROS_INFO("Collvoid Scoring init done!");
+        ros::NodeHandle co_nh("collvoid");
+        use_truncation_ = co_nh.param("use_truncation", true);
+        trunc_time_ = co_nh.param("trunctime", 8.);
+        convex_ = co_nh.param("convex", true);
+        max_dist_vo_ = co_nh.param("max_dist_vo", 0.1);
+        points.clear();
+        ROS_INFO("Collvoid Scoring init done! Trunctime %f", trunc_time_);
         //holo_robot_ = false;
     }
 
@@ -49,7 +53,7 @@ namespace collvoid_scoring_function
 
             std::sort(me_->agent_neighbors_.begin(), me_->agent_neighbors_.end(),
                       boost::bind(&CollvoidScoringFunction::compareNeighborsPositions, this, _1, _2));
-            publishNeighborPositions(me_->agent_neighbors_, "/map", "/map", neighbors_pub_);
+            collvoid::publishNeighborPositionsBare(me_->agent_neighbors_, "/map", "/map", neighbors_pub_);
             return true;
         }
         else {
@@ -98,7 +102,7 @@ namespace collvoid_scoring_function
         return agent;
     }
 
-    bool CollvoidScoringFunction::prepare(){
+    bool CollvoidScoringFunction::prepare() {
         // Get me
         if (!getMe()) {
             return false;
@@ -111,7 +115,14 @@ namespace collvoid_scoring_function
         // Calculate VOs
         me_->computeAgentVOs();
 
-        publishVOs(me_->position_, me_->all_vos_, use_truncation_,"/map", "/map", vo_pub_);
+        collvoid::publishVOs(me_->position_, me_->all_vos_, use_truncation_, "/map", "/map", vo_pub_);
+        collvoid::publishPoints(me_->position_, points, "/map", "/map", samples_pub_);
+        for (size_t i = 0; i < me_->all_vos_.size(); ++i) {
+            VO v = me_->all_vos_.at(i);
+            //ROS_INFO("Origin %f %f", v.point.x(), v.point.y()) ;
+        }
+
+        points.clear();
 
         // Add constraints - Not necessary due to sampling?
         return true;
@@ -123,37 +134,55 @@ namespace collvoid_scoring_function
     {
         if (traj.getPointsSize() < 1) return 0;
 
-        //double goal_heading = tf::getYaw(goal_pose_.pose.orientation);
 
         // TODO: check if goalHeading and endPoint are in the same reference frame
         double x, y, th;
+        double x_s, y_s, th_s;
         traj.getEndpoint(x, y, th);
-        //ROS_INFO("END POINT %f, %f", x,y);
+        traj.getPoint(0, x_s, y_s, th_s);
+
+
+       //ROS_INFO("start orientation / end %f, %f", th_s,th);
+
+        double time_diff = (int)traj.getPointsSize() * traj.time_delta_;
         double vel_x, vel_y, vel_theta;
-        vel_x = traj.xv_;
-        vel_y = traj.yv_;
-        vel_theta = traj.thetav_;
+        //vel_x = traj.xv_;
+        //vel_y = traj.yv_;
+        //vel_theta = traj.thetav_;
+        vel_x = x - x_s;
+        vel_y = y - y_s;
+        vel_theta = th - th_s;
 
         Vector2 test_vel = Vector2();
-        if (fabs(vel_y) == 0.) {
+        /*if (fabs(vel_y) == 0.) {
             double dif_x, dif_y, dif_ang, time_dif;
-            time_dif = 1.;//traj.time_delta_;
-            dif_ang = time_dif * vel_theta;
-            dif_x = vel_x * cos(dif_ang / 2.0);
-            dif_y = vel_x * sin(dif_ang / 2.0);
+            time_dif = 5 * traj.time_delta_;
+            dif_ang = 2 * time_dif * vel_theta;
+            dif_x = time_dif * vel_x * cos(dif_ang / 2.0);
+            dif_y = time_dif * vel_x * sin(dif_ang / 2.0);
             test_vel = rotateVectorByAngle(dif_x, dif_y, me_->heading_);
         }
         else {
             test_vel = rotateVectorByAngle(vel_x, vel_y, me_->heading_);
-        }
-
-        //test_vel = Vector2(x,y);
+        }*/
+        test_vel = time_diff * rotateVectorByAngle(vel_x, vel_y, -th_s + me_->heading_ + vel_theta/2);
+        //test_vel = Vector2(vel_x,vel_y);
 
         double cost = calculateVelCosts(test_vel, me_->all_vos_, me_->use_truncation_);
+
         if (cost > 0) {
-            return -1;
+            int n = (int)me_->all_vos_.size();
+            if (cost >= n * 2)
+                return -1;
+            cost = 1 + (n * (n + 1) /2.) * 2./cost;
         }
-        cost = std::max(1.-minDistToVOs(me_->all_vos_, test_vel, use_truncation_), 0.);
+        else
+            cost = std::max((max_dist_vo_-sqrt(minDistToVOs(me_->all_vos_, test_vel, use_truncation_)))/max_dist_vo_, 0.);
+
+        VelocitySample v;
+        v.velocity = test_vel;
+        v.cost = cost;
+        points.push_back(v);
 
         //ROS_INFO("Collvoid Scoring costs: %f for vector %f, %f, speed %f, ang %f time dif %f", cost, test_vel.x(), test_vel.y(), vel_x, vel_theta, traj.time_delta_);
 

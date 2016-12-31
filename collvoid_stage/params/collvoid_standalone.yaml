@@ -30,7 +30,7 @@ wheel_base: 0.25
 
 #max_vel_with_obstacles: 0.5
 
-footprint_radius: 0.17
+footprint_radius: 0.25
 convex: true #true #footprint or radius
 standalone: true
 

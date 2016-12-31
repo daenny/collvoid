@@ -45,6 +45,8 @@
 
 #include <base_local_planner/goal_functions.h>
 #include <nav_msgs/Path.h>
+#include <costmap_2d/obstacle_layer.h>
+
 
 //register this planner as a BaseLocalPlanner plugin
 PLUGINLIB_EXPORT_CLASS(collvoid_dwa_local_planner::DWAPlannerROS, nav_core::BaseLocalPlanner)
@@ -132,7 +134,21 @@ void DWAPlannerROS::initialize(std::string name,
 
 bool DWAPlannerROS::clearCostmapsService(std_srvs::Empty::Request &req, std_srvs::Empty::Response &resp){
     //clear the costmaps
-    costmap_ros_->resetLayers();
+    std::vector<boost::shared_ptr<costmap_2d::Layer> > *plugins = costmap_ros_->getLayeredCostmap()->getPlugins();
+    for (std::vector<boost::shared_ptr<costmap_2d::Layer> >::iterator layer = plugins->begin(); layer != plugins->end(); ++layer) {
+        boost::shared_ptr<costmap_2d::ObstacleLayer> obstacle_layer = boost::dynamic_pointer_cast<costmap_2d::ObstacleLayer>(*layer);
+        if (!obstacle_layer) {
+            // ROS_INFO("NO Obstacle layer\n");
+            continue;
+        } else {
+            //ROS_INFO("REMOVING Obstacle layer\n");
+            (*layer)->reset();
+        }
+
+    }
+    costmap_ros_->getLayeredCostmap()->updateMap(0, 0, 0);
+    costmap_ros_->updateMap();
+    //ros::Duration(0.5).sleep();
     return true;
 }
 

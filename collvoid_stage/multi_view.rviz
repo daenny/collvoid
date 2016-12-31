@@ -15,8 +15,13 @@ Panels:
         - /Marker2
         - /Marker3
         - /Axes1
+        - /MarkerArray3
+        - /PointCloud21
+        - /PointCloud22
+        - /PointCloud23
+        - /Map3
       Splitter Ratio: 0.5
-    Tree Height: 892
+    Tree Height: 1133
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -83,6 +88,7 @@ Visualization Manager:
       Size (m): 0.01
       Style: Flat Squares
       Topic: /robot_0/base_scan
+      Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
@@ -93,6 +99,7 @@ Visualization Manager:
       Enabled: true
       Name: Map
       Topic: /map
+      Unreliable: false
       Value: true
     - Alpha: 0.7
       Class: rviz/Map
@@ -101,21 +108,22 @@ Visualization Manager:
       Enabled: false
       Name: Map
       Topic: /move_base/global_costmap/costmap
+      Unreliable: false
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: true
+      Enabled: false
       Marker Topic: /robot_1/me
       Name: MarkerArray
       Namespaces:
-        robot_1/base_link: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /robot_1/neighbors
       Name: MarkerArray
       Namespaces:
-        robot_1/base_link: true
+        /map: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -131,15 +139,16 @@ Visualization Manager:
       Shaft Radius: 0.05
       Shape: Arrow
       Topic: /robot_0/move_base/current_goal
+      Unreliable: false
       Value: true
     - Class: rviz/Marker
-      Enabled: false
-      Marker Topic: /robot_0/speed
+      Enabled: true
+      Marker Topic: /robot_1/speed
       Name: Marker
       Namespaces:
         {}
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/Marker
       Enabled: false
       Marker Topic: /robot_0/orca_lines
@@ -149,13 +158,13 @@ Visualization Manager:
       Queue Size: 100
       Value: false
     - Class: rviz/Marker
-      Enabled: false
-      Marker Topic: /robot_0/vo
+      Enabled: true
+      Marker Topic: /robot_1/vo
       Name: Marker
       Namespaces:
-        {}
+        /map: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/Axes
       Enabled: false
       Length: 0.5
@@ -164,19 +173,20 @@ Visualization Manager:
       Reference Frame: robot_0/base_footprint
       Value: false
     - Class: rviz/MarkerArray
-      Enabled: false
-      Marker Topic: /robot_0/samples
+      Enabled: true
+      Marker Topic: /robot_1/samples
       Name: MarkerArray
       Namespaces:
-        {}
+        /map: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Alpha: 1
       Class: rviz/Polygon
       Color: 25; 255; 0
       Enabled: true
       Name: Polygon
       Topic: /robot_0/convex_hull
+      Unreliable: false
       Value: true
     - Alpha: 1
       Class: rviz/Polygon
@@ -184,6 +194,7 @@ Visualization Manager:
       Enabled: true
       Name: Polygon
       Topic: /robot_1/convex_hull
+      Unreliable: false
       Value: true
     - Alpha: 1
       Class: rviz/Polygon
@@ -191,6 +202,7 @@ Visualization Manager:
       Enabled: true
       Name: Polygon
       Topic: /robot_2/convex_hull
+      Unreliable: false
       Value: true
     - Alpha: 1
       Class: rviz/Polygon
@@ -198,6 +210,7 @@ Visualization Manager:
       Enabled: true
       Name: Polygon
       Topic: /robot_3/convex_hull
+      Unreliable: false
       Value: true
     - Alpha: 1
       Class: rviz/Polygon
@@ -205,6 +218,7 @@ Visualization Manager:
       Enabled: true
       Name: Polygon
       Topic: /robot_4/convex_hull
+      Unreliable: false
       Value: true
     - Alpha: 1
       Class: rviz/Polygon
@@ -212,6 +226,7 @@ Visualization Manager:
       Enabled: true
       Name: Polygon
       Topic: /robot_5/convex_hull
+      Unreliable: false
       Value: true
     - Alpha: 1
       Class: rviz/Polygon
@@ -219,6 +234,7 @@ Visualization Manager:
       Enabled: true
       Name: Polygon
       Topic: /robot_6/convex_hull
+      Unreliable: false
       Value: true
     - Alpha: 1
       Class: rviz/Polygon
@@ -226,6 +242,7 @@ Visualization Manager:
       Enabled: true
       Name: Polygon
       Topic: /robot_7/convex_hull
+      Unreliable: false
       Value: true
     - Class: rviz/Marker
       Enabled: true
@@ -245,7 +262,7 @@ Visualization Manager:
       Channel Name: intensity
       Class: rviz/PointCloud2
       Color: 255; 255; 255
-      Color Transformer: ""
+      Color Transformer: Intensity
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
@@ -254,15 +271,107 @@ Visualization Manager:
       Min Color: 0; 0; 0
       Min Intensity: 0
       Name: PointCloud2
-      Position Transformer: ""
+      Position Transformer: XYZ
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
       Size (m): 0.01
       Style: Flat Squares
-      Topic: /robot_0/move_base/DWAPlannerROS/trajectory_cloud
+      Topic: /robot_1/move_base/DWAPlannerROS/trajectory_cloud
+      Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: goal_cost
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 251
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.01
+      Style: Flat Squares
+      Topic: /robot_1/move_base/DWAPlannerROS/cost_cloud
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
+      Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: PointCloud2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.01
+      Style: Flat Squares
+      Topic: /robot_1/stationary_robots
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: true
+    - Alpha: 0.7
+      Class: rviz/Map
+      Color Scheme: costmap
+      Draw Behind: false
+      Enabled: true
+      Name: Map
+      Topic: /robot_1/move_base/local_costmap/costmap
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 255; 85; 255
+      Enabled: true
+      Head Diameter: 0.3
+      Head Length: 0.2
+      Length: 0.3
+      Line Style: Lines
+      Line Width: 0.03
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Style: None
+      Radius: 0.03
+      Shaft Diameter: 0.1
+      Shaft Length: 0.1
+      Topic: /robot_1/move_base/NavfnROS/plan
+      Unreliable: false
       Value: true
   Enabled: true
   Global Options:
@@ -288,7 +397,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 9.45437
+      Distance: 8.92145
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
@@ -300,18 +409,18 @@ Visualization Manager:
         Z: -0.00720215
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 1.3198
+      Pitch: 1.2348
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.40817
+      Yaw: 4.72318
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1179
+  Height: 1419
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd0000000400000000000000f100000407fc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005300fffffffb0000001e0054006f006f006c002000500072006f0070006500720074006900650073020000087b000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003600000407000000b700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d006500720061010000043c000000160000000000000000000000010000010700000597fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a005600690065007700730000000036000005970000009b00fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000003be0000003efc0100000002fb0000000800540069006d00650100000000000003be0000024200fffffffb0000000800540069006d00650100000000000004500000000000000000000002c70000040700000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd000000040000000000000142000004fafc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005300fffffffb0000001e0054006f006f006c002000500072006f0070006500720074006900650073020000087b000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c0061007900730100000038000004fa000000b900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d006500720061010000043c000000160000000000000000000000010000010700000597fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a005600690065007700730000000036000005970000009f00fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004fe00000037fc0100000002fb0000000800540069006d00650100000000000004fe0000027900fffffffb0000000800540069006d00650100000000000004500000000000000000000003b6000004fa00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -320,6 +429,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 958
-  X: -1
-  Y: 18
+  Width: 1278
+  X: 1
+  Y: 20

@@ -37,6 +37,7 @@
 
 #include "collvoid_local_planner/orca.h"
 #include "collvoid_local_planner/collvoid_publishers.h"
+#include "collvoid_local_planner/publisher_helpers.h"
 
 
 template<typename T>
@@ -1257,7 +1258,6 @@ namespace collvoid {
         me_msg.pose.pose = base_odom_.pose.pose;
         me_msg.twist.twist = base_odom_.twist.twist;
 
-        me_msg.controlled = controlled_;
         me_msg.holonomic_velocity.x = holo_velocity_.x();
         me_msg.holonomic_velocity.y = holo_velocity_.y();
 
