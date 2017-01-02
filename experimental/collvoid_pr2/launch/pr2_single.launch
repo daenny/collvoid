@@ -36,7 +36,7 @@
 
   <!--- Run Controller -->
   <rosparam command="load" file="$(find collvoid_controller)/goals.yaml"/>
-  <node pkg="collvoid_controller" type="controllerRobots.py" name="controller_robots" output="screen" />
+  <node pkg="collvoid_controller" type="controller_robots.py" name="controller_robots" output="screen" />
 
   <!--- Run collvoid -->
   <rosparam command="load" file="$(find collvoid_pr2)/params/params_created.yaml"/>

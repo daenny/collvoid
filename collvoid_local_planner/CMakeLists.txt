@@ -14,11 +14,6 @@ include_directories(
 
 generate_dynamic_reconfigure_options(cfg/Collvoid.cfg)
 
-#uncomment if you have defined messages
-#add_message_files(
-#  FILES
-#)
-#uncomment if you have defined services
 add_service_files(
         FILES
         GetCollvoidTwist.srv

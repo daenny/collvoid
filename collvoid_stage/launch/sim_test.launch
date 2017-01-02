@@ -22,7 +22,7 @@
   <!--   <remap from="/position_share_in" to="/position_share" /> -->
   <!--   <remap from="/position_share_out" to="/position_share" /> -->
   <!-- </node>  -->
-  <node pkg="collvoid_controller" type="controllerRobots.py" name="controllerRobots" ns="robot_0" output="screen" />
+  <node pkg="collvoid_controller" type="controller_robots.py" name="controller_robots" ns="robot_0" output="screen" />
 
   <node name="fake_localization" pkg="fake_localization" ns="robot_1" type="fake_localization" respawn="false">
     <param name="~tf_prefix" value="robot_1" />
@@ -48,7 +48,7 @@
     <remap from="/position_share_in" to="/position_share" />
     <remap from="/position_share_out" to="/position_share" />
   </node> 
-  <node pkg="collvoid_controller" type="controllerRobots.py" name="controllerRobots" ns="robot_1" output="screen" />
+  <node pkg="collvoid_controller" type="controller_robots.py" name="controller_robots" ns="robot_1" output="screen" />
   <node pkg="collvoid_controller" type="controller.py" name="controller" output="screen"/>
   <node pkg="rviz" type="rviz" name="rviz" args="-d $(find collvoid_stage)/multi_view.rviz" output="screen" />
 </launch>

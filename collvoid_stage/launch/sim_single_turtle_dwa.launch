@@ -7,7 +7,7 @@
   <rosparam command="load" file="$(find collvoid_controller)/goals.yaml"/>
 
   
-  <node pkg="collvoid_controller" type="controllerRobots.py" name="controllerRobots" output="screen" />
+  <node pkg="collvoid_controller" type="controller_robots.py" name="controller_robots" output="screen" />
   <node pkg="collvoid_controller" type="controller.py" name="controller" output="screen" />
 
   

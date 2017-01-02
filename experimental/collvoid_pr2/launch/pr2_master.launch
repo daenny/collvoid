@@ -33,7 +33,7 @@
 
   <!--- Run Controller -->
   <rosparam command="load" file="$(find collvoid_controller)/goals.yaml"/>
-  <node pkg="collvoid_controller" type="controllerRobots.py" name="controller_robots" output="screen" />
+  <node pkg="collvoid_controller" type="controller_robots.py" name="controller_robots" output="screen" />
 
   <!-- Throttle the voxel grid that is being published for rviz -->
   <node ns="move_base_node/local_costmap" name="voxel_grid_throttle" pkg="topic_tools" type="throttle" machine="c1" args="messages voxel_grid 3.0 voxel_grid_throttled" />

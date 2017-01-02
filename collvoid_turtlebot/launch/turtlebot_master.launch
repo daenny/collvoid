@@ -15,7 +15,7 @@
  
   <!--- Run Controller -->
   <rosparam command="load" file="$(find collvoid_turtlebot)/goals_created.yaml"/>
-  <node pkg="collvoid_controller" type="controllerRobots.py" name="controller_robots" output="screen" />
+  <node pkg="collvoid_controller" type="controller_robots.py" name="controller_robots" output="screen" />
 
   <!--- Run collvoid -->
   <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">

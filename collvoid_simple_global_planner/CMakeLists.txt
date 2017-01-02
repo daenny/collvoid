@@ -12,12 +12,6 @@ find_package(catkin REQUIRED COMPONENTS roscpp pluginlib nav_core costmap_2d bas
    SYSTEM
 )
 
-#set the default path for built executables to the "bin" directory
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-#set the default path for built libraries to the "lib" directory
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
-
-#common commands for building c++ executables and libraries
 add_library(${PROJECT_NAME} src/collvoid_simple_global_planner.cpp)
 
 include_directories(${Boost_INCLUDE_DIRS})

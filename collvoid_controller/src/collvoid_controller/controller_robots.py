@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 import rospy
-import string
 import actionlib
 import math
 import random
-# from collvoid_local_planner.srv import InitGuess
 from std_msgs.msg import String
 from std_srvs.srv import Empty
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped, Quaternion
@@ -13,7 +11,7 @@ from socket import gethostname
 from collvoid_msgs.msg import PoseTwistWithCovariance
 from move_base_msgs.msg import *
 
-import tf
+import tf.transformations
 
 THRESHOLD = 0.22
 
@@ -22,7 +20,10 @@ def dist(a, b):
     return math.sqrt(math.pow(a.position.x - b.position.x, 2) + math.pow(a.position.y - b.position.y, 2))
 
 
-class ControllerRobots():
+class ControllerRobots(object):
+    delayed_goal = None
+    ground_truth = None
+
     def __init__(self):
         self.stopped = False
 
@@ -45,8 +46,9 @@ class ControllerRobots():
         if len(self.goals) > 0:
             rospy.loginfo("goals: %s" % str(self.goals))
             self.cur_goal = 0
-            self.num_goals = len(self.goals["x"])
+            self.num_goals = len(self.goals)
             self.cur_goal_msg = self.return_cur_goal()
+
         rospy.loginfo("Name: %s", self.hostname)
         self.pub_init_guess = rospy.Publisher("initialpose", PoseWithCovarianceStamped, queue_size=1)
         self.pub_commands_robot = rospy.Publisher("/commands_robot", String, queue_size=1)
@@ -54,16 +56,16 @@ class ControllerRobots():
         self.sub_commands_robot = rospy.Subscriber("/commands_robot", String, self.cb_commands_robot)
         self.sub_position_share = rospy.Subscriber("/position_share", PoseTwistWithCovariance, self.cb_common_positions)
 
-        self.sub_goal = rospy.Subscriber("/goal", PoseStamped, self.cb_goal)
+        self.sub_goal = rospy.Subscriber("delayed_goal", PoseStamped, self.cb_delayed_goal)
         self.sub_ground_truth = rospy.Subscriber("base_pose_ground_truth", Odometry, self.cb_ground_truth)
 
         self.reset_srv = rospy.ServiceProxy('move_base/DWAPlannerROS/clear_local_costmap', Empty)
 
     def return_cur_goal(self):
         goal = MoveBaseGoal()
-        goal.target_pose.pose.position.x = self.goals["x"][self.cur_goal]
-        goal.target_pose.pose.position.y = self.goals["y"][self.cur_goal]
-        q = tf.transformations.quaternion_from_euler(0, 0, self.goals["ang"][self.cur_goal], axes='sxyz')
+        goal.target_pose.pose.position.x = self.goals[self.cur_goal]["x"]
+        goal.target_pose.pose.position.y = self.goals[self.cur_goal]["y"]
+        q = tf.transformations.quaternion_from_euler(0, 0, self.goals[self.cur_goal]["ang"], axes='sxyz')
         goal.target_pose.pose.orientation = Quaternion(*q)
 
         goal.target_pose.header.frame_id = "/map"
@@ -76,22 +78,21 @@ class ControllerRobots():
             if dist(msg.pose.pose, self.cur_goal_msg.target_pose.pose) < THRESHOLD:
                 rospy.loginfo("Reached goal, sending new goal")
                 self.cur_goal += 1
-                if (self.cur_goal == self.num_goals):
+                if self.cur_goal == self.num_goals:
                     self.cur_goal = 0
                 self.cur_goal_msg = self.return_cur_goal()
                 str = "%s Start" % self.hostname
                 self.pub_commands_robot.publish(String(str))
 
-    def cb_goal(self, msg):
-        self.sent_goal = MoveBaseGoal()
-        self.sent_goal.target_pose.pose.position = msg.pose.position
-        self.sent_goal.target_pose.pose.orientation = msg.pose.orientation
-        self.sent_goal.target_pose.header = msg.header
-        print str(self.sent_goal)
+    def cb_delayed_goal(self, msg):
+        self.delayed_goal = MoveBaseGoal()
+        self.delayed_goal.target_pose.pose.position = msg.pose.position
+        self.delayed_goal.target_pose.pose.orientation = msg.pose.orientation
+        self.delayed_goal.target_pose.header = msg.header
+        print str(self.delayed_goal)
 
     def cb_ground_truth(self, msg):
         self.ground_truth = PoseWithCovarianceStamped()
-        # print str(self.ground_truth)
         self.ground_truth.header.frame_id = "/map"
         self.ground_truth.pose.pose = msg.pose.pose
 
@@ -156,11 +157,7 @@ class ControllerRobots():
             rospy.loginfo("Send new Goal")
 
         if "send delayed Goal" in msg.data:
-            self.client.send_goal(self.sent_goal)
-
-
-def msg_to_quaternion(msg):
-    return [msg.x, msg.y, msg.z, msg.w]
+            self.client.send_goal(self.delayed_goal)
 
 
 if __name__ == '__main__':
