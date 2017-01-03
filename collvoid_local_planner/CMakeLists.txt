@@ -44,20 +44,17 @@ add_library(collvoid_scoring_function
         src/clearpath.cpp
         src/collvoid_publishers.cpp
         include/collvoid_local_planner/)
-
 add_dependencies(collvoid_scoring_function ${${PROJECT_NAME}_EXPORTED_TARGETS})
 add_dependencies(collvoid_scoring_function ${catkin_EXPORTED_TARGETS})
-
 target_link_libraries(collvoid_scoring_function
         ${catkin_LIBRARIES}
         ${Boost_LIBRARIES}
         )
 
 
-add_library(collvoid_local_planner src/collvoid_local_planner.cpp src/Agent.cpp src/ROSAgent.cpp src/orca.cpp src/collvoid_publishers.cpp src/clearpath.cpp src/publisher_helpers.cpp)
+add_library(collvoid_local_planner src/collvoid_local_planner.cpp src/Agent.cpp src/ROSAgent.cpp src/orca.cpp src/collvoid_publishers.cpp src/clearpath.cpp)
 add_dependencies(collvoid_local_planner ${${PROJECT_NAME}_EXPORTED_TARGETS})
 add_dependencies(collvoid_local_planner ${catkin_EXPORTED_TARGETS})
-
 target_link_libraries(collvoid_local_planner
         ${catkin_LIBRARIES}
         ${Boost_LIBRARIES}
@@ -72,8 +69,7 @@ add_dependencies(MePublisher ${${PROJECT_NAME}_EXPORTED_TARGETS})
 add_dependencies(MePublisher ${catkin_EXPORTED_TARGETS})
 
 
-
-add_executable(ROSAgent src/collvoid_local_planner.cpp src/Agent.cpp src/ROSAgent.cpp src/orca.cpp src/collvoid_publishers.cpp src/clearpath.cpp src/publisher_helpers.cpp)
+add_executable(ROSAgent src/collvoid_local_planner.cpp src/Agent.cpp src/ROSAgent.cpp src/orca.cpp src/collvoid_publishers.cpp src/clearpath.cpp)
 target_link_libraries(ROSAgent
         ${catkin_LIBRARIES}
         ${Boost_LIBRARIES})

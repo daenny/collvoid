@@ -51,17 +51,14 @@ void MePublisher::init(ros::NodeHandle nh, tf::TransformListener *tf) {
     my_id_ = getParamDef<std::string>(private_nh, "name", my_id_);
     ROS_INFO("My name is: %s", my_id_.c_str());
 
-
-
     private_nh.param<std::string>("base_frame", base_frame_, nh.getNamespace() + "/base_link");
-    private_nh.param<std::string>("global_frame", global_frame_, "/map");
+    private_nh.param<std::string>("global_frame", global_frame_, "map");
 
 
     eps_ = getParamDef(private_nh, "eps", 0.1);
-    getParam(private_nh, "convex", &convex_);
+    getParam(private_nh, "use_polygon_footprint", &use_polygon_footprint_);
     getParam(private_nh, "holo_robot", &holo_robot_);
     controlled_ = getParamDef(private_nh, "controlled", true);
-
 
     publish_me_period_ = getParamDef(private_nh, "publish_me_frequency", 10.0);
     publish_me_period_ = 1.0 / publish_me_period_;
@@ -106,7 +103,6 @@ void MePublisher::amclPoseArrayWeightedCallback(const collvoid_msgs::PoseArrayWe
     pc.header = msg->header;
     pc.header.stamp = ros::Time(0);
     for (int i = 0; i < (int) msg->poses.size(); i++) {
-
         geometry_msgs::Point32 p;
         p.x = msg->poses[i].position.x;
         p.y = msg->poses[i].position.y;
@@ -118,15 +114,15 @@ void MePublisher::amclPoseArrayWeightedCallback(const collvoid_msgs::PoseArrayWe
 
     }
     catch (tf::TransformException ex) {
-        ROS_ERROR("%s", ex.what());
-        ROS_ERROR("Me Publisher: AMCL callback point transform failed");
+        ROS_WARN("%s", ex.what());
+        ROS_WARN("Me Publisher: AMCL callback point transform failed");
         return;
     };
     for (int i = 0; i < (int) msg->poses.size(); i++) {
         pose_array_weighted_.push_back(std::make_pair(msg->weights[i], result.points[i]));
     }
-    //    if (!convex_ || orca_) {
-    if (!convex_) {
+    //    if (!use_polygon_footprint_ || orca_) {
+    if (!use_polygon_footprint_) {
         computeNewLocUncertainty();
     }
     else {
@@ -154,7 +150,7 @@ void MePublisher::odomCallback(const nav_msgs::Odometry::ConstPtr &msg) {
             collvoid::publishMePosition(radius_, global_pose, global_frame_, base_frame_, me_pub_);
         }
         //publish footprint
-        if (convex_) {
+        if (use_polygon_footprint_) {
             geometry_msgs::PolygonStamped msg_pub = createFootprintMsgFromVector2(minkowski_footprint_);
             polygon_pub_.publish(msg_pub);
         }
@@ -183,7 +179,7 @@ bool MePublisher::getGlobalPose(tf::Stamped <tf::Pose> &global_pose, std::string
 
 bool MePublisher::createMeMsg(collvoid_msgs::PoseTwistWithCovariance &me_msg, std::string target_frame) {
     me_msg.header.stamp = ros::Time::now();
-    me_msg.header.frame_id = base_frame_;
+    me_msg.header.frame_id = target_frame;
     tf::Stamped <tf::Pose> global_pose;
     if (getGlobalPose(global_pose, target_frame, me_msg.header.stamp)) {
         geometry_msgs::PoseStamped pose_msg;
@@ -200,7 +196,7 @@ bool MePublisher::createMeMsg(collvoid_msgs::PoseTwistWithCovariance &me_msg, st
     me_msg.holonomic_velocity.y = holo_velocity_.y();
 
     me_msg.holo_robot = holo_robot_;
-    me_msg.radius = footprint_radius_ + cur_loc_unc_radius_;
+    me_msg.radius = uninflated_robot_radius_ + cur_loc_unc_radius_;
     me_msg.robot_id = my_id_;
     me_msg.controlled = controlled_;
 
@@ -305,9 +301,9 @@ void MePublisher::computeNewLocUncertainty() {
         sum += points[j].weight;
         j++;
     }
-    cur_loc_unc_radius_ = std::min(footprint_radius_ * 2.0, collvoid::abs(points[j - 1].point));
+    cur_loc_unc_radius_ = std::min(uninflated_robot_radius_ * 2.0, collvoid::abs(points[j - 1].point));
     //ROS_ERROR("Loc Uncertainty = %f", cur_loc_unc_radius_);
-    radius_ = footprint_radius_ + cur_loc_unc_radius_;
+    radius_ = uninflated_robot_radius_ + cur_loc_unc_radius_;
 }
 
 bool MePublisher::compareConvexHullPointsPosition(const ConvexHullPoint &p1, const ConvexHullPoint &p2) {
@@ -338,31 +334,23 @@ geometry_msgs::PolygonStamped MePublisher::createFootprintMsgFromVector2(const s
 
 
 void MePublisher::getFootprint(ros::NodeHandle private_nh){
-    getParam(private_nh, "robot_radius", &footprint_radius_);
-    radius_ = footprint_radius_;
+    getParam(private_nh, "robot_radius", &uninflated_robot_radius_);
+    radius_ = uninflated_robot_radius_;
     std::string full_param_name;
     std::vector< geometry_msgs::Point > footprint;
     if( private_nh.searchParam( "footprint", full_param_name ))
     {
-        ROS_ERROR("FOUND FOODPRINT");
         XmlRpc::XmlRpcValue footprint_xmlrpc;
         private_nh.getParam( full_param_name, footprint_xmlrpc );
         if( footprint_xmlrpc.getType() == XmlRpc::XmlRpcValue::TypeString &&
             footprint_xmlrpc != "" && footprint_xmlrpc != "[]" )
         {
-            if( costmap_2d::makeFootprintFromString( std::string( footprint_xmlrpc ), footprint))
-            {
-                //writeFootprintToParam( private_nh );
-
-
-            }
-            else
+            if(!costmap_2d::makeFootprintFromString( std::string( footprint_xmlrpc ), footprint))
                 ROS_ERROR("Could not read footprint");
         }
         else if( footprint_xmlrpc.getType() == XmlRpc::XmlRpcValue::TypeArray )
         {
             footprint = costmap_2d::makeFootprintFromXMLRPC( footprint_xmlrpc, full_param_name );
-            //writeFootprintToParam( private_nh );
         }
     }
     else {

@@ -39,6 +39,12 @@
 #include <nav_msgs/GridCells.h>
 #include <ros/ros.h>
 #include <dynamic_reconfigure/server.h>
+#include <base_local_planner/local_planner_util.h>
+#include <base_local_planner/odometry_helper_ros.h>
+#include <base_local_planner/latched_stop_rotate_controller.h>
+#include <base_local_planner/simple_trajectory_generator.h>
+#include <base_local_planner/oscillation_cost_function.h>
+#include <base_local_planner/obstacle_cost_function.h>
 
 #include "collvoid_local_planner/ROSAgent.h"
 #include "collvoid_local_planner/CollvoidConfig.h"
@@ -47,90 +53,63 @@
 using namespace collvoid;
 
 namespace collvoid_local_planner {
-  /* typedef boost::shared_ptr<ROSAgent> ROSAgentPtr; */
+    /* typedef boost::shared_ptr<ROSAgent> ROSAgentPtr; */
 
-  class CollvoidLocalPlanner: public nav_core::BaseLocalPlanner {
-  public:
-    CollvoidLocalPlanner();
-    CollvoidLocalPlanner(std::string name, tf::TransformListener* tf, costmap_2d::Costmap2DROS* costmap_ros);
-    ~CollvoidLocalPlanner();
-    void initialize(std::string name, tf::TransformListener* tf, costmap_2d::Costmap2DROS* costmap_ros);
-    bool isGoalReached();
-    bool setPlan(const std::vector<geometry_msgs::PoseStamped>& global_plan);
-    void odomCallback(const nav_msgs::Odometry::ConstPtr& msg);
-    bool computeVelocityCommands(geometry_msgs::Twist& cmd_vel);
+    class CollvoidLocalPlanner: public nav_core::BaseLocalPlanner {
+    public:
+        CollvoidLocalPlanner();
+        //CollvoidLocalPlanner(std::string name, tf::TransformListener* tf, costmap_2d::Costmap2DROS* costmap_ros);
+        ~CollvoidLocalPlanner();
+        void initialize(std::string name, tf::TransformListener* tf, costmap_2d::Costmap2DROS* costmap_ros);
+        bool isGoalReached();
+        bool setPlan(const std::vector<geometry_msgs::PoseStamped>& global_plan);
+        bool computeVelocityCommands(geometry_msgs::Twist& cmd_vel);
+        inline bool isInitialized() const { return initialized_; }
 
-  private:
-    bool rotateToGoal(const tf::Stamped<tf::Pose>& global_pose, const tf::Stamped<tf::Pose>& robot_vel, double goal_th, geometry_msgs::Twist& cmd_vel);
-    bool stopWithAccLimits(const tf::Stamped<tf::Pose>& global_pose, const tf::Stamped<tf::Pose>& robot_vel, geometry_msgs::Twist& cmd_vel);
+    private:
+        void publishLocalPlan(std::vector<geometry_msgs::PoseStamped> &path);
+        void publishGlobalPlan(std::vector<geometry_msgs::PoseStamped> &path);
+
+        void findBestWaypoint(geometry_msgs::PoseStamped& target_pose, const tf::Stamped<tf::Pose>& global_pose);
+        bool checkTrajectory(Eigen::Vector3f pos, Eigen::Vector3f vel, Eigen::Vector3f vel_samples);
+
+        bool clearCostmapsService(std_srvs::Empty::Request &req, std_srvs::Empty::Response &resp);
+        //Dyn reconfigure
+        void reconfigureCB(collvoid_local_planner::CollvoidConfig &config, uint32_t level);
+        boost::recursive_mutex configuration_mutex_;
+        dynamic_reconfigure::Server<collvoid_local_planner::CollvoidConfig> *dsrv_;
+        collvoid_local_planner::CollvoidConfig default_config_;
+
+        //Datatypes:
+        costmap_2d::Costmap2DROS* costmap_ros_;
+        tf::TransformListener* tf_;
+        base_local_planner::LocalPlannerUtil planner_util_;
+        base_local_planner::OdometryHelperRos odom_helper_;
+        std::string odom_topic_;
+
+        base_local_planner::LatchedStopRotateController latchedStopRotateController_;
+        tf::Stamped<tf::Pose> current_pose_;
 
 
-    bool transformGlobalPlan(const tf::TransformListener& tf, const std::vector<geometry_msgs::PoseStamped>& global_plan, const costmap_2d::Costmap2DROS& costmap, const std::string& global_frame, std::vector<geometry_msgs::PoseStamped>& transformed_plan);
-    void findBestWaypoint(geometry_msgs::PoseStamped& target_pose, const tf::Stamped<tf::Pose>& global_pose);
+        bool initialized_, skip_next_, setup_;
 
-    void obstaclesCallback(const nav_msgs::GridCells::ConstPtr& msg);
+        unsigned int current_waypoint_;
+        //ROS agent
+        ROSAgentPtr me_;
 
-    //Dyn reconfigure
-    boost::recursive_mutex configuration_mutex_;
-    dynamic_reconfigure::Server<collvoid_local_planner::CollvoidConfig> *dsrv_;
-    void reconfigureCB(collvoid_local_planner::CollvoidConfig &config, uint32_t level);
-    collvoid_local_planner::CollvoidConfig last_config_;
-    collvoid_local_planner::CollvoidConfig default_config_;
+        std::vector<geometry_msgs::PoseStamped> transformed_plan_;
+        ros::Publisher g_plan_pub_, l_plan_pub_;
 
+        //obstacle check
+        base_local_planner::SimpleTrajectoryGenerator generator_;
+        base_local_planner::ObstacleCostFunction* obstacle_costs_;
+        base_local_planner::SimpleScoredSamplingPlanner scored_sampling_planner_;
 
+        ros::ServiceServer  clear_costmaps_srv_;
 
-    //Datatypes:
-    costmap_2d::Costmap2DROS* costmap_ros_;
-    costmap_2d::Costmap2D costmap_; ///< @brief The costmap the controller will use
+    };//end class
 
-    tf::TransformListener* tf_; 
-    
-    bool initialized_, skip_next_, setup_;
-
-    //Agent stuff
-    double sim_period_;
-    double max_vel_x_, min_vel_x_;
-    double max_vel_y_, min_vel_y_;
-    double max_vel_th_, min_vel_th_, min_vel_th_inplace_;
-    double acc_lim_x_, acc_lim_y_, acc_lim_th_;
-    double wheel_base_, radius_;
-    double max_vel_with_obstacles_;
-
-    bool holo_robot_;
-
-    double trunc_time_, left_pref_; 
-    
-    double xy_goal_tolerance_, yaw_goal_tolerance_;
-    double rot_stopped_velocity_, trans_stopped_velocity_;
-
-    double publish_me_period_, publish_positions_period_;
-    double threshold_last_seen_;
-    
-
-    bool latch_xy_goal_tolerance_, xy_tolerance_latch_, rotating_to_goal_, ignore_goal_yaw_, delete_observations_, been_in_obstacle_;
-    
-    unsigned int current_waypoint_;
-    //params ORCA
-    double  time_horizon_obst_;
-    double eps_;
-
-    ROSAgentPtr me_;
-    //boost::unordered_map<std::string,ROSAgent> neighbors_;
-    //base_local_planner::TrajectoryPlannerROS collision_planner_;
-     
-    
-    double time_to_holo_, min_error_holo_, max_error_holo_;
-
-    std::string global_frame_; ///< @brief The frame in which the controller will run
-    std::string robot_base_frame_; ///< @brief Used as the base frame id of the robot
-    std::string my_id_;
-    std::vector<geometry_msgs::PoseStamped> global_plan_, transformed_plan_;
-    ros::Publisher g_plan_pub_, l_plan_pub_;
-    ros::Subscriber obstacles_sub_;
-
-  };//end class
-
-  //  Vector2 rotateVectorByAngle(double x, double y, double ang);
+    //  Vector2 rotateVectorByAngle(double x, double y, double ang);
 
 
 }; //end namespace

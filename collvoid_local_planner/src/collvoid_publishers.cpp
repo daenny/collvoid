@@ -33,10 +33,10 @@
 
 namespace collvoid {
 
-    void publishHoloSpeed(Vector2 pos, Vector2 vel, std::string base_frame, std::string name_space,
+    void publishHoloSpeed(Vector2 pos, Vector2 vel, std::string target_frame, std::string name_space,
                           ros::Publisher speed_pub) {
         visualization_msgs::Marker line_list;
-        line_list.header.frame_id = base_frame;
+        line_list.header.frame_id = target_frame;
         line_list.header.stamp = ros::Time::now();
         line_list.ns = name_space;
         line_list.action = visualization_msgs::Marker::ADD;
@@ -60,10 +60,10 @@ namespace collvoid {
     }
 
 
-    void publishVOs(Vector2 &pos, const std::vector<VO> &truncated_vos, bool use_truncation, std::string base_frame,
+    void publishVOs(Vector2 &pos, const std::vector<VO> &truncated_vos, bool use_truncation, std::string target_frame,
                     std::string name_space, ros::Publisher vo_pub) {
         visualization_msgs::Marker line_list;
-        line_list.header.frame_id = base_frame;
+        line_list.header.frame_id = target_frame;
         line_list.header.stamp = ros::Time::now();
         line_list.ns = name_space;
         line_list.action = visualization_msgs::Marker::ADD;
@@ -133,7 +133,7 @@ namespace collvoid {
     }
 
 
-    void publishPoints(Vector2 &pos, const std::vector<VelocitySample> &points, std::string base_frame,
+    void publishPoints(Vector2 &pos, const std::vector<VelocitySample> &points, std::string target_frame,
                        std::string name_space, ros::Publisher samples_pub) {
         visualization_msgs::MarkerArray point_array;
         // point_array.markers.resize(MAX_POINTS);
@@ -143,7 +143,7 @@ namespace collvoid {
 
             visualization_msgs::Marker sphere;
 
-            sphere.header.frame_id = base_frame;
+            sphere.header.frame_id = target_frame;
             sphere.header.stamp = ros::Time::now();
             sphere.ns = name_space;
             sphere.action = visualization_msgs::Marker::ADD;
@@ -169,7 +169,7 @@ namespace collvoid {
 
         for (int i = point_array.markers.size(); i < MAX_POINTS_; i++) {
             visualization_msgs::Marker sphere_list;
-            sphere_list.header.frame_id = base_frame;
+            sphere_list.header.frame_id = target_frame;
             sphere_list.header.stamp = ros::Time::now();
             sphere_list.ns = name_space;
             sphere_list.action = visualization_msgs::Marker::DELETE;
@@ -186,10 +186,10 @@ namespace collvoid {
     }
 
 
-    void publishOrcaLines(const std::vector<Line> &orca_lines, Vector2 &position, std::string base_frame,
+    void publishOrcaLines(const std::vector<Line> &orca_lines, Vector2 &position, std::string target_frame,
                           std::string name_space, ros::Publisher line_pub) {
         visualization_msgs::Marker line_list;
-        line_list.header.frame_id = base_frame;
+        line_list.header.frame_id = target_frame;
         line_list.header.stamp = ros::Time::now();
         line_list.ns = name_space;
         line_list.action = visualization_msgs::Marker::ADD;
@@ -215,17 +215,17 @@ namespace collvoid {
     }
 
 
-    void publishMePosition(double radius, tf::Stamped <tf::Pose> global_pose, std::string base_frame, std::string name_space, ros::Publisher me_pub){
+    void publishMePosition(double radius, tf::Stamped <tf::Pose> global_pose, std::string target_frame, std::string name_space, ros::Publisher me_pub){
         visualization_msgs::MarkerArray sphere_list;
         sphere_list.markers.clear();
         Vector2 position = Vector2(global_pose.getOrigin().x(), global_pose.getOrigin().y());
         double yaw = tf::getYaw(global_pose.getRotation());
-        fillMarkerWithParams(sphere_list, radius, position, yaw, base_frame, name_space);
+        fillMarkerWithParams(sphere_list, radius, position, yaw, target_frame, name_space);
         me_pub.publish(sphere_list);
     }
 
 
-    void publishNeighborPositionsBare(std::vector<AgentPtr> &neighbors, std::string frame, std::string name_space,
+    void publishNeighborPositionsBare(std::vector<AgentPtr> &neighbors, std::string target_frame, std::string name_space,
                                   ros::Publisher neighbors_pub) {
         visualization_msgs::MarkerArray sphere_list;
         sphere_list.markers.clear();
@@ -234,7 +234,7 @@ namespace collvoid {
                         Vector2 position = agent->position_;
                         double yaw = agent->heading_;
                         double radius = agent->radius_;
-                        fillMarkerWithParams(sphere_list, radius, position, yaw, frame, name_space);
+                        fillMarkerWithParams(sphere_list, radius, position, yaw, target_frame, name_space);
                     }
         neighbors_pub.publish(sphere_list);
     }
@@ -285,5 +285,57 @@ namespace collvoid {
         p.x += radius * 2.0 * cos(yaw);
         p.y += radius * 2.0 * sin(yaw);
         marker.markers[id].points.push_back(p);
+    }
+
+
+    void publishObstacleLines(const std::vector<Obstacle> &obstacles_lines, std::string target_frame,
+                              std::string name_space, ros::Publisher line_pub) {
+        visualization_msgs::Marker line_list;
+        line_list.header.frame_id = target_frame;
+        line_list.header.stamp = ros::Time::now();
+        line_list.ns = name_space;
+        line_list.action = visualization_msgs::Marker::ADD;
+        line_list.pose.orientation.w = 1.0;
+        line_list.type = visualization_msgs::Marker::LINE_LIST;
+        line_list.scale.x = 0.015;
+        line_list.color.r = 1.0;
+        line_list.color.a = 1.0;
+        line_list.id = 1;
+        geometry_msgs::Point p;
+        for (int i = 0; i < (int) obstacles_lines.size(); i++) {
+            p.x = obstacles_lines[i].points[0].x();
+            p.y = obstacles_lines[i].points[0].y();
+            line_list.points.push_back(p);
+
+            p.x = obstacles_lines[i].points[1].x();
+            p.y = obstacles_lines[i].points[1].y();
+            line_list.points.push_back(p);
+
+            p.x = obstacles_lines[i].points[1].x();
+            p.y = obstacles_lines[i].points[1].y();
+            line_list.points.push_back(p);
+
+            p.x = obstacles_lines[i].points[2].x();
+            p.y = obstacles_lines[i].points[2].y();
+            line_list.points.push_back(p);
+
+            p.x = obstacles_lines[i].points[2].x();
+            p.y = obstacles_lines[i].points[2].y();
+            line_list.points.push_back(p);
+
+            p.x = obstacles_lines[i].points[3].x();
+            p.y = obstacles_lines[i].points[3].y();
+            line_list.points.push_back(p);
+
+            p.x = obstacles_lines[i].points[3].x();
+            p.y = obstacles_lines[i].points[3].y();
+            line_list.points.push_back(p);
+
+            p.x = obstacles_lines[i].points[0].x();
+            p.y = obstacles_lines[i].points[0].y();
+            line_list.points.push_back(p);
+        }
+        line_pub.publish(line_list);
+
     }
 }

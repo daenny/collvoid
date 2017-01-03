@@ -49,48 +49,40 @@ DWAPlannerROS:
   # Debugging
   publish_traj_pc : true
   publish_cost_grid_pc: true
+
   global_frame_id: map
                                                                      
 
 
 CollvoidLocalPlanner:
+ # Robot Configuration Parameters - Kobuki
+  max_vel_x: 0.5  # 0.55
+  min_vel_x: -0.2
+
+  max_vel_y: 0.0  # diff drive robot
+  min_vel_y: 0.0  # diff drive robot
+
+  max_trans_vel: 0.5 # choose slightly less than the base's capability
+  min_trans_vel: 0.1  # this is the min trans velocity when there is negligible rotational velocity
+  trans_stopped_vel: 0.1
+
+  max_rot_vel: 1.5  # choose slightly less than the base's capability
+  min_rot_vel: 0.4  # this is the min angular velocity when there is negligible translational velocity
+  rot_stopped_vel: 0.4
+
+  acc_lim_x: 2.0 # maximum is theoretically 2.0, but we
+  acc_lim_theta: 5.0
+  acc_lim_y: 0.0      # diff drive robot
+
+  # Goal Tolerance Parameters
+  yaw_goal_tolerance: 0.3  # 0.05
+  xy_goal_tolerance: 0.15  # 0.10
+
   holo_robot: false
   wheel_base: 0.25
-  
-  max_vel_x: 0.5
-  max_vel_th: 1.5
-  min_vel_x: 0.05
-  min_vel_th: 0.1
-  min_vel_y: 0.0
-  max_vel_y: 0.0
-  min_vel_th_inplace: 0.5
-  acc_lim_x: 5.0
-  acc_lim_y: 5.0
-  acc_lim_th: 5.2
+  robot_radius: 0.22
 
-  max_vel_with_obstacles: 0.5
-
-  #footprint_radius: 0.22
-
-TrajectoryPlannerROS:
-  max_vel_x: 0.50
-  min_vel_x: 0.10
-  max_rotational_vel: 1.5
-  min_in_place_rotational_vel: 0.1
-  acc_lim_th: 0.75
-  acc_lim_x: 0.50
-  acc_lim_y: 0.50
-  holonomic_robot: false
-  yaw_goal_tolerance: 0.05
-  xy_goal_tolerance: 0.1
-  goal_distance_bias: 0.8
-  path_distance_bias: 0.6
-  sim_time: 1.5
-  heading_lookahead: 0.325
-  oscillation_reset_dist: 0.05
-  vx_samples: 6
-  vtheta_samples: 20
-  dwa: false
+max_planning_retries: 5
 
 recovery_behaviors:
   - {name: conservative_reset, type: clear_costmap_recovery/ClearCostmapRecovery}

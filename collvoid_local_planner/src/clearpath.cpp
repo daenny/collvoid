@@ -687,20 +687,17 @@ namespace collvoid {
 
 
     void createSamplesWithinMovementConstraints(std::vector<VelocitySample> &samples, double cur_vel_x,
-                                                double cur_vel_y, double cur_vel_theta, double acc_lim_x,
-                                                double acc_lim_y, double acc_lim_theta, double min_vel_x,
-                                                double max_vel_x, double min_vel_y, double max_vel_y,
-                                                double min_vel_theta, double max_vel_theta, double heading,
+                                                double cur_vel_y, double cur_vel_theta, base_local_planner::LocalPlannerLimits &limits, double heading,
                                                 Vector2 pref_vel, double sim_period, int num_samples, bool holo_robot) {
 
         if (holo_robot) {//holonomic drive
             double min_x, max_x, min_y, max_y;
 
-            min_x = std::max(-max_vel_x, cur_vel_x - acc_lim_x * sim_period);
-            max_x = std::min(max_vel_x, cur_vel_x + acc_lim_x * sim_period);
+            min_x = std::max(-limits.max_vel_x, cur_vel_x - limits.acc_lim_x * sim_period);
+            max_x = std::min(limits.max_vel_x, cur_vel_x + limits.acc_lim_x * sim_period);
 
-            min_y = std::max(-max_vel_y, cur_vel_y - acc_lim_y * sim_period);
-            max_y = std::min(max_vel_y, cur_vel_y + acc_lim_y * sim_period);
+            min_y = std::max(-limits.max_vel_y, cur_vel_y - limits.acc_lim_y * sim_period);
+            max_y = std::min(limits.max_vel_y, cur_vel_y + limits.acc_lim_y * sim_period);
 
             double step_x, step_y;
 
@@ -725,12 +722,12 @@ namespace collvoid {
             double min_x, max_x, min_theta, max_theta;
 
             min_x = -0.3;//std::max(-0.2, cur_vel_x - acc_lim_x * sim_period);
-            max_x = std::min(max_vel_x, cur_vel_x + acc_lim_x * sim_period);
+            max_x = std::min(limits.max_vel_x, cur_vel_x + limits.acc_lim_x * sim_period);
 
             //cur_vel_theta = 0.0; //HACK
 
-            min_theta = -2 * max_vel_theta;//std::max(-max_vel_theta, cur_vel_theta - acc_lim_theta * sim_period);
-            max_theta = 2 * max_vel_theta;//std::min(max_vel_theta, cur_vel_theta + acc_lim_theta * sim_period);
+            min_theta = -2 * limits.max_rot_vel;//std::max(-max_vel_theta, cur_vel_theta - acc_lim_theta * sim_period);
+            max_theta = 2 * limits.max_rot_vel;//std::min(max_vel_theta, cur_vel_theta + acc_lim_theta * sim_period);
 
             double step_x, step_theta;
 
@@ -795,8 +792,7 @@ namespace collvoid {
             cost += 2 * absSqr(cur.velocity - cur_speed);
             pos_x = 0.1 * cur.velocity.x();
             pos_y = 0.1 * cur.velocity.y();
-
-            double footprint_cost = footprintCost(cur_x + pos_x, cur_y + pos_y, heading, 1.0, footprint_spec, costmap, world_model);
+            double footprint_cost = footprintCost(cur_x + pos_x, cur_y + pos_y, heading, footprint_spec, costmap, world_model);
 
             //ROS_ERROR("footprint_cost %f", footprint_cost);
             if (footprint_cost < 0.) {
@@ -821,7 +817,6 @@ namespace collvoid {
             const double& x,
             const double& y,
             const double& th,
-            double scale,
             std::vector<geometry_msgs::Point> footprint_spec,
             costmap_2d::Costmap2D* costmap,
             base_local_planner::WorldModel* world_model) {
@@ -829,6 +824,9 @@ namespace collvoid {
         //check if the footprint is legal
         // TODO: Cache inscribed radius
         double footprint_cost = world_model->footprintCost(x, y, th, footprint_spec);
+        //double footprint_cost = 0;
+        if (true)
+            return 0;
 
         if (footprint_cost < 0) {
             return -6.0;
@@ -930,18 +928,6 @@ namespace collvoid {
             }
         }
 
-        // for (int i= 0 ; i< (int) all_vos.size(); i++){ //intersect with max_speed circle
-        //   if (!use_truncation) {
-        // 	addCircleLineIntersections(samples, pref_vel, max_speed, use_truncation, all_vos[i].point, all_vos[i].left_leg_dir); //intersect with left leg_dir
-        // 	addCircleLineIntersections(samples, pref_vel, max_speed, use_truncation, all_vos[i].point, all_vos[i].right_leg_dir); //intersect with right_leg_dir
-        //   }
-        //   else {
-        // 	addCircleLineIntersections(samples, pref_vel, max_speed, use_truncation, all_vos[i].trunc_left, all_vos[i].left_leg_dir); //intersect with left leg_dir
-        // 	addCircleLineIntersections(samples, pref_vel, max_speed, use_truncation, all_vos[i].trunc_right, all_vos[i].right_leg_dir); //intersect with right_leg_dir
-
-        //  	//addCircleLineIntersections(samples, pref_vel, max_speed, use_truncation, all_vos[i].trunc_left, all_vos[i].trunc_right - all_vos[i].trunc_left, i, all_vos[i]); //intersect with truncation line
-        //   }
-        // }
 
         for (int i = 0; i < (int) all_vos.size(); i++) {
             for (int j = 0; j < (int) additional_constraints.size(); j++) {
@@ -1074,7 +1060,7 @@ namespace collvoid {
 
             double footprint_cost = 0.;
             if (use_obstacles)
-                footprint_cost = footprintCost(position.x() + pos_x, position.y() + pos_y, heading, 1.0, footprint_spec, costmap, world_model);
+                footprint_cost = footprintCost(position.x() + pos_x, position.y() + pos_y, heading, footprint_spec, costmap, world_model);
 
             //ROS_ERROR("footprint_cost %f", footprint_cost);
 
@@ -1120,7 +1106,7 @@ namespace collvoid {
 
                                     if (use_obstacles) {
                                         double footprint_cost = footprintCost(position.x() + pos_x,
-                                                                              position.y() + pos_y, heading, 1.0,
+                                                                              position.y() + pos_y, heading,
                                                                               footprint_spec, costmap, world_model);
 
 
@@ -1198,8 +1184,8 @@ namespace collvoid {
 
             pos_x = 0.1 * cur.velocity.x();
             pos_y = 0.1 * cur.velocity.y();
-
-            double footprint_cost = footprintCost(cur_x + pos_x, cur_y + pos_y, heading, 1.0, footprint_spec, costmap,
+            //double footprint_cost = 0;
+            double footprint_cost = footprintCost(cur_x + pos_x, cur_y + pos_y, heading, footprint_spec, costmap,
                                                   world_model);
 
             //ROS_ERROR("footprint_cost %f", footprint_cost);
@@ -1228,8 +1214,7 @@ namespace collvoid {
 
                 pos_x = 0.1 * cur.velocity.x();
                 pos_y = 0.1 * cur.velocity.y();
-
-                double footprint_cost = footprintCost(cur_x + pos_x, cur_y + pos_y, heading, 1.0, footprint_spec, costmap,
+                double footprint_cost = footprintCost(cur_x + pos_x, cur_y + pos_y, heading, footprint_spec, costmap,
                                                   world_model);
 
                 //ROS_ERROR("footprint_cost %f", footprint_cost);

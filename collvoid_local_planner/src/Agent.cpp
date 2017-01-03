@@ -79,7 +79,7 @@ namespace collvoid {
         computeHumanVOs();
         //ROS_INFO("Human founds: %d", (int)human_vos_.size());
         new_velocity_ = calculateClearpathVelocity(samples_, all_vos_, human_vos_, agent_vos_, static_vos_, additional_orca_lines_,
-                                                   pref_velocity, velocity_, max_speed_x_, use_truncation_, new_sampling_, use_obstacles_, odom_pose_, heading_, footprint_spec_, costmap_, world_model_);
+                                                   pref_velocity, velocity_, max_speed_x_, use_truncation_, new_sampling_, use_obstacles_, position_, heading_, unrotated_footprint, costmap_, world_model_);
     }
 
     void Agent::computeSampledVelocity(Vector2 pref_velocity) {
@@ -87,46 +87,46 @@ namespace collvoid {
             computeAgentVOs();
         }
         computeHumanVOs();
-        new_velocity_ = calculateNewVelocitySampled(samples_, all_vos_, pref_velocity, max_speed_x_, odom_pose_, heading_, velocity_, use_truncation_,
-                                                    footprint_spec_, costmap_, world_model_);
+        new_velocity_ = calculateNewVelocitySampled(samples_, all_vos_, pref_velocity, max_speed_x_, position_, heading_, velocity_, use_truncation_,
+                                                    unrotated_footprint, costmap_, world_model_);
     }
 
 
-       void Agent::computeHumanVOs() {
+    void Agent::computeHumanVOs() {
         BOOST_FOREACH (AgentPtr agent, human_neighbors_) {
                         VO new_agent_vo;
-			bool created = false;
+                        bool created = false;
                         //use footprint or radius to create VO
-                        if (convex_) {
+                        if (use_polygon_footprint_) {
                             Vector2 rel_position = agent->position_ - position_;
                             Vector2 speed = Vector2(0,0);
                             //if (fabs(atan(rel_position)-heading_ ) < M_PI/2.) {
-			    ROS_INFO("angle betwee %f", angles::shortest_angular_distance(atan(rel_position), heading_));
-			    if (angles::shortest_angular_distance(atan(rel_position), heading_)< M_PI/2.){
-			      speed = normalize(position_ - agent->position_) * abs(agent->velocity_);
+                            ROS_INFO("angle betwee %f", angles::shortest_angular_distance(atan(rel_position), heading_));
+                            if (angles::shortest_angular_distance(atan(rel_position), heading_)< M_PI/2.){
+                                speed = normalize(position_ - agent->position_) * abs(agent->velocity_);
 
-			    }
-			    if (abs(rel_position)<2.){
-			      new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_,
-						      //agent->footprint_, agent->velocity_, VOS);
-						      agent->footprint_, speed, VOS);
-			      created = true;
-			    }
-			
+                            }
+                            if (abs(rel_position)<2.){
+                                new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_,
+                                        //agent->footprint_, agent->velocity_, VOS);
+                                                        agent->footprint_, speed, VOS);
+                                created = true;
+                            }
+
                         }
                         else {
                             new_agent_vo = createVO(position_, radius_, velocity_, agent->position_, agent->radius_,
-                                                        agent->velocity_, VOS);
-			    created = true;
+                                                    agent->velocity_, VOS);
+                            created = true;
                         }
-			if (created) {
-                        //truncate calculate with 100 to avoid code breaking..
-			  if (use_truncation_){
-                            new_agent_vo = createTruncVO(new_agent_vo, 20);
-			  }
-			  human_vos_.push_back(new_agent_vo);
-			  all_vos_.push_back(new_agent_vo);
-			}
+                        if (created) {
+                            //truncate calculate with 100 to avoid code breaking..
+                            if (use_truncation_){
+                                new_agent_vo = createTruncVO(new_agent_vo, 20);
+                            }
+                            human_vos_.push_back(new_agent_vo);
+                            all_vos_.push_back(new_agent_vo);
+                        }
 
                     }
     }
@@ -136,7 +136,7 @@ namespace collvoid {
         BOOST_FOREACH (AgentPtr agent, agent_neighbors_) {
                         VO new_agent_vo;
                         //use footprint or radius to create VO
-                        if (convex_) {
+                        if (use_polygon_footprint_) {
                             if (agent->controlled_ && abs(agent->velocity_) > EPSILON)  {
                                 new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_,
                                                         agent->footprint_, agent->velocity_, type_vo_);
@@ -189,9 +189,9 @@ namespace collvoid {
         this->left_pref_ = left_pref;
     }
 
-    void Agent::setRadius(double radius) {
-        this->radius_ = radius;
-    }
+    //   void Agent::setRadius(double radius) {
+    //       this->radius_ = radius;
+    //   }
 
     void Agent::setTruncTime(double trunc_time) {
         this->trunc_time_ = trunc_time;

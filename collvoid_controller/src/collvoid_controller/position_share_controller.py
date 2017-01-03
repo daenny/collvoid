@@ -21,7 +21,17 @@ last_seen_threshold = rospy.get_param('~last_seen_threshold', 2.)
 Z_HEIGHT = 0.
 
 
+def quat_array_from_msg(o):
+    return np.array([o.x, o.y, o.z, o.w])
+
+
 def make_rotation_transformation(angle, origin=(0, 0)):
+    """
+    used to create a fake sensor to add neighbours to the costmap
+    :param angle:
+    :param origin:
+    :return:
+    """
     cos_theta, sin_theta = np.math.cos(angle), np.math.sin(angle)
     x0, y0 = origin
 
@@ -48,23 +58,23 @@ class PositionShareController(object):
 
         self.neighbors = {}
         self.me = None
+
+        self.sensor_link = rospy.get_param("~base_frame_id", rospy.get_namespace()[1:] + "base_link")
+
         self.cloud_header = Header()
-        self.cloud_header.frame_id = rospy.get_namespace()[1:] + 'base_laser_link'
-
-        self.clear_cloud = None
-
+        self.cloud_header.frame_id = self.sensor_link
         self.point_cloud_pub = rospy.Publisher('stationary_robots', PointCloud2, queue_size=2)
-        self.clear_pub = rospy.Publisher('clearing_scan', LaserScan, queue_size=1, latch=True)
 
-        self.laser_scan = LaserScan()
-        self.laser_scan.header.frame_id = rospy.get_namespace()[1:] + 'base_laser_link'
-        self.laser_scan.angle_min = -np.math.pi
-        self.laser_scan.angle_max = np.math.pi
+        self.clearing_laser_pub = rospy.Publisher('clearing_scan', LaserScan, queue_size=1)
+        self.clearing_laser_scan = LaserScan()
+        self.clearing_laser_scan.header.frame_id = self.sensor_link
+        self.clearing_laser_scan.angle_min = -np.math.pi
+        self.clearing_laser_scan.angle_max = np.math.pi
         num_scans = 600
-        self.laser_scan.angle_increment = np.math.pi * 2 / num_scans
-        self.laser_scan.range_min = 0
-        self.laser_scan.range_max = 5
-        self.laser_scan.ranges = [3.0] * num_scans
+        self.clearing_laser_scan.angle_increment = np.math.pi * 2 / num_scans
+        self.clearing_laser_scan.range_min = 0
+        self.clearing_laser_scan.range_max = 5
+        self.clearing_laser_scan.ranges = [3.0] * num_scans
 
         # self.reset_srv = rospy.ServiceProxy('move_base/DWAPlannerROS/clear_local_costmap', Empty, persistent=True)
         # rospy.wait_for_service('move_base/DWAPlannerROS/clear_local_costmap', timeout=10.)
@@ -120,22 +130,13 @@ class PositionShareController(object):
 
     def publish_static_robots(self):
         time = rospy.Time.now()
-        # try:
-        #    self.reset_srv()
-        # except rospy.ServiceException as e:
-        #    rospy.logerr(e)
 
-        if self.clear_cloud:
-            self.point_cloud_pub.publish(self.clear_cloud)
         cloud_points = []
-        clear_points = []
-
         if self.me is None or (time - self.me.header.stamp).to_sec() > last_seen_threshold:
             return
 
-        quat_array = lambda o: np.array([o.x, o.y, o.z, o.w])
         my_pose = self.me.pose.pose
-        _, _, my_theta = tf.transformations.euler_from_quaternion(quat_array(my_pose.orientation))
+        _, _, my_theta = tf.transformations.euler_from_quaternion(quat_array_from_msg(my_pose.orientation))
 
         change = False
         for name in self.neighbors:
@@ -148,12 +149,12 @@ class PositionShareController(object):
                     self.neighbors[name]['stationary'] = True
 
                 cur_pose = self.neighbors[name]['position'].pose
-                _, _, cur_theta = tf.transformations.euler_from_quaternion(quat_array(cur_pose.orientation))
+                _, _, cur_theta = tf.transformations.euler_from_quaternion(quat_array_from_msg(cur_pose.orientation))
 
                 relative_pose_x = cur_pose.position.x - my_pose.position.x
                 relative_pose_y = cur_pose.position.y - my_pose.position.y
 
-                xform_foot = make_rotation_transformation(cur_theta-my_theta)
+                xform_foot = make_rotation_transformation(cur_theta - my_theta)
                 xform_to_baselink = make_rotation_transformation(-my_theta)
                 pos_rel = xform_to_baselink((relative_pose_x, relative_pose_y))
 
@@ -164,24 +165,17 @@ class PositionShareController(object):
                     p_x = p_rotated[0] + pos_rel[0]
                     p_y = p_rotated[1] + pos_rel[1]
                     cloud_points.append((p_x, p_y, Z_HEIGHT))
-                    clear_points.append((p_x, p_y, 0))
             else:
                 if self.neighbors[name]['stationary']:
                     self.neighbors[name]['stationary'] = False
                     change = True
 
         if change or True:
-            # rospy.loginfo("resetting costmap")
-            self.laser_scan.header.stamp = self.me.header.stamp
-            self.clear_pub.publish(self.laser_scan)
-            # try:
-            #    self.reset_srv()
-            # except rospy.ServiceException as e:
-            #    rospy.logerr(e)
+            self.clearing_laser_scan.header.stamp = self.me.header.stamp
+            self.clearing_laser_pub.publish(self.clearing_laser_scan)
+
         static_robots_cloud = pcl2.create_cloud_xyz32(self.cloud_header, cloud_points)
         static_robots_cloud.header.stamp = self.me.header.stamp
-        # self.clear_cloud = pcl2.create_cloud_xyz32(self.cloud_header, clear_points)
-        # self.clear_cloud.header.stamp = self.me.header.stamp
         self.point_cloud_pub.publish(static_robots_cloud)
 
     def predict_pose(self, robot, time):
@@ -189,9 +183,8 @@ class PositionShareController(object):
         pose = Pose()
 
         cur_pose = robot['position'].pose
-        quat_array = lambda o: np.array([o.x, o.y, o.z, o.w])
 
-        r, p, cur_theta = tf.transformations.euler_from_quaternion(quat_array(cur_pose.orientation))
+        r, p, cur_theta = tf.transformations.euler_from_quaternion(quat_array_from_msg(cur_pose.orientation))
         v_x = robot['twist'].twist.linear.x
         v_y = robot['twist'].twist.linear.y
         v_th = robot['twist'].twist.angular.z
@@ -199,14 +192,16 @@ class PositionShareController(object):
         q = tf.transformations.quaternion_from_euler(r, p, cur_theta + delta_theta)
         pose.orientation = Quaternion(*q)
 
-        if robot['holo_robot']:
-            pose.position.x = cur_pose.position.x + v_x * time_delta
-            pose.position.y = cur_pose.position.y + v_y * time_delta
+        if False:
+            if robot['holo_robot']:
+                pose.position.x = cur_pose.position.x + v_x * time_delta
+                pose.position.y = cur_pose.position.y + v_y * time_delta
+            else:
+                pose.position.x = cur_pose.position.x + v_x * np.cos(cur_theta + delta_theta / 2.)
+                pose.position.y = cur_pose.position.y + v_x * np.sin(cur_theta + delta_theta / 2.)
         else:
-            pose.position.x = cur_pose.position.x + v_x * np.cos(cur_theta + delta_theta / 2.)
-            pose.position.y = cur_pose.position.y + v_x * np.sin(cur_theta + delta_theta / 2.)
-        pose.position.x = cur_pose.position.x  # + v_x * time_delta
-        pose.position.y = cur_pose.position.y  # + v_y * time_delta
+            pose.position.x = cur_pose.position.x
+            pose.position.y = cur_pose.position.y
 
         return pose
 

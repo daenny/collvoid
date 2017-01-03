@@ -37,7 +37,6 @@
 
 #include "collvoid_local_planner/orca.h"
 #include "collvoid_local_planner/collvoid_publishers.h"
-#include "collvoid_local_planner/publisher_helpers.h"
 
 
 template<typename T>
@@ -64,160 +63,195 @@ namespace collvoid {
     ROSAgent::ROSAgent() {
         initialized_ = false;
         cur_allowed_error_ = 0;
-        cur_loc_unc_radius_ = 0;
         min_dist_obst_ = DBL_MAX;
     }
 
-    void ROSAgent::init(ros::NodeHandle private_nh, tf::TransformListener *tf) {
-        tf_ = tf;
-        private_nh.param<std::string>("base_frame", base_frame_, "/base_link");
-        private_nh.param<std::string>("global_frame", global_frame_, "/map");
-
-        standalone_ = getParamDef(private_nh, "standalone", false);
-
-        if (standalone_) {
-            ros::NodeHandle nh;
-            id_ = nh.getNamespace();
-            if (strcmp(id_.c_str(), "/") == 0) {
-                char hostname[1024];
-                hostname[1023] = '\0';
-                gethostname(hostname, 1023);
-                id_ = std::string(hostname);
-            }
-            ROS_INFO("Standalone My name is: %s", id_.c_str());
-            controlled_ = false;
-            ros::Duration(2.0).sleep();
-            initCommon(nh);
-        }
-        else {
-            id_ = private_nh.getNamespace();
-            if (strcmp(id_.c_str(), "/") == 0) {
-                char hostname[1024];
-                hostname[1023] = '\0';
-                gethostname(hostname, 1023);
-                id_ = std::string(hostname);
-            }
-            ROS_INFO("My name is: %s", id_.c_str());
-            controlled_ = false;
-            initCommon(private_nh);
-        }
-        getParam(private_nh, "footprint_radius", &footprint_radius_);
-
-        radius_ = footprint_radius_;
-        //only coverting round footprints for now
-        geometry_msgs::PolygonStamped footprint;
-        geometry_msgs::Point32 p;
-        double angle = 0;
-        double step = 2 * M_PI / 72;
-        while (angle < 2 * M_PI) {
-            geometry_msgs::Point32 pt;
-            pt.x = radius_ * cos(angle);
-            pt.y = radius_ * sin(angle);
-            pt.z = 0.0;
-            footprint.polygon.points.push_back(pt);
-            angle += step;
-        }
-        setFootprint(footprint);
-
-        eps_ = getParamDef(private_nh, "eps", 0.1);
-        getParam(private_nh, "convex", &convex_);
-        getParam(private_nh, "holo_robot", &holo_robot_);
-        //getParam(private_nh, "sim_period", &sim_period_);
-
-        publish_positions_period_ = getParamDef(private_nh, "publish_positions_frequency", 10.0);
-        publish_positions_period_ = 1.0 / publish_positions_period_;
-
-        publish_me_period_ = getParamDef(private_nh, "publish_me_frequency", 10.0);
-        publish_me_period_ = 1.0 / publish_me_period_;
-
-        if (standalone_) {
-            initParams(private_nh);
-        }
-
-        initialized_ = true;
-
+    ROSAgent::~ROSAgent() {
+        delete world_model_;
     }
 
+    void ROSAgent::init(ros::NodeHandle private_nh, tf::TransformListener *tf, base_local_planner::LocalPlannerUtil *planner_util) {
+        tf_ = tf;
+        planner_util_ = planner_util;
 
-    void ROSAgent::initParams(ros::NodeHandle private_nh) {
-        getParam(private_nh, "max_vel_with_obstacles", &max_vel_with_obstacles_);
-        getParam(private_nh, "max_vel_x", &max_vel_x_);
-        getParam(private_nh, "min_vel_x", &min_vel_x_);
-        getParam(private_nh, "max_vel_y", &max_vel_y_);
-        getParam(private_nh, "min_vel_y", &min_vel_y_);
-        getParam(private_nh, "max_vel_th", &max_vel_th_);
-        getParam(private_nh, "min_vel_th", &min_vel_th_);
-        getParam(private_nh, "min_vel_th_inplace", &min_vel_th_inplace_);
+        costmap_ = planner_util_->getCostmap();
+        world_model_ = new base_local_planner::CostmapModel(*costmap_);
 
-        time_horizon_obst_ = getParamDef(private_nh, "time_horizon_obst", 10.0);
+        //sim period
+        std::string controller_frequency_param_name;
+        if (!private_nh.searchParam("controller_frequency", controller_frequency_param_name))
+            sim_period_ = 0.05;
+        else {
+            double controller_frequency = 0;
+            private_nh.param(controller_frequency_param_name, controller_frequency, 20.0);
+            if (controller_frequency > 0)
+                sim_period_ = 1.0 / controller_frequency;
+            else {
+                ROS_WARN(
+                        "A controller_frequency less than 0 has been set. Ignoring the parameter, assuming a rate of 20Hz");
+                sim_period_ = 0.05;
+            }
+        }
+        ROS_INFO("Sim period is set to %.2f", sim_period_);
+        //holo_robot
+        getParam(private_nh, "holo_robot", &holo_robot_);
+        if (!holo_robot_)
+            getParam(private_nh, "wheel_base", &wheel_base_);
+        else
+            wheel_base_ = 0.0;
+
+        getParam(private_nh, "robot_radius", &fixed_robot_radius_);
+
+        //other params agent
         time_to_holo_ = getParamDef(private_nh, "time_to_holo", 0.4);
         min_error_holo_ = getParamDef(private_nh, "min_error_holo", 0.01);
         max_error_holo_ = getParamDef(private_nh, "max_error_holo", 0.15);
-        delete_observations_ = getParamDef(private_nh, "delete_observations", true);
-        threshold_last_seen_ = getParamDef(private_nh, "threshold_last_seen", 1.0);
+
+        getParam(private_nh, "use_polygon_footprint", &use_polygon_footprint_);
 
         getParam(private_nh, "orca", &orca_);
         getParam(private_nh, "clearpath", &clearpath_);
         getParam(private_nh, "use_truncation", &use_truncation_);
 
         num_samples_ = getParamDef(private_nh, "num_samples", 400);
-        new_sampling_ = getParamDef(private_nh, "new_sampling", true);
-
         type_vo_ = getParamDef(private_nh, "type_vo", 0); //HRVO
 
-        trunc_time_ = getParamDef(private_nh, "trunc_time", 10.0);
+        trunc_time_ = getParamDef(private_nh, "trunc_time", 5.0);
         left_pref_ = getParamDef(private_nh, "left_pref", 0.1);
-    }
 
+        private_nh.param("base_frame_id", base_frame_, std::string("base_link"));
+        private_nh.param("global_frame_id", global_frame_, std::string("map"));
 
-    void ROSAgent::initAsMe(tf::TransformListener *tf) {
-        //Params (get from server or set via local_planner)
-        tf_ = tf;
-        controlled_ = true;
+        getParam(private_nh, "use_obstacles", &use_obstacles_);
+        controlled_ = getParamDef(private_nh, "controlled", true);
+        
         ros::NodeHandle nh;
-        getParam(nh, "move_base/use_obstacles", &use_obstacles_);
-        controlled_ = getParamDef(nh, "move_base/controlled", true);
-        initCommon(nh);
-        initialized_ = true;
-    }
-
-    void ROSAgent::initCommon(ros::NodeHandle nh) {
         //Publishers
         vo_pub_ = nh.advertise<visualization_msgs::Marker>("vo", 1);
         neighbors_pub_ = nh.advertise<visualization_msgs::MarkerArray>("neighbors", 1);
-        humans_pub_ = nh.advertise<visualization_msgs::MarkerArray>("humans_detected", 1);
 
-        me_pub_ = nh.advertise<visualization_msgs::MarkerArray>("me", 1);
         lines_pub_ = nh.advertise<visualization_msgs::Marker>("orca_lines", 1);
         samples_pub_ = nh.advertise<visualization_msgs::MarkerArray>("samples", 1);
-        polygon_pub_ = nh.advertise<geometry_msgs::PolygonStamped>("convex_hull", 1);
         speed_pub_ = nh.advertise<visualization_msgs::Marker>("speed", 1);
-        position_share_pub_ = nh.advertise<collvoid_msgs::PoseTwistWithCovariance>("/position_share_out", 1);
-
         obstacles_pub_ = nh.advertise<visualization_msgs::Marker>("obstacles", 1);
 
-
-        //Subscribers
-        amcl_posearray_sub_ = nh.subscribe("particlecloud_weighted", 1, &ROSAgent::amclPoseArrayWeightedCallback, this);
-        position_share_sub_ = nh.subscribe("/position_share_in", 10, &ROSAgent::positionShareCallback, this);
-        people_sub_ = nh.subscribe("humans", 2, &ROSAgent::humansCallback, this);
-        odom_sub_ = nh.subscribe("odom", 1, &ROSAgent::odomCallback, this);
-
         //new obstacles from python service
-        get_obstacles_srv_ = nh.serviceClient<collvoid_srvs::GetObstacles>("get_obstacles", false);
+        get_obstacles_srv_ = nh.serviceClient<collvoid_srvs::GetObstacles>("get_obstacles");
 
-        // OLD OBSTACLES
-//        laser_scan_sub_.subscribe(nh, "base_scan", 1);
-//        laser_notifier.reset(new tf::MessageFilter<sensor_msgs::LaserScan>(laser_scan_sub_, *tf_, global_frame_, 10));
-//
-//        laser_notifier->registerCallback(boost::bind(&ROSAgent::baseScanCallback, this, _1));
-//        laser_notifier->setTolerance(ros::Duration(0.1));
-//
+        //new neighbors and me services for easier handling
+        get_me_srv_ = nh.serviceClient<collvoid_srvs::GetMe>("get_me");
+        get_neighbors_srv_ = nh.serviceClient<collvoid_srvs::GetNeighbors>("get_neighbors");
 
+        get_collvoid_twist_service_ = nh.advertiseService("get_collvoid_twist", &ROSAgent::getTwistServiceCB,this);
         ROS_INFO("New Agent as me initialized");
+        name_space_ = std::string("collvoid");
+        initialized_ = true;
+    }
 
-        service_ = nh.advertiseService("get_collvoid_twist", &ROSAgent::getTwistServiceCB,this);
+    bool ROSAgent::getMe() {
+        collvoid_srvs::GetMe srv;
+        if (get_me_srv_.call(srv)) {
+            collvoid_msgs::PoseTwistWithCovariance msg = srv.response.me;
+            this->radius_ = msg.radius;
+            this->position_ = Vector2(msg.pose.pose.position.x, msg.pose.pose.position.y);
+            this->heading_ = tf::getYaw(msg.pose.pose.orientation);
 
+            std::vector<Vector2> minkowski_footprint;
+            unrotated_footprint.clear();
+            BOOST_FOREACH(geometry_msgs::Point32 p, msg.footprint.polygon.points) {
+                            minkowski_footprint.push_back(Vector2(p.x, p.y));
+                            geometry_msgs::Point px;
+                            px.x = p.x;
+                            px.y = p.y;
+                            unrotated_footprint.push_back(px);
+                        }
+            footprint_lines_.clear();
+            collvoid::Vector2 first = collvoid::Vector2(minkowski_footprint.at(0).x(), minkowski_footprint.at(0).y());
+            collvoid::Vector2 old = collvoid::Vector2(minkowski_footprint.at(0).x(), minkowski_footprint.at(0).y());
+            //add linesegments for footprint
+            for (size_t i = 0; i < minkowski_footprint.size(); i++) {
+                collvoid::Vector2 point = collvoid::Vector2(minkowski_footprint.at(i).x(), minkowski_footprint.at(i).y());
+                footprint_lines_.push_back(std::make_pair(old, point));
+                old = point;
+            }
+            //add last segment
+            footprint_lines_.push_back(std::make_pair(old, first));
+
+            this->footprint_ = rotateFootprint(minkowski_footprint, this->heading_);
+            if (this->footprint_.size() < 3 && use_polygon_footprint_)
+                ROS_FATAL("Me: %s, configured to use polygon footprint but size < 3, size is %d", msg.robot_id.c_str(), (int)this->footprint_.size());
+
+            if (msg.holo_robot) {
+                this->velocity_ = rotateVectorByAngle(msg.twist.twist.linear.x,
+                                                      msg.twist.twist.linear.y, this->heading_);
+            }
+            else {
+                double dif_x, dif_y, dif_ang, time_dif;
+                time_dif = 0.1;
+                dif_ang = time_dif * msg.twist.twist.angular.z;
+                dif_x = msg.twist.twist.linear.x * cos(dif_ang / 2.0);
+                dif_y = msg.twist.twist.linear.x * sin(dif_ang / 2.0);
+                this->velocity_ = rotateVectorByAngle(dif_x, dif_y, this->heading_);
+            }
+            this->current_angular_speed_ = msg.twist.twist.angular.z;
+            return true;
+        }
+        else {
+            ROS_WARN("Could not get me");
+            return false;
+        }
+    }
+
+    bool ROSAgent::getNeighbors() {
+        collvoid_srvs::GetNeighbors srv;
+        this->agent_neighbors_.clear();
+        if (get_neighbors_srv_.call(srv)) {
+            BOOST_FOREACH(collvoid_msgs::PoseTwistWithCovariance msg, srv.response.neighbors) {
+                            this->agent_neighbors_.push_back(createAgentFromMsg(msg));
+                        }
+
+            std::sort(this->agent_neighbors_.begin(), this->agent_neighbors_.end(),
+                      boost::bind(&ROSAgent::compareNeighborsPositions, this, _1, _2));
+            collvoid::publishNeighborPositionsBare(this->agent_neighbors_, "/map", "/map", neighbors_pub_);
+            return true;
+        }
+        else {
+            ROS_WARN("Could not get neighbors, is python node running?");
+            return false;
+        }
+    }
+
+
+
+    AgentPtr ROSAgent::createAgentFromMsg(collvoid_msgs::PoseTwistWithCovariance &msg) {
+        AgentPtr agent = AgentPtr(new Agent());
+        agent->radius_ = msg.radius;
+        agent->controlled_ = msg.controlled;
+        agent->position_ = Vector2(msg.pose.pose.position.x, msg.pose.pose.position.y);
+        agent->heading_ = tf::getYaw(msg.pose.pose.orientation);
+
+        std::vector<Vector2> minkowski_footprint;
+        BOOST_FOREACH(geometry_msgs::Point32 p, msg.footprint.polygon.points) {
+                        minkowski_footprint.push_back(Vector2(p.x, p.y));
+                    }
+        agent->footprint_ = rotateFootprint(minkowski_footprint, agent->heading_);
+
+        if (agent->footprint_.size() < 3 && use_polygon_footprint_)
+            ROS_FATAL("Agent %s, Configured to use polygon footprint but size < 3, size is %d", msg.robot_id.c_str(), (int)agent->footprint_.size());
+
+        if (msg.holo_robot) {
+            agent->velocity_ = rotateVectorByAngle(msg.twist.twist.linear.x,
+                                                   msg.twist.twist.linear.y, agent->heading_);
+        }
+        else {
+            double dif_x, dif_y, dif_ang, time_dif;
+            time_dif = 0.1;
+            dif_ang = time_dif * msg.twist.twist.angular.z;
+            dif_x = msg.twist.twist.linear.x * cos(dif_ang / 2.0);
+            dif_y = msg.twist.twist.linear.x * sin(dif_ang / 2.0);
+            agent->velocity_ = rotateVectorByAngle(dif_x, dif_y, agent->heading_);
+        }
+        return agent;
     }
 
     bool ROSAgent::getTwistServiceCB(collvoid_local_planner::GetCollvoidTwist::Request &req, collvoid_local_planner::GetCollvoidTwist::Response &res) {
@@ -268,8 +302,8 @@ namespace collvoid {
         geometry_msgs::Twist cmd_vel;
 
 
-        if (collvoid::abs(goal_dir) > max_vel_x_) {
-            goal_dir = max_vel_x_ * collvoid::normalize(goal_dir);
+        if (collvoid::abs(goal_dir) > planner_util_->getCurrentLimits().max_vel_x) {
+            goal_dir = planner_util_->getCurrentLimits().max_vel_x * collvoid::normalize(goal_dir);
         }
 
         //double goal_dir_ang = atan2(goal_dir.y(), goal_dir.x());
@@ -278,11 +312,11 @@ namespace collvoid {
 
         computeNewVelocity(goal_dir, cmd_vel);
 //
-        if(std::abs(cmd_vel.angular.z)<min_vel_th_)
+        if(std::abs(cmd_vel.angular.z)<planner_util_->getCurrentLimits().min_rot_vel)
             cmd_vel.angular.z = 0.0;
-        if(std::abs(cmd_vel.linear.x)<min_vel_x_)
+        if(std::abs(cmd_vel.linear.x)<planner_util_->getCurrentLimits().min_vel_x)
             cmd_vel.linear.x = 0.0;
-        if(std::abs(cmd_vel.linear.y)<min_vel_y_)
+        if(std::abs(cmd_vel.linear.y)<planner_util_->getCurrentLimits().min_vel_y)
             cmd_vel.linear.y = 0.0;
 
         return cmd_vel;
@@ -290,39 +324,34 @@ namespace collvoid {
 
 
     void ROSAgent::computeNewVelocity(Vector2 pref_velocity, geometry_msgs::Twist &cmd_vel) {
-        boost::mutex::scoped_lock lock(me_lock_);
-        //Forward project agents
-        double time_dif = (ros::Time::now() - this->last_seen_).toSec();
-        predictAgentParams(this, time_dif);
-        updateAllNeighbors();
+        getMe();
+        getNeighbors();
 
         new_velocity_ = Vector2(0.0, 0.0);
 
         //reset
         additional_orca_lines_.clear();
 
+        all_vos_.clear();
+        static_vos_.clear();
+        human_vos_.clear();
+        agent_vos_.clear();
+
+        computeObstacles();
         //get closest agent/obstacle
         double min_dist_neigh = DBL_MAX;
-        if (agent_neighbors_.size() > 0)
-            min_dist_neigh = collvoid::abs(agent_neighbors_[0]->position_ - position_);
-
+        if (agent_neighbors_.size() > 0) {
+            min_dist_neigh = collvoid::abs(agent_neighbors_.at(0)->position_ - position_);
+        }
         double min_dist = std::min(min_dist_neigh, min_dist_obst_);
-
-        //incorporate NH constraints
-        max_speed_x_ = max_vel_x_;
 
         if (!holo_robot_) {
             addNHConstraints(min_dist, pref_velocity);
         }
         //add acceleration constraints
-        addAccelerationConstraintsXY(max_vel_x_, acc_lim_x_, max_vel_y_, acc_lim_y_, velocity_, heading_, sim_period_,
+        base_local_planner::LocalPlannerLimits limits = planner_util_->getCurrentLimits();
+        addAccelerationConstraintsXY(limits.max_vel_x, limits.acc_lim_x, limits.max_vel_y, limits.acc_lim_y, velocity_, heading_, sim_period_,
                                      holo_robot_, additional_orca_lines_);
-
-        all_vos_.clear();
-        static_vos_.clear();
-        human_vos_.clear();
-        agent_vos_.clear();
-        computeObstacles();
 
         if (orca_) {
             computeOrcaVelocity(pref_velocity);
@@ -337,7 +366,6 @@ namespace collvoid {
             }
         }
 
-
         double speed_ang = atan2(new_velocity_.y(), new_velocity_.x());
         double dif_ang = angles::shortest_angular_distance(heading_, speed_ang);
 
@@ -348,7 +376,7 @@ namespace collvoid {
             if (std::abs(dif_ang) > EPSILON)
                 vstar = calcVstar(vel, dif_ang);
             else
-                vstar = max_vel_x_;
+                vstar = limits.max_vel_x;
 
             cmd_vel.linear.x = std::min(vstar, vMaxAng());
             cmd_vel.linear.y = 0.0;
@@ -358,11 +386,11 @@ namespace collvoid {
                 if (last_twist_ang_ != 0.0)
                 {
                     cmd_vel.angular.z = sign(last_twist_ang_) *
-                                    std::min(std::abs(dif_ang / time_to_holo_), max_vel_th_);
+                                        std::min(std::abs(dif_ang / time_to_holo_), limits.max_rot_vel);
                 }
                 else {
                     cmd_vel.angular.z = sign(dif_ang) *
-                                        std::min(std::abs(dif_ang / time_to_holo_), max_vel_th_);
+                                        std::min(std::abs(dif_ang / time_to_holo_), limits.max_rot_vel);
 
                 }
 //                ROS_ERROR("dif_ang %f", dif_ang);
@@ -372,7 +400,7 @@ namespace collvoid {
                 last_twist_ang_ = cmd_vel.angular.z;
             }
             else {
-                cmd_vel.angular.z = sign(dif_ang) * std::min(std::abs(dif_ang / time_to_holo_), max_vel_th_);
+                cmd_vel.angular.z = sign(dif_ang) * std::min(std::abs(dif_ang / time_to_holo_), limits.max_rot_vel);
                 last_twist_ang_ = 0.;
             }
             //ROS_ERROR("vstar = %.3f", vstar);
@@ -398,86 +426,62 @@ namespace collvoid {
             // 	}
             // }
             //      if (std::abs(dif_ang) < M_PI/2.0)
-            if (min_dist > 2 * footprint_radius_)
-                cmd_vel.angular.z = sign(dif_ang) * std::min(std::abs(dif_ang), max_vel_th_);
+            if (min_dist > 2 * fixed_robot_radius_)
+                cmd_vel.angular.z = sign(dif_ang) * std::min(std::abs(dif_ang), limits.max_rot_vel);
         }
 
     }
 
 
     void ROSAgent::computeClearpathVelocity(Vector2 pref_velocity) {
-        //account for nh error
         boost::mutex::scoped_lock lock(neighbors_lock_);
 
-
-        tf::Stamped<tf::Pose> global_pose;
-        costmap_ros_->getRobotPose(global_pose);
-        odom_pose_ = Vector2(global_pose.getOrigin().x(), global_pose.getOrigin().y());
-
-        footprint_spec_.clear();
-        BOOST_FOREACH(Vector2 v, footprint_) {
-                        geometry_msgs::Point p;
-                        p.x = v.x();
-                        p.y = v.y();
-                        footprint_spec_.push_back(p);
-                    }
-
-
+        //account for nh error
         radius_ += cur_allowed_error_;
         ((Agent *) this)->computeClearpathVelocity(pref_velocity);
         radius_ -= cur_allowed_error_;
 
-        publishHoloSpeed(position_, new_velocity_, global_frame_, base_frame_, speed_pub_);
-        publishVOs(position_, all_vos_, use_truncation_, global_frame_, base_frame_, vo_pub_);
+        publishHoloSpeed(position_, new_velocity_, global_frame_, name_space_, speed_pub_);
+        publishVOs(position_, all_vos_, use_truncation_, global_frame_, name_space_, vo_pub_);
 
-        publishPoints(position_, samples_, global_frame_, base_frame_, samples_pub_);
-        publishOrcaLines(additional_orca_lines_, position_, global_frame_, base_frame_, lines_pub_);
+        publishPoints(position_, samples_, global_frame_, name_space_, samples_pub_);
+        publishOrcaLines(additional_orca_lines_, position_, global_frame_, name_space_, lines_pub_);
 
     }
 
 
     void ROSAgent::computeSampledVelocity(Vector2 pref_velocity) {
-
-        createSamplesWithinMovementConstraints(samples_, base_odom_.twist.twist.linear.x,
-                                               base_odom_.twist.twist.linear.y, base_odom_.twist.twist.angular.z,
-                                               acc_lim_x_, acc_lim_y_, acc_lim_th_, min_vel_x_, max_vel_x_, min_vel_y_,
-                                               max_vel_y_, min_vel_th_, max_vel_th_, heading_, pref_velocity,
+        base_local_planner::LocalPlannerLimits limits = planner_util_->getCurrentLimits();
+        createSamplesWithinMovementConstraints(samples_, this->velocity_.x(),
+                                               this->velocity_.y(), this->current_angular_speed_,
+                                               limits,
+                                               heading_, pref_velocity,
                                                sim_period_, num_samples_, holo_robot_);
 
         //account for nh error
         boost::mutex::scoped_lock lock(neighbors_lock_);
 
-        tf::Stamped<tf::Pose> global_pose;
-        costmap_ros_->getRobotPose(global_pose);
-        odom_pose_ = Vector2(global_pose.getOrigin().x(), global_pose.getOrigin().y());
-
-        footprint_spec_.clear();
-        BOOST_FOREACH(Vector2 v, footprint_) {
-                        geometry_msgs::Point p;
-                        p.x = v.x();
-                        p.y = v.y();
-                        footprint_spec_.push_back(p);
-                    }
-
+        //tf::Stamped<tf::Pose> global_pose;
+        //odom_pose_ = Vector2(global_pose.getOrigin().x(), global_pose.getOrigin().y());
         radius_ += cur_allowed_error_;
         ((Agent *) this)->computeSampledVelocity(pref_velocity);
         radius_ -= cur_allowed_error_;
 
         //    Vector2 null_vec = Vector2(0,0);
-        publishHoloSpeed(position_, new_velocity_, global_frame_, base_frame_, speed_pub_);
-        publishVOs(position_, all_vos_, use_truncation_, global_frame_, base_frame_, vo_pub_);
-        publishPoints(position_, samples_, global_frame_, base_frame_, samples_pub_);
-        publishOrcaLines(additional_orca_lines_, position_, global_frame_, base_frame_, lines_pub_);
+        publishHoloSpeed(position_, new_velocity_, global_frame_, name_space_, speed_pub_);
+        publishVOs(position_, all_vos_, use_truncation_, global_frame_, name_space_, vo_pub_);
+        publishPoints(position_, samples_, global_frame_, name_space_, samples_pub_);
+        publishOrcaLines(additional_orca_lines_, position_, global_frame_, name_space_, lines_pub_);
 
     }
 
 
     void ROSAgent::computeOrcaVelocity(Vector2 pref_velocity) {
-        ((Agent *) this)->computeOrcaVelocity(pref_velocity, convex_);
+        ((Agent *) this)->computeOrcaVelocity(pref_velocity, use_polygon_footprint_);
 
         // publish calcuated speed and orca_lines
-        publishHoloSpeed(position_, new_velocity_, global_frame_, base_frame_, speed_pub_);
-        publishOrcaLines(orca_lines_, position_, global_frame_, base_frame_, lines_pub_);
+        publishHoloSpeed(position_, new_velocity_, global_frame_, name_space_, speed_pub_);
+        publishOrcaLines(orca_lines_, position_, global_frame_, name_space_, lines_pub_);
 
     }
 
@@ -489,8 +493,8 @@ namespace collvoid {
 
         //ROS_ERROR("v_max_ang %.2f", v_max_ang);
 
-        if (min_dist < 2.0 * footprint_radius_ + cur_loc_unc_radius_) {
-            error = (max_error - min_error) / (collvoid::sqr(2 * (footprint_radius_ + cur_loc_unc_radius_))) *
+        if (min_dist < 2.0 * radius_) {
+            error = (max_error - min_error) / (collvoid::sqr(2 * (radius_))) *
                     collvoid::sqr(min_dist) + min_error; // how much error do i allow?
             //ROS_DEBUG("Error = %f", error);
             if (min_dist < 0) {
@@ -498,13 +502,14 @@ namespace collvoid {
                 // ROS_DEBUG("%s I think I am in collision", me_->getId().c_str());
             }
         }
+        base_local_planner::LocalPlannerLimits limits = planner_util_->getCurrentLimits();
         cur_allowed_error_ = 1.0 / 3.0 * cur_allowed_error_ + 2.0 / 3.0 * error;
         //ROS_ERROR("error = %f", cur_allowed_error_);
         double speed_ang = atan2(pref_velocity.y(), pref_velocity.x());
         double dif_ang = angles::shortest_angular_distance(heading_, speed_ang);
         if (std::abs(dif_ang) > M_PI / 2.0) { // || cur_allowed_error_ < 2.0 * min_error) {
             double max_track_speed = calculateMaxTrackSpeedAngle(time_to_holo_, M_PI / 2.0, cur_allowed_error_,
-                                                                 max_vel_x_, max_vel_th_, v_max_ang);
+                                                                 limits.max_vel_x, limits.max_rot_vel, v_max_ang);
             if (max_track_speed <= 2 * min_error) {
                 max_track_speed = 2 * min_error;
             }
@@ -512,7 +517,7 @@ namespace collvoid {
             addMovementConstraintsDiffSimple(max_track_speed, heading_, additional_orca_lines_);
         }
         else {
-            addMovementConstraintsDiff(cur_allowed_error_, time_to_holo_, max_vel_x_, max_vel_th_, heading_, v_max_ang,
+            addMovementConstraintsDiff(cur_allowed_error_, time_to_holo_, limits.max_vel_x, limits.max_rot_vel, heading_, v_max_ang,
                                        additional_orca_lines_);
         }
         max_speed_x_ = vMaxAng();
@@ -523,10 +528,8 @@ namespace collvoid {
     std::vector<Obstacle> ROSAgent::getObstacles() {
         std::vector<Obstacle> obstacles;
         collvoid_srvs::GetObstacles srv;
-
         if (get_obstacles_srv_.call(srv)) {
             sensor_msgs::PointCloud in, result;
-
 
             BOOST_FOREACH(geometry_msgs::PolygonStamped poly, srv.response.obstacles) {
                             Obstacle obst;
@@ -558,25 +561,18 @@ namespace collvoid {
         else {
             ROS_WARN("Could not get Obstacles from service");
         }
-        publishObstacleLines(obstacles, global_frame_, base_frame_, obstacles_pub_);
+        publishObstacleLines(obstacles, global_frame_, name_space_, obstacles_pub_);
 
         return obstacles;
     }
 
     void ROSAgent::computeObstacles() {
         if (use_obstacles_) {
+            boost::mutex::scoped_lock lock(obstacle_lock_);
 
-        boost::mutex::scoped_lock lock(obstacle_lock_);
-
-        std::vector<Vector2> own_footprint;
-        BOOST_FOREACH(geometry_msgs::Point32 p, footprint_msg_.polygon.points) {
-                        own_footprint.push_back(Vector2(p.x, p.y));
-                        //ROS_WARN("footprint point p = (%f, %f) ", p.x, p.y);
-                    }
-
-        std::vector<Obstacle> obstacles = getObstacles();
-        min_dist_obst_ = DBL_MAX;
-        BOOST_FOREACH(Obstacle obst, obstacles) {
+            std::vector<Obstacle> obstacles = getObstacles();
+            min_dist_obst_ = DBL_MAX;
+            BOOST_FOREACH(Obstacle obst, obstacles) {
                             //obst.points = rotateFootprint(obst.points, heading_);
                             Vector2 obst_center = (obst.points[0] + obst.points[2])/2.;
                             double dist = distSqPointLineSegment(obst.points[0], obst.points[1], position_);
@@ -593,58 +589,20 @@ namespace collvoid {
                                         }
                             if (orca_) {
 
-                                createObstacleLine(own_footprint, obst.points[0], obst.points[1]);
-                                createObstacleLine(own_footprint, obst.points[1], obst.points[2]);
-                                createObstacleLine(own_footprint, obst.points[2], obst.points[3]);
-                                createObstacleLine(own_footprint, obst.points[3], obst.points[0]);
+                                createObstacleLine(footprint_, obst.points[0], obst.points[1]);
+                                createObstacleLine(footprint_, obst.points[1], obst.points[2]);
+                                createObstacleLine(footprint_, obst.points[2], obst.points[3]);
+                                createObstacleLine(footprint_, obst.points[3], obst.points[0]);
                             }
                             else {
                                 Vector2 null = Vector2(0,0);
-                                VO obstacle_vo = createVO(position_, own_footprint, obst_center, obst_footprint, null);
+                                VO obstacle_vo = createVO(position_, footprint_, obst_center, obst_footprint, null);
                                 obstacle_vo = createTruncVO(obstacle_vo, 2);
                                 static_vos_.push_back(obstacle_vo);
                                 all_vos_.push_back(obstacle_vo);
                             }
                         }
-                    }
-
-
-        /* OLD CODE
-        min_dist_obst_ = DBL_MAX;
-        ros::Time cur_time = ros::Time::now();
-        int i = 0;
-        std::vector<int> delete_list;
-
-         BOOST_FOREACH(Obstacle obst, obstacles_from_laser_) {
-                        if (obst.points[0] != obst.points[1]) {// && (cur_time - obst.last_seen).toSec() < 0.2) {
-                            double dist = distSqPointLineSegment(obst.points[0], obst.points[1], position_);
-
-                            //ROS_INFO("dist: %f sqr: %f fr: %f", dist, sqr((abs(velocity_) + 8.0 * footprint_radius_)), footprint_radius_);
-                            if (dist < sqr((abs(velocity_) + 8.0 * footprint_radius_))) {
-                                if (use_obstacles_) {
-                                    if (orca_) {
-                                        createObstacleLine(own_footprint, obst.points[0], obst.points[1]);
-                                    }
-                                    else {
-                                        VO obstacle_vo = createObstacleVO(position_, footprint_radius_, own_footprint,
-                                                                          obst.points[0], obst.points[1]);
-                                        static_vos_.push_back(obstacle_vo);
-                                        all_vos_.push_back(obstacle_vo);
-                                    }
-                                }
-                                if (dist < min_dist_obst_) {
-                                    min_dist_obst_ = dist;
-                                }
-                            }
-                        }
-                        else {
-                            delete_list.push_back(i);
-                        }
-                        i++;
-                    }
-        for (int i = (int) delete_list.size() - 1; i >= 0; i--) {
-            obstacles_from_laser_.erase(obstacles_from_laser_.begin() + delete_list[i]);
-        }*/
+        }
 
     }
 
@@ -652,12 +610,6 @@ namespace collvoid {
     bool ROSAgent::compareNeighborsPositions(const AgentPtr &agent1, const AgentPtr &agent2) {
         return compareVectorPosition(agent1->position_, agent2->position_);
     }
-
-
-    bool ROSAgent::compareConvexHullPointsPosition(const ConvexHullPoint &p1, const ConvexHullPoint &p2) {
-        return collvoid::absSqr(p1.point) <= collvoid::absSqr(p2.point);
-    }
-
 
     bool ROSAgent::compareVectorPosition(const collvoid::Vector2 &v1, const collvoid::Vector2 &v2) {
         return collvoid::absSqr(position_ - v1) <= collvoid::absSqr(position_ - v2);
@@ -689,14 +641,6 @@ namespace collvoid {
         return res;
     }
 
-    bool ROSAgent::pointInNeighbor(collvoid::Vector2 &point) {
-        for (size_t i = 0; i < agent_neighbors_.size(); i++) {
-            if (collvoid::abs(point - agent_neighbors_[i]->position_) <= agent_neighbors_[i]->radius_)
-                return true;
-
-        }
-        return false;
-    }
 
     double ROSAgent::getDistToFootprint(collvoid::Vector2 &point) {
         collvoid::Vector2 result, null;
@@ -720,19 +664,16 @@ namespace collvoid {
         Vector2 relative_position = obst - position_;
         double dist_to_footprint;
         double dist = collvoid::abs(position_ - obst);
-        if (!has_polygon_footprint_)
-            dist_to_footprint = footprint_radius_;
+        if (!use_polygon_footprint_)
+            dist_to_footprint = fixed_robot_radius_;
         else {
             dist_to_footprint = getDistToFootprint(relative_position);
             if (dist_to_footprint == -1) {
-                dist_to_footprint = footprint_radius_;
+                dist_to_footprint = fixed_robot_radius_;
             }
         }
         dist = dist - dist_to_footprint - 0.03;
-        //if (dist < (double)max_vel_with_obstacles_){
-        //  dist *= dist;
-        //}
-        //    line.point = normalize(relative_position) * (dist - dist_to_footprint - 0.03);
+
         line.point = normalize(relative_position) * (dist);
         line.dir = Vector2(-normalize(relative_position).y(), normalize(relative_position).x());
         additional_orca_lines_.push_back(line);
@@ -756,7 +697,7 @@ namespace collvoid {
             dist = std::sqrt(dist);
             double dist_to_footprint = getDistToFootprint(rel_position);
             if (dist_to_footprint == -1) {
-                dist_to_footprint = footprint_radius_;
+                dist_to_footprint = fixed_robot_radius_;
             }
             dist = dist - dist_to_footprint - 0.03;
 
@@ -768,7 +709,7 @@ namespace collvoid {
                 return;
             }
 
-            if (abs(position_ - obst1) > 2 * footprint_radius_ && abs(position_ - obst2) > 2 * footprint_radius_) {
+            if (abs(position_ - obst1) > 2 * fixed_robot_radius_ && abs(position_ - obst2) > 2 * fixed_robot_radius_) {
                 Line line;
                 line.point = dist * normalize(rel_position);
                 line.dir = -normalize(obst1 - obst2);
@@ -819,760 +760,18 @@ namespace collvoid {
         }
     }
 
+    void ROSAgent::reconfigure(collvoid_local_planner::CollvoidConfig &cfg){
 
-    // void ROSAgent::computeObstacleLines(){
-    //   std::vector<int> delete_points;
-    //   for(size_t i = 0; i< obstacle_points_.size(); i++){
-    //     //ROS_DEBUG("obstacle at %f %f dist %f",obstacle_points_[i].x(),obstacle_points_[i].y(),collvoid::abs(position_-obstacle_points_[i]));
-    //     if (pointInNeighbor(obstacle_points_[i])){
-    // 	delete_points.push_back((int)i);
-    // 	continue;
-    //     }
-    //     double dist = collvoid::abs(position_ - obstacle_points_[i]);
-    //     Line line;
-    //     Vector2 relative_position = obstacle_points_[i] - position_;
-    //     double dist_to_footprint;
-    //     if (!has_polygon_footprint_)
-    // 	dist_to_footprint = footprint_radius_;
-    //     else {
-    // 	dist_to_footprint = getDistToFootprint(relative_position);
-    // 	if (dist_to_footprint == -1){
-    // 	  dist_to_footprint = footprint_radius_;
-    // 	}
-    //     }
-    //     dist = std::min(dist - dist_to_footprint - 0.01, (double)max_vel_with_obstacles_);
-    //     //if (dist < (double)max_vel_with_obstacles_){
-    //     //  dist *= dist;
-    //     //}
-    //     //    line.point = normalize(relative_position) * (dist - dist_to_footprint - 0.03);
-    //     line.point = normalize(relative_position) * (dist);
-    //     line.dir = Vector2 (-normalize(relative_position).y(),normalize(relative_position).x()) ;
-
-    //     //TODO relatvie velocity instead of velocity!!
-    //     if (dist > time_horizon_obst_ * collvoid::abs(velocity_))
-    // 	return;
-
-
-    //     additional_orca_lines_.push_back(line);
-
-    //   }
-    //   if (delete_observations_)
-    //     return;
-    //   else {
-    //     while(!delete_points.empty()){
-    // 	int del = delete_points.back();
-    // 	obstacle_points_.erase(obstacle_points_.begin()+del);
-    // 	delete_points.pop_back();
-    //     }
-    //   }
-    // }
-
-    void ROSAgent::setFootprint(geometry_msgs::PolygonStamped footprint) {
-        if (footprint.polygon.points.size() < 2) {
-            ROS_ERROR("The footprint specified has less than two nodes");
-            return;
-        }
-        footprint_msg_ = footprint;
-        setMinkowskiFootprintVector2(footprint_msg_);
-
-        footprint_lines_.clear();
-        geometry_msgs::Point32 p = footprint_msg_.polygon.points[0];
-        collvoid::Vector2 first = collvoid::Vector2(p.x, p.y);
-        collvoid::Vector2 old = collvoid::Vector2(p.x, p.y);
-        //add linesegments for footprint
-        for (size_t i = 0; i < footprint_msg_.polygon.points.size(); i++) {
-            p = footprint_msg_.polygon.points[i];
-            collvoid::Vector2 point = collvoid::Vector2(p.x, p.y);
-            footprint_lines_.push_back(std::make_pair(old, point));
-            old = point;
-        }
-        //add last segment
-        footprint_lines_.push_back(std::make_pair(old, first));
-        has_polygon_footprint_ = true;
-    }
-
-    void ROSAgent::setFootprintRadius(double radius) {
-        footprint_radius_ = radius;
-        radius_ = radius + cur_loc_unc_radius_;
-    }
-
-    void ROSAgent::setMinkowskiFootprintVector2(geometry_msgs::PolygonStamped minkowski_footprint) {
-        minkowski_footprint_.clear();
-        BOOST_FOREACH(geometry_msgs::Point32 p, minkowski_footprint.polygon.points) {
-                        minkowski_footprint_.push_back(Vector2(p.x, p.y));
-                    }
-    }
-
-    void ROSAgent::setIsHoloRobot(bool holo_robot) {
-        holo_robot_ = holo_robot;
-    }
-
-    void ROSAgent::setRobotBaseFrame(std::string base_frame) {
-        base_frame_ = base_frame;
-    }
-
-    void ROSAgent::setGlobalFrame(std::string global_frame) {
-        global_frame_ = global_frame;
-    }
-
-    void ROSAgent::setId(std::string id) {
-        this->id_ = id;
-    }
-
-    void ROSAgent::setMaxVelWithObstacles(double max_vel_with_obstacles) {
-        max_vel_with_obstacles_ = max_vel_with_obstacles;
-    }
-
-    void ROSAgent::setWheelBase(double wheel_base) {
-        wheel_base_ = wheel_base;
-    }
-
-    void ROSAgent::setGoalTolerances(double xy_tolerance, double yaw_tolerance){
-        xy_goal_tolerance_ = xy_tolerance;
-        yaw_goal_tolerance_ = yaw_tolerance;
+        this->max_speed_x_ = planner_util_->getCurrentLimits().max_vel_x;
     }
 
 
-    void ROSAgent::setAccelerationConstraints(double acc_lim_x, double acc_lim_y, double acc_lim_th) {
-        acc_lim_x_ = acc_lim_x;
-        acc_lim_y_ = acc_lim_y;
-        acc_lim_th_ = acc_lim_th;
-    }
-
-    void ROSAgent::setMinMaxSpeeds(double min_vel_x, double max_vel_x, double min_vel_y, double max_vel_y,
-                                   double min_vel_th, double max_vel_th, double min_vel_th_inplace) {
-        min_vel_x_ = min_vel_x;
-        max_vel_x_ = max_vel_x;
-        min_vel_y_ = min_vel_y;
-        max_vel_y_ = max_vel_y;
-        min_vel_th_ = min_vel_th;
-        max_vel_th_ = max_vel_th;
-        min_vel_th_inplace_ = min_vel_th_inplace;
-    }
-
-    void ROSAgent::setPublishPositionsPeriod(double publish_positions_period) {
-        publish_positions_period_ = publish_positions_period;
-    }
-
-    void ROSAgent::setPublishMePeriod(double publish_me_period) {
-        publish_me_period_ = publish_me_period;
-    }
-
-    void ROSAgent::setTimeToHolo(double time_to_holo) {
-        time_to_holo_ = time_to_holo;
-    }
-
-    void ROSAgent::setTimeHorizonObst(double time_horizon_obst) {
-        time_horizon_obst_ = time_horizon_obst;
-    }
-
-    void ROSAgent::setMinMaxErrorHolo(double min_error_holo, double max_error_holo) {
-        min_error_holo_ = min_error_holo;
-        max_error_holo_ = max_error_holo;
-    }
-
-    void ROSAgent::setDeleteObservations(bool delete_observations) {
-        delete_observations_ = delete_observations;
-    }
-
-    void ROSAgent::setThresholdLastSeen(double threshold_last_seen) { //implement!!
-        threshold_last_seen_ = threshold_last_seen;
-    }
-
-    void ROSAgent::setLocalizationEps(double eps) {
-        eps_ = eps;
-        if (pose_array_weighted_.size() > 0) {
-            //if (!convex_ || orca_) {
-            if (!convex_) {
-                computeNewLocUncertainty();
-            }
-            else {
-                computeNewMinkowskiFootprint();
-            }
-        }
-    }
-
-    void ROSAgent::setTypeVO(int type_vo) {
-        type_vo_ = type_vo;
-    }
-
-    void ROSAgent::setOrca(bool orca) {
-        orca_ = orca;
-    }
-
-    void ROSAgent::setConvex(bool convex) {
-        convex_ = convex;
-    }
-
-    void ROSAgent::setClearpath(bool clearpath) {
-        clearpath_ = clearpath;
-    }
-
-    void ROSAgent::setUseTruncation(bool use_truncation) {
-        use_truncation_ = use_truncation;
-    }
-
-    void ROSAgent::setNumSamples(int num_samples) {
-        num_samples_ = num_samples;
-    }
-
-    bool ROSAgent::isHoloRobot() {
-        return holo_robot_;
-    }
-
-    ros::Time ROSAgent::lastSeen() {
-        return last_seen_;
-    }
-
-    void ROSAgent::positionShareCallback(const collvoid_msgs::PoseTwistWithCovariance::ConstPtr &msg) {
-        boost::mutex::scoped_lock lock(neighbors_lock_);
-        std::string cur_id = msg->robot_id;
-        if (strcmp(cur_id.c_str(), id_.c_str()) != 0) {  //if it is not me do something
-            size_t i;
-            for (i = 0; i < agent_neighbors_.size(); i++) {
-
-                ROSAgentPtr agent = boost::dynamic_pointer_cast<ROSAgent>(agent_neighbors_[i]);
-
-                if (strcmp(agent->id_.c_str(), cur_id.c_str()) == 0) {
-                    //I found the robot
-                    break;
-                }
-            }
-            if (i >= agent_neighbors_.size()) { //Robot is new, so it will be added to the list
-                ROSAgentPtr new_robot(new ROSAgent);
-                new_robot->id_ = cur_id;
-                new_robot->holo_robot_ = msg->holo_robot;
-                agent_neighbors_.push_back(new_robot);
-                ROS_DEBUG("I added a new neighbor with id %s and radius %f", cur_id.c_str(), msg->radius);
-            }
-            ROSAgentPtr agent = boost::dynamic_pointer_cast<ROSAgent>(agent_neighbors_[i]);
-            agent->base_odom_.pose.pose = msg->pose.pose;
-            agent->heading_ = tf::getYaw(msg->pose.pose.orientation);
-            agent->base_odom_.twist.twist = msg->twist.twist;
-            agent->holo_velocity_ = Vector2(msg->holonomic_velocity.x, msg->holonomic_velocity.y);
-            agent->radius_ = msg->radius;
-
-            agent->controlled_ = msg->controlled;
-
-            agent->footprint_msg_ = msg->footprint;
-            agent->setMinkowskiFootprintVector2(msg->footprint);
-
-            agent->last_seen_ = msg->header.stamp;
-        }
-        //publish visualization if neccessary
-        if ((ros::Time::now() - last_time_positions_published_).toSec() > publish_positions_period_) {
-            last_time_positions_published_ = ros::Time::now();
-            publishNeighborPositions(agent_neighbors_, global_frame_, base_frame_, neighbors_pub_);
-            publishMePosition(this, global_frame_, base_frame_, me_pub_);
-        }
-    }
-    void ROSAgent::humansCallback(const collvoid_msgs::AggregatedPoseTwist::ConstPtr &agg_msg) {
-        std::vector<AgentPtr> humans;
-        BOOST_FOREACH(collvoid_msgs::PoseTwistWithCovariance msg, agg_msg->posetwists) {
-                        std::string cur_id = msg.robot_id;
-                        ROSAgentPtr agent(new ROSAgent);
-                        agent->id_ = cur_id;
-                        agent->holo_robot_ = msg.holo_robot;
-                        agent->base_odom_.pose.pose = msg.pose.pose;
-                        agent->heading_ = tf::getYaw(msg.pose.pose.orientation);
-                        agent->base_odom_.twist.twist = msg.twist.twist;
-                        agent->holo_velocity_ = Vector2(msg.holonomic_velocity.x, msg.holonomic_velocity.y);
-                        agent->radius_ = msg.radius;
-                        agent->controlled_ = msg.controlled;
-                        agent->footprint_msg_ = msg.footprint;
-                        agent->setMinkowskiFootprintVector2(msg.footprint);
-                        agent->last_seen_ = msg.header.stamp;
-                        humans.push_back(agent);
-
-                    }
-        human_neighbors_.clear();
-        human_neighbors_ = humans;
-
-        //publish visualization if neccessary
-        if ((ros::Time::now() - last_time_humans_published_).toSec() > publish_positions_period_) {
-            last_time_humans_published_ = ros::Time::now();
-            publishNeighborPositions(human_neighbors_, global_frame_, base_frame_, humans_pub_);
-        }
-    }
-
-    void ROSAgent::amclPoseArrayWeightedCallback(const collvoid_msgs::PoseArrayWeighted::ConstPtr &msg) {
-        boost::mutex::scoped_lock lock(convex_lock_);
-
-        pose_array_weighted_.clear();
-        geometry_msgs::PoseStamped in;
-        in.header = msg->header;
-        for (int i = 0; i < (int) msg->poses.size(); i++) {
-            in.pose = msg->poses[i];
-            geometry_msgs::PoseStamped result;
-            try {
-                tf_->waitForTransform(global_frame_, base_frame_, in.header.stamp, ros::Duration(0.2));
-                tf_->transformPose(base_frame_, in, result);
-                pose_array_weighted_.push_back(std::make_pair(msg->weights[i], result));
-            }
-            catch (tf::TransformException ex) {
-                ROS_ERROR("%s", ex.what());
-                ROS_ERROR("point transform failed");
-                break;
-            };
-        }
-        //    if (!convex_ || orca_) {
-        if (!convex_) {
-            computeNewLocUncertainty();
-        }
-        else {
-            computeNewMinkowskiFootprint();
-        }
-
-    }
-
-    void ROSAgent::odomCallback(const nav_msgs::Odometry::ConstPtr &msg) {
-        //we assume that the odometry is published in the frame of the base
-        boost::mutex::scoped_lock(me_lock_);
-        base_odom_.twist.twist.linear.x = msg->twist.twist.linear.x;
-        base_odom_.twist.twist.linear.y = msg->twist.twist.linear.y;
-        base_odom_.twist.twist.angular.z = msg->twist.twist.angular.z;
-
-        last_seen_ = msg->header.stamp;
-        tf::Stamped<tf::Pose> global_pose;
-        //let's get the pose of the robot in the frame of the plan
-        global_pose.setIdentity();
-        global_pose.frame_id_ = base_frame_;
-        global_pose.stamp_ = msg->header.stamp;
-
-        try {
-            tf_->waitForTransform(global_frame_, base_frame_, global_pose.stamp_, ros::Duration(0.2));
-            tf_->transformPose(global_frame_, global_pose, global_pose);
-        }
-        catch (tf::TransformException ex) {
-            ROS_ERROR("%s", ex.what());
-            ROS_ERROR("point odom transform failed");
-            return;
-        };
-
-        geometry_msgs::PoseStamped pose_msg;
-        tf::poseStampedTFToMsg(global_pose, pose_msg);
-
-        base_odom_.pose.pose = pose_msg.pose;
-
-        if ((ros::Time::now() - last_time_me_published_).toSec() > publish_me_period_) {
-            last_time_me_published_ = ros::Time::now();
-            publishMePoseTwist();
-        }
-    }
-
-
-
-
-    PredictedStatePtr ROSAgent::predictState(double time_diff, std::vector<ROSAgentPtr> agents) {
-        PredictedStatePtr predictedState(new PredictedState);
-        BOOST_FOREACH (ROSAgentPtr agent, agents) {
-                        ROSAgentPtr newAgentState = getNewAgentState(agent,time_diff);
-                        predictedState->neighbors.push_back(newAgentState);
-                    }
-        std::sort(agent_neighbors_.begin(), agent_neighbors_.end(),
-                  boost::bind(&ROSAgent::compareNeighborsPositions, this, _1, _2));
-        return predictedState;
-
-    }
-
-    ROSAgentPtr ROSAgent::getNewAgentState(ROSAgentPtr rosAgentPtr, double time_dif) {
-        ROSAgentPtr new_robot(new ROSAgent);
-        new_robot->id_ = rosAgentPtr->id_;
-        new_robot->holo_robot_ = rosAgentPtr->holo_robot_;
-        new_robot->base_odom_ = rosAgentPtr->base_odom_;
-        new_robot->minkowski_footprint_ = rosAgentPtr->minkowski_footprint_;
-
-        predictAgentParams(new_robot.get(), time_dif);
-
-        return new_robot;
-
-    }
-
-    void ROSAgent::updateAllNeighbors() {
-        boost::mutex::scoped_lock lock(neighbors_lock_);
-        BOOST_FOREACH (AgentPtr a, agent_neighbors_) {
-                        ROSAgentPtr agent = boost::dynamic_pointer_cast<ROSAgent>(a);
-                        double time_dif = (ros::Time::now() - agent->last_seen_).toSec();
-                        predictAgentParams(agent.get(), time_dif);
-                    }
-        BOOST_FOREACH (AgentPtr a, human_neighbors_) {
-                        ROSAgentPtr agent = boost::dynamic_pointer_cast<ROSAgent>(a);
-                        double time_dif = 0.05;
-                        predictAgentParams(agent.get(), time_dif);
-                    }
-        std::sort(agent_neighbors_.begin(), agent_neighbors_.end(),
-                  boost::bind(&ROSAgent::compareNeighborsPositions, this, _1, _2));
-    }
-
-
-    void ROSAgent::predictAgentParams(ROSAgent *agent, double time_dif) {
-
-        double yaw, x_dif, y_dif, th_dif;
-        //time_dif = 0.0;
-
-        yaw = tf::getYaw(agent->base_odom_.pose.pose.orientation);
-        th_dif = time_dif * agent->base_odom_.twist.twist.angular.z;
-        if (agent->isHoloRobot()) {
-            x_dif = time_dif * agent->base_odom_.twist.twist.linear.x;
-            y_dif = time_dif * agent->base_odom_.twist.twist.linear.y;
-        }
-        else {
-            x_dif = time_dif * agent->base_odom_.twist.twist.linear.x * cos(yaw + th_dif / 2.0);
-            y_dif = time_dif * agent->base_odom_.twist.twist.linear.x * sin(yaw + th_dif / 2.0);
-        }
-        agent->heading_ = yaw + th_dif;
-        agent->position_ = Vector2(agent->base_odom_.pose.pose.position.x + x_dif,
-                                   agent->base_odom_.pose.pose.position.y + y_dif);
-        //agent->last_seen_ = ros::Time::now();
-        agent->timestep_ = time_dif;
-
-        //agent->footprint_ = agent->minkowski_footprint_;
-        agent->footprint_ = rotateFootprint(agent->minkowski_footprint_, agent->heading_);
-
-        if (agent->holo_robot_) {
-            agent->velocity_ = rotateVectorByAngle(agent->base_odom_.twist.twist.linear.x,
-                                                   agent->base_odom_.twist.twist.linear.y, (yaw + th_dif));
-        }
-        else {
-            double dif_x, dif_y, dif_ang;
-            dif_ang = time_dif * agent->base_odom_.twist.twist.angular.z;
-            dif_x = agent->base_odom_.twist.twist.linear.x * cos(dif_ang / 2.0);
-            dif_y = agent->base_odom_.twist.twist.linear.x * sin(dif_ang / 2.0);
-            agent->velocity_ = rotateVectorByAngle(dif_x, dif_y, (yaw + th_dif));
-        }
-    }
 
     double ROSAgent::vMaxAng() {
-        //double theoretical_max_v = max_vel_th_ * wheel_base_ / 2.0;
+        double theoretical_max_v = planner_util_->getCurrentLimits().max_rot_vel * wheel_base_ / 2.0;
         //return theoretical_max_v - std::abs(base_odom_.twist.twist.angular.z) * wheel_base_/2.0;
-        return max_vel_x_; //TODO: fixme!!
+        return planner_util_->getCurrentLimits().max_vel_x; //TODO: fixme!!
     }
-
-
-    void ROSAgent::publishMePoseTwist() {
-
-        collvoid_msgs::PoseTwistWithCovariance me_msg;
-        me_msg.header.stamp = ros::Time::now();
-        me_msg.header.frame_id = base_frame_;
-
-        me_msg.pose.pose = base_odom_.pose.pose;
-        me_msg.twist.twist = base_odom_.twist.twist;
-
-        me_msg.holonomic_velocity.x = holo_velocity_.x();
-        me_msg.holonomic_velocity.y = holo_velocity_.y();
-
-        me_msg.holo_robot = holo_robot_;
-        me_msg.radius = footprint_radius_ + cur_loc_unc_radius_;
-        me_msg.robot_id = id_;
-        me_msg.controlled = controlled_;
-
-        me_msg.footprint = createFootprintMsgFromVector2(minkowski_footprint_);
-        position_share_pub_.publish(me_msg);
-    }
-
-    geometry_msgs::PolygonStamped ROSAgent::createFootprintMsgFromVector2(const std::vector<Vector2> &footprint) {
-        geometry_msgs::PolygonStamped result;
-        result.header.frame_id = base_frame_;
-        result.header.stamp = ros::Time::now();
-
-        BOOST_FOREACH(Vector2 point, footprint) {
-                        geometry_msgs::Point32 p;
-                        p.x = point.x();
-                        p.y = point.y();
-                        result.polygon.points.push_back(p);
-                    }
-
-        return result;
-    }
-
-
-    geometry_msgs::PoseStamped ROSAgent::transformMapPoseToBaseLink(geometry_msgs::PoseStamped in) {
-        geometry_msgs::PoseStamped result;
-        try {
-            tf_->waitForTransform(global_frame_, base_frame_, in.header.stamp, ros::Duration(0.3));
-            tf_->transformPose(base_frame_, in, result);
-        }
-        catch (tf::TransformException ex) {
-            ROS_ERROR("%s", ex.what());
-            ROS_ERROR("point transform failed");
-        };
-        return result;
-    }
-
-
-    void ROSAgent::computeNewLocUncertainty() {
-        std::vector<ConvexHullPoint> points;
-
-        for (int i = 0; i < (int) pose_array_weighted_.size(); i++) {
-            ConvexHullPoint p;
-            p.point = Vector2(pose_array_weighted_[i].second.pose.position.x,
-                              pose_array_weighted_[i].second.pose.position.y);
-            p.weight = pose_array_weighted_[i].first;
-            p.index = i;
-            p.orig_index = i;
-            points.push_back(p);
-        }
-
-        std::sort(points.begin(), points.end(), boost::bind(&ROSAgent::compareConvexHullPointsPosition, this, _1, _2));
-        double sum = 0.0;
-        int j = 0;
-        while (sum <= 1.0 - eps_ && j < (int) points.size()) {
-            sum += points[j].weight;
-            j++;
-        }
-        cur_loc_unc_radius_ = std::min(footprint_radius_ * 2.0, collvoid::abs(points[j - 1].point));
-        //ROS_ERROR("Loc Uncertainty = %f", cur_loc_unc_radius_);
-        radius_ = footprint_radius_ + cur_loc_unc_radius_;
-    }
-
-    void ROSAgent::computeNewMinkowskiFootprint() {
-        bool done = false;
-        std::vector<ConvexHullPoint> convex_hull;
-        std::vector<ConvexHullPoint> points;
-        points.clear();
-
-
-        for (int i = 0; i < (int) pose_array_weighted_.size(); i++) {
-            ConvexHullPoint p;
-            p.point = Vector2(pose_array_weighted_[i].second.pose.position.x,
-                              pose_array_weighted_[i].second.pose.position.y);
-            p.weight = pose_array_weighted_[i].first;
-            p.index = i;
-            p.orig_index = i;
-            points.push_back(p);
-        }
-        std::sort(points.begin(), points.end(), compareVectorsLexigraphically);
-        for (int i = 0; i < (int) points.size(); i++) {
-            points[i].index = i;
-        }
-
-        double total_sum = 0;
-        std::vector<int> skip_list;
-
-        while (!done && points.size() >= 3) {
-            double sum = 0;
-            convex_hull.clear();
-            convex_hull = convexHull(points, true);
-
-            skip_list.clear();
-            for (int j = 0; j < (int) convex_hull.size() - 1; j++) {
-                skip_list.push_back(convex_hull[j].index);
-                sum += convex_hull[j].weight;
-            }
-            total_sum += sum;
-
-            //ROS_WARN("SUM = %f (%f), num Particles = %d, eps = %f", sum, total_sum, (int) points.size(), eps_);
-
-            if (total_sum >= eps_) {
-                done = true;
-                break;
-            }
-
-            std::sort(skip_list.begin(), skip_list.end());
-            for (int i = (int) skip_list.size() - 1; i >= 0; i--) {
-                points.erase(points.begin() + skip_list[i]);
-            }
-
-            for (int i = 0; i < (int) points.size(); i++) {
-                points[i].index = i;
-            }
-        }
-
-        std::vector<Vector2> localization_footprint, own_footprint;
-        for (int i = 0; i < (int) convex_hull.size(); i++) {
-            localization_footprint.push_back(convex_hull[i].point);
-        }
-
-        BOOST_FOREACH(geometry_msgs::Point32 p, footprint_msg_.polygon.points) {
-                        own_footprint.push_back(Vector2(p.x, p.y));
-                        //      ROS_WARN("footprint point p = (%f, %f) ", footprint_[i].x, footprint_[i].y);
-                    }
-        minkowski_footprint_ = minkowskiSum(localization_footprint, own_footprint);
-
-        //publish footprint
-        geometry_msgs::PolygonStamped msg_pub = createFootprintMsgFromVector2(minkowski_footprint_);
-        polygon_pub_.publish(msg_pub);
-
-    }
-
-    void ROSAgent::baseScanCallback(const sensor_msgs::LaserScan::ConstPtr &msg) {
-        sensor_msgs::PointCloud cloud;
-        //  ROS_ERROR("got cloud");
-
-        try {
-            tf_->waitForTransform(msg->header.frame_id, global_frame_, msg->header.stamp, ros::Duration(0.3));
-            projector_.transformLaserScanToPointCloud(global_frame_, *msg, cloud, *tf_);
-        }
-        catch (tf::TransformException &e) {
-            ROS_ERROR("%s", e.what());
-            return;
-        }
-
-
-        boost::mutex::scoped_lock lock(obstacle_lock_);
-
-
-        obstacles_from_laser_.clear();
-        obstacle_centers_.clear();
-
-        double threshold_convex = 0.03;
-        double threshold_concave = -0.03;
-        //    ROS_ERROR("%d", (int)cloud.points.size());
-
-        for (int i = 0; i < (int) cloud.points.size(); i++) {
-            Vector2 start = Vector2(cloud.points[i].x, cloud.points[i].y);
-            while (pointInNeighbor(start) && i < (int) cloud.points.size()) {
-                i++;
-                start = Vector2(cloud.points[i].x, cloud.points[i].y);
-            }
-            if (i == (int) cloud.points.size()) {
-                if (!pointInNeighbor(start)) {
-                    //obstacles_from_laser_.push_back(std::make_pair(start,start));
-                }
-                return;
-            }
-
-            bool found = false;
-            Vector2 prev = Vector2(start.x(), start.y());
-            double first_ang = 0;
-            double prev_ang = 0;
-            Vector2 next;
-            while (!found) {
-                i++;
-                if (i == (int) cloud.points.size()) {
-                    break;
-                }
-                next = Vector2(cloud.points[i].x, cloud.points[i].y);
-                while (pointInNeighbor(next) && i < (int) cloud.points.size()) {
-                    i++;
-                    next = Vector2(cloud.points[i].x, cloud.points[i].y);
-                }
-
-                if (abs(next - prev) > 2 * footprint_radius_) {
-                    found = true;
-                    break;
-                }
-                Vector2 dif = next - start;
-                double ang = atan2(dif.y(), dif.x());
-                if (prev != start) {
-                    if (ang - first_ang < threshold_concave) {
-                        found = true;
-                        i -= 2;
-                        break;
-                    }
-                    if (ang - prev_ang < threshold_concave) {
-                        found = true;
-                        i -= 2;
-                        break;
-                    }
-                    if (ang - prev_ang > threshold_convex) { //going towards me
-                        found = true;
-                        i -= 2;
-                        break;
-                    }
-                    if (ang - first_ang > threshold_convex) { //going towards me
-                        found = true;
-                        i -= 2;
-                        break;
-                    }
-
-
-                }
-                else {
-                    first_ang = ang;
-                }
-                prev = next;
-                prev_ang = ang;
-            }
-
-            addInflatedObstacleFromLine(start, prev, msg->header.stamp);
-
-        }
-        publishObstacleLines(obstacles_from_laser_, global_frame_, base_frame_, obstacles_pub_);
-
-    }
-
-
-    bool ROSAgent::isInStaticObstacle() {
-
-        BOOST_FOREACH(Vector2 obst_center, obstacle_centers_) {
-                        float dx = obst_center.x() - base_odom_.pose.pose.position.x;
-                        float dy = obst_center.y() - base_odom_.pose.pose.position.y;
-                        float d = sqrt(dx * dx + dy * dy);
-
-                        if (d < footprint_radius_ * 1.2) {
-                            ROS_WARN("%s: I think I am in collision %f", id_.c_str(), d);
-                            return true;
-                        }
-
-                    }
-        return false;
-    }
-
-    // Creates a inlfacted rectangle from the line that represents the obstacle
-    void ROSAgent::addInflatedObstacleFromLine(Vector2 start, Vector2 end, ros::Time stamp) {
-        Obstacle obst;
-
-        float dx = fabs(start.x() - end.x()); //delta x
-        float dy = fabs(start.y() - end.y()); //delta y
-        float linelength = sqrtf(dx * dx + dy * dy);
-        dx /= linelength;
-        dy /= linelength;
-
-        const float thickness = footprint_radius_ / 4.; //Some number
-        const float px = thickness * (-dy); //perpendicular vector with lenght thickness * 0.5
-        const float py = thickness * dx;
-
-        //create the four vertex of the inflated rectangle
-        Vector2 vertex1 = Vector2(start.x() - px, start.y() + py);
-        Vector2 vertex2 = Vector2(end.x() - px, end.y() + py);
-        Vector2 vertex3 = Vector2(end.x() + px, end.y() - py);
-        Vector2 vertex4 = Vector2(start.x() + px, start.y() - py);
-
-        Vector2 center = Vector2((vertex1.x() + vertex4.x()) / 2, (vertex1.y() + vertex4.y()) / 2);
-        Vector2 center_line = Vector2((start.x() + end.y()) / 2, (start.y() + end.y()) / 2);
-
-        center = start + end / 2.;
-        //check if the obstacle is in a neighbor
-        bool obs_in_neigh = false;
-        float radius = 0.0;
-        Vector2 neigh_pos;
-        //updateAllNeighbors();
-        for (size_t i = 0; i < agent_neighbors_.size(); i++) {
-            radius = agent_neighbors_[i]->radius_ * 2;
-            neigh_pos = agent_neighbors_[i]->position_;
-            if (collvoid::abs(start - neigh_pos) <= radius || collvoid::abs(end - neigh_pos) <= radius)
-                obs_in_neigh = true;
-
-        }
-
-        if (!obs_in_neigh) {
-            obstacle_centers_.push_back(center);
-            obst.points.push_back(start);
-            obst.points.push_back(end);
-            obst.last_seen = stamp;
-            obstacles_from_laser_.push_back(obst);
-        }
-    }
-
-    // double pointToSegmentDistance(Vector2 line1, Vector2 line2, Vector2 point) {
-    //   //  http://stackoverflow.com/questions/849211/shortest-distance-between-a-point-and-a-line-segment
-    //   // Return minimum distance between line segment vw and point point
-    //   const double length = absSqr(line2-line1);  // i.e. |w-v|^2 -  avoid a sqrt
-    //   if (length == 0.0)
-    //     return abs(point-line1);   // v == w case
-    //   // Consider the line extending the segment, parameterized as v + t (w - v).
-    //   // We find projection of point p onto the line.
-    //   // It falls where t = [(p-v) . (w-v)] / |w-v|^2
-    //   const double t = (point - line1) * (line2 - line1) /  length;
-    //   if (t < 0.0)
-    //     return abs(point - line1);       // Beyond the 'v' end of the segment
-    //   else if (t > 1.0)
-    //     return abs(point - line2);  // Beyond the 'w' end of the segment
-    //   const Vector2 projection = v + t * (w - v);  // Projection falls on the segment
-    //   return abs(point - projection);
-    // }
-
 
 }
 
@@ -1583,7 +782,8 @@ int main(int argc, char **argv) {
 
     ROSAgentPtr me(new ROSAgent);
     tf::TransformListener tf;
-    me->init(nh, &tf);
+
+    //me->init(nh, &tf);
     ROS_INFO("ROSAgent initialized");
     ros::spin();
 

@@ -19,7 +19,7 @@ namespace collvoid_scoring_function
         ros::NodeHandle co_nh("collvoid");
         use_truncation_ = co_nh.param("use_truncation", true);
         trunc_time_ = co_nh.param("trunctime", 8.);
-        convex_ = co_nh.param("convex", true);
+        use_polygon_footprint_ = co_nh.param("use_polygon_footprint", true);
         max_dist_vo_ = co_nh.param("max_dist_vo", 0.1);
         points.clear();
         ROS_INFO("Collvoid Scoring init done! Trunctime %f", trunc_time_);
@@ -32,7 +32,7 @@ namespace collvoid_scoring_function
             me_ = createAgentFromMsg(srv.response.me);
             me_->use_truncation_ = use_truncation_;
             me_->trunc_time_ = trunc_time_;
-            me_->convex_ = convex_;
+            me_->use_polygon_footprint_ = use_polygon_footprint_;
             me_->type_vo_ = HRVOS;
 
             //ROS_INFO("GOT ME");
@@ -97,7 +97,6 @@ namespace collvoid_scoring_function
             dif_y = msg.twist.twist.linear.x * sin(dif_ang / 2.0);
             agent->velocity_ = rotateVectorByAngle(dif_x, dif_y, agent->heading_);
         }
-
 
         return agent;
     }

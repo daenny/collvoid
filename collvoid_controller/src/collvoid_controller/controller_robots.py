@@ -59,7 +59,7 @@ class ControllerRobots(object):
         self.sub_goal = rospy.Subscriber("delayed_goal", PoseStamped, self.cb_delayed_goal)
         self.sub_ground_truth = rospy.Subscriber("base_pose_ground_truth", Odometry, self.cb_ground_truth)
 
-        self.reset_srv = rospy.ServiceProxy('move_base/DWAPlannerROS/clear_local_costmap', Empty)
+        self.reset_srv = rospy.ServiceProxy('move_base/clear_local_costmap', Empty)
 
     def return_cur_goal(self):
         goal = MoveBaseGoal()
@@ -132,9 +132,16 @@ class ControllerRobots(object):
 
         if "init Guess" in msg.data:
             self.publish_init_guess(0.01, self.noise_std)
+            try:
+                self.reset_srv()
+                self.reset_srv()
+            except rospy.ServiceException as e:
+                rospy.logwarn(e)
+
 
         if "Restart" in msg.data:
             try:
+                self.reset_srv()
                 self.reset_srv()
             except rospy.ServiceException as e:
                 rospy.logwarn(e)

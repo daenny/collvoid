@@ -34,6 +34,8 @@
 #include <geometry_msgs/Point.h>
 #include <costmap_2d/costmap_2d.h>
 #include <base_local_planner/costmap_model.h>
+#include <base_local_planner/local_planner_limits.h>
+
 
 #define RAYRAY 0
 #define RAYSEGMENT 1
@@ -49,6 +51,12 @@
 #define LEFT_PREF 0.2
 
 namespace collvoid {
+
+    struct Obstacle {
+        std::vector<Vector2> points;
+        ros::Time last_seen;
+    };
+
 
     VO createObstacleVO(Vector2 &position1, const std::vector<Vector2> &footprint1, Vector2 &vel1, Vector2 &position2,
                         const std::vector<Vector2> &footprint2);
@@ -109,10 +117,10 @@ namespace collvoid {
                                        const std::vector<VO> &human_vos, const std::vector<VO> &agent_vos, const std::vector<VO> &static_vos,
                                        const std::vector<Line> &additional_constraints, const Vector2 &pref_vel, const Vector2 &cur_vel,
                                        double max_speed, bool use_truncation, bool new_sampling, bool use_obstacles,
-                                        const Vector2 &position, double heading,
+                                       const Vector2 &position, double heading,
                                        std::vector<geometry_msgs::Point> footprint_spec,
-                                        costmap_2d::Costmap2D* costmap,
-                                        base_local_planner::WorldModel* world_model);
+                                       costmap_2d::Costmap2D* costmap,
+                                       base_local_planner::WorldModel* world_model);
 
     Vector2 evaluateClearpathSamples(std::vector<VelocitySample> &sorted_samples, const std::vector<VO> &truncated_vos, const std::vector<VO> &agent_vos,const std::vector<VO> &human_vos,
                                      const std::vector<Line> &additional_constraints,
@@ -124,10 +132,8 @@ namespace collvoid {
 
     //Sample based
     void createSamplesWithinMovementConstraints(std::vector<VelocitySample> &samples, double cur_vel_x,
-                                                double cur_vel_y, double cur_vel_theta, double acc_lim_x,
-                                                double acc_lim_y, double acc_lim_theta, double min_vel_x,
-                                                double max_vel_x, double min_vel_y, double max_vel_y,
-                                                double min_vel_theta, double max_vel_theta, double heading,
+                                                double cur_vel_y, double cur_vel_theta,
+                                                base_local_planner::LocalPlannerLimits &limits, double heading,
                                                 Vector2 pref_vel, double sim_period, int num_samples, bool holo_robot);
 
 
@@ -135,7 +141,6 @@ namespace collvoid {
             const double& x,
             const double& y,
             const double& th,
-            double scale,
             std::vector<geometry_msgs::Point> footprint_spec,
             costmap_2d::Costmap2D* costmap,
             base_local_planner::WorldModel* world_model);
@@ -182,7 +187,7 @@ namespace collvoid {
     Vector2 intersectTwoLines(Line line1, Line line2);
 
     bool LineSegmentToLineSegmentIntersection(double x1, double y1, double x2, double y2,
-                                                                     double x3, double y3, double x4, double y4, Vector2& result);
+                                              double x3, double y3, double x4, double y4, Vector2& result);
 
     std::vector<Vector2> rotateFootprint(const std::vector<Vector2> &footprint, double angle);
 

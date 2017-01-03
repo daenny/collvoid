@@ -1,13 +1,9 @@
 collvoid:
-  global_frame: /map
+  global_frame: map
   # base_frame: /robot_0/base_link
-  convex: true # true #footprint or radius
   holo_robot: false
   controlled: true
-  #footprint_radius: 0.22
+
+  use_polygon_footprint: true # true #footprint or radius
   eps: 0.1
   publish_me_frequency: 10
-
-  use_truncation: true
-  trunctime: 6.0
-  max_dist_vo: 1.0

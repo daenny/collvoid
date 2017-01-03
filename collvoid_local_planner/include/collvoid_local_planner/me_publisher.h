@@ -50,10 +50,10 @@ private:
     //Agent description
     std::string my_id_;
     std::string base_frame_, global_frame_;
-    bool convex_, holo_robot_, controlled_;
+    bool use_polygon_footprint_, holo_robot_, controlled_;
     Vector2 holo_velocity_;
 
-    double footprint_radius_, radius_, cur_loc_unc_radius_;
+    double uninflated_robot_radius_, radius_, cur_loc_unc_radius_;
 
     std::vector<Vector2> minkowski_footprint_;
     geometry_msgs::PolygonStamped footprint_msg_;
@@ -73,7 +73,7 @@ private:
 
     geometry_msgs::Twist twist_;
 
-    boost::mutex me_lock_, convex_lock_;
+    boost::mutex convex_lock_;
     std::vector<std::pair<double, geometry_msgs::Point32> > pose_array_weighted_;
 
 };

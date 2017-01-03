@@ -45,7 +45,6 @@ namespace collvoid{
         virtual ~Agent(){};
 
         void computeOrcaVelocity(Vector2 pref_velocity, bool convex);
-
         void computeClearpathVelocity(Vector2 pref_velocity);
         void computeSampledVelocity(Vector2 pref_velocity);
 
@@ -54,7 +53,7 @@ namespace collvoid{
         void computeHumanVOs();
 
         void setLeftPref(double left_pref);
-        void setRadius(double radius);
+        //void setRadius(double radius);
         void setTruncTime(double trunc_time);
         void setSimPeriod(double sim_period);
 
@@ -73,7 +72,7 @@ namespace collvoid{
         bool controlled_;
 
         bool orca_; // Orca or VO?
-        bool convex_; // circle approx, or mink sum?
+        bool use_polygon_footprint_; // circle approx, or mink sum?
 
         //VO settings
         bool clearpath_; //Clearpath or sampling based
@@ -83,7 +82,7 @@ namespace collvoid{
         bool use_obstacles_;
 
         //description
-        Vector2 position_, odom_pose_;
+        Vector2 position_;
         double heading_;
         Vector2 velocity_;
 
@@ -91,7 +90,7 @@ namespace collvoid{
 
         std::vector<Vector2> footprint_;
 
-        std::vector<geometry_msgs::Point> footprint_spec_;
+        std::vector<geometry_msgs::Point> unrotated_footprint;
         costmap_2d::Costmap2D* costmap_;
         base_local_planner::WorldModel* world_model_;
 

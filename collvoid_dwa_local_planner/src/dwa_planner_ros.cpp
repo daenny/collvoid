@@ -101,8 +101,6 @@ void DWAPlannerROS::initialize(std::string name,
 {
     if (! isInitialized()) {
         ros::NodeHandle private_nh("~/" + name);
-        clear_costmaps_srv_ = private_nh.advertiseService("clear_local_costmap", &DWAPlannerROS::clearCostmapsService, this);
-
         g_plan_pub_ = private_nh.advertise<nav_msgs::Path>("global_plan", 1);
         l_plan_pub_ = private_nh.advertise<nav_msgs::Path>("local_plan", 1);
         tf_ = tf;
@@ -120,6 +118,10 @@ void DWAPlannerROS::initialize(std::string name,
         if (private_nh.getParam("odom_topic", odom_topic_)) {
             odom_helper_.setOdomTopic(odom_topic_);
         }
+
+        ros::NodeHandle nh("~/");
+        clear_costmaps_srv_ = nh.advertiseService("clear_local_costmap", &DWAPlannerROS::clearCostmapsService, this);
+
 
         initialized_ = true;
 
