@@ -52,7 +52,7 @@ add_library(collvoid_dwa_local_planner
         )
 target_link_libraries(collvoid_dwa_local_planner base_local_planner ${catkin_LIBRARIES})
 add_dependencies(collvoid_dwa_local_planner ${catkin_EXPORTED_TARGETS})
-#add_dependencies(collvoid_dwa_local_planner nav_msgs_gencpp)
+add_dependencies(collvoid_dwa_local_planner collvoid_local_planner)
 
 install(TARGETS collvoid_dwa_local_planner
         LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

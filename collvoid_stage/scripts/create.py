@@ -54,7 +54,10 @@ class CreateRunFiles(object):
                 self.use_bag_file = True
                 self.bag_file_name = str(arg)
             elif opt in ("-w", "--world"):
+
                 self.world_name = arg
+                self.center_x = 0
+                self.center_y = 0
                 #        elif opt in ("-S", "--Sticks"):
                 #            useSticks = True
                 #            omni = True

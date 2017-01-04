@@ -1,0 +1,92 @@
+resolution 0.02 # set the resolution of the underlying raytrace model in meters
+interval_sim 100 # simulation timestep in milliseconds
+#interval_real 100
+
+window
+( 
+  size [ 958 1179 ] 
+  scale 61.748 
+)
+
+define map model
+(
+  color "gray30"
+  boundary 0
+  gui_nose 0
+  gui_grid 0
+  gui_move 0
+  gui_outline 0
+  obstacle_return 1
+  gripper_return 0
+  fiducial_return 0
+)
+
+map
+(
+  name "10x10_map"
+  size [10.500  10.500 0.500]
+  pose [0.00 0.0 0.000 0.000]
+  bitmap "10x10_map.pgm"
+)
+
+
+define hokuyo ranger
+(
+  sensor(
+    range [0.0 4.0]
+    fov 270
+    samples 270
+    size [ 0.05 0.05 0.1 ]
+  )
+  color "black"
+  #ctrl "lasernoise"
+)
+
+define topurg ranger
+(
+  sensor(
+    range [0.0 30.0]
+    fov 270.25
+    samples 800
+    size [ 0.05 0.05 0.1 ]
+    )
+  # generic model properties
+  color "black"
+)
+
+
+define roomba position
+(
+  size [0.330 0.330 0.200]
+  origin [0.000 0.000 0.000 0.000]
+  gui_nose 1
+
+  # This block approximates the circular shape of a Roomba
+  topurg( pose [0.000 0.000 0.100 0.000] )
+  drive "diff"
+  bitmap "robot.png"
+)
+
+
+define youbot position
+(
+  size [0.650 0.350 0.300]
+  origin [0.000 0.000 0.000 0.000]
+  gui_nose 1
+  drive "omni"
+  wheelbase 0.25
+  topurg(pose [ 0.000 0.000 0.100 0.000 ])
+)
+
+define obst model
+(
+  size [0.400 0.300 0.400]
+  origin [0.000 0.000 0.000 0.000]
+  gui_nose 1
+)
+
+#obst( pose [ -2.108 3.821 0.000 -95.374 ] name "food" color "red")
+# add here robots
+#omni_robot( pose [ 8.164 4.633 0.000 -10.755 ] name "robot_0" color "dark slate blue")
+#roomba( pose [ -2.755 -1.040 0.000 15.000 ] name "robot_4" color "royal blue")
+#roomba( pose [ -2.590 -1.358 0.000 75.000 ] name "robot_5" color "LightSkyBlue")

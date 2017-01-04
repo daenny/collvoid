@@ -21,6 +21,8 @@ IMG_SIZE_Y = 800
 
 RESOLUTION = 400.
 
+MAX_RANGE_OBSTACLES = 2.
+
 
 class DetectObstacles(object):
     def __init__(self):
@@ -82,17 +84,17 @@ class DetectObstacles(object):
 
         # output = output[[ranges < max_range],[ranges<max_range]]
 
-        output_points = [[output[0][x], output[1][x]] for x in range(0, len(output[0]))]
+        # output_points = [[output[0][x], output[1][x]] for x in range(0, len(output[0]))]
 
         output_img = (output / max_range * RESOLUTION + RESOLUTION).astype(int)
         output_img_points = np.array([[output_img[0][x], output_img[1][x]] for x in range(0, len(output_img[0]))])
-        output_img_points = output_img_points[ranges < max_range]
+        output_img_points = output_img_points[ranges < MAX_RANGE_OBSTACLES]
 
         current_obstacles = []
         current_list = []
 
         for p in output_img_points:
-            current_list = self.add_point_to_current_obstacle(p, current_list, current_obstacles)
+            current_list = self.add_point_to_current_obstacle(p, current_list, current_obstacles, max_range)
 
         # Add last list
         if len(current_list) > 2:
@@ -137,9 +139,9 @@ class DetectObstacles(object):
         return current_obstacles
 
     @staticmethod
-    def add_point_to_current_obstacle(point, current_list, current_obstacles):
+    def add_point_to_current_obstacle(point, current_list, current_obstacles, max_range):
         if len(current_list) > 0:
-            if np.linalg.norm(np.array(point) - np.array(current_list[-1])) > 30:
+            if np.linalg.norm(np.array(point) - np.array(current_list[-1])) > 0.3 / max_range * RESOLUTION:
                 if len(current_list) > 2:
                     current_obstacles.append(DetectObstacles.create_bounding_box_from_points(current_list))
                 # else:
@@ -157,7 +159,7 @@ class DetectObstacles(object):
             vec2 = box[2] - box[3]
 
             axis = (np.linalg.norm(vec1), np.linalg.norm(vec2))
-            if min(axis) > 20:
+            if min(axis) > 0.3 / max_range * RESOLUTION:
                 if len(current_list) > 3:
                     current_list.pop()
                     current_obstacles.append(DetectObstacles.create_bounding_box_from_points(current_list))

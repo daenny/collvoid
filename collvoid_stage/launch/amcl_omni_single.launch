@@ -1,6 +1,6 @@
 <launch>
 
-  <node pkg="amcl" type="amcl" name="amcl">
+  <node pkg="collvoid_amcl" type="collvoid_amcl" name="amcl">
     <param name="initial_pose_x" value="0.00"/>
     <param name="initial_pose_y" value="0.0"/>
     <param name="initial_pose_a" value="0.0"/>
