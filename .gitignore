@@ -46,5 +46,9 @@ qtcreator-*
 # Catkin custom files
 CATKIN_IGNORE
 
+*_created.yaml
+*_created.launch
+*_created.world
+
 # intellij files
 .idea
