@@ -35,6 +35,7 @@ class ControllerRobots(object):
 
         self.hostname = rospy.get_namespace()
         self.noise_std = rospy.get_param("/noise_std", 0.0)
+        self.covariance = rospy.get_param("/covariance", 0.005)
 
         if self.hostname == "/":
             self.hostname = gethostname()
@@ -131,13 +132,14 @@ class ControllerRobots(object):
             return
 
         if "init Guess" in msg.data:
-            self.publish_init_guess(0.01, self.noise_std)
+            self.publish_init_guess(self.covariance, self.noise_std)
             try:
                 self.reset_srv()
                 self.reset_srv()
             except rospy.ServiceException as e:
                 rospy.logwarn(e)
-
+            rospy.sleep(0.2)
+            self.publish_init_guess(self.covariance, self.noise_std)
 
         if "Restart" in msg.data:
             try:

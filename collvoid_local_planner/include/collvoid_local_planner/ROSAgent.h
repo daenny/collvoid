@@ -59,6 +59,10 @@
 
 #include <base_local_planner/local_planner_util.h>
 #include <collvoid_local_planner/CollvoidConfig.h>
+#include <base_local_planner/obstacle_cost_function.h>
+#include <base_local_planner/simple_trajectory_generator.h>
+#include <base_local_planner/simple_scored_sampling_planner.h>
+#include <base_local_planner/map_grid_cost_function.h>
 
 
 namespace collvoid {
@@ -67,9 +71,12 @@ namespace collvoid {
         ROSAgent();
 
         ~ROSAgent();
+        bool checkTrajectory(Eigen::Vector3f pos, Eigen::Vector3f vel, Eigen::Vector3f vel_samples);
+
+        double scoreTrajectory(Eigen::Vector3f vel_samples);
 
         void reconfigure(collvoid_local_planner::CollvoidConfig &cfg);
-        void init(ros::NodeHandle private_nh, tf::TransformListener *tf, base_local_planner::LocalPlannerUtil *planner_util);
+        void init(ros::NodeHandle private_nh, tf::TransformListener *tf, base_local_planner::LocalPlannerUtil *planner_util, costmap_2d::Costmap2DROS* costmap_ros);
 
         void computeNewVelocity(Vector2 pref_velocity, geometry_msgs::Twist &cmd_vel);
         void computeOrcaVelocity(Vector2 pref_velocity);
@@ -99,9 +106,11 @@ namespace collvoid {
 
         double vMaxAng();
 
-        base_local_planner::LocalPlannerUtil *planner_util_;
+        void updatePlanAndLocalCosts(tf::Stamped<tf::Pose> global_pose,
+                                               const std::vector<geometry_msgs::PoseStamped> &new_plan, const tf::Stamped<tf::Pose>& robot_vel);
+        Eigen::Vector3f createTwistFromVector(Vector2 speed, base_local_planner::LocalPlannerLimits &limits);
 
-        //config
+            //config
         int num_samples_;
 
         //NH stuff
@@ -115,6 +124,8 @@ namespace collvoid {
 
         //obstacles
         std::vector<collvoid::Vector2> obstacle_points_;
+        costmap_2d::Costmap2DROS* costmap_ros_;
+
 
         //Agent description
         std::string base_frame_, global_frame_, name_space_;
@@ -130,7 +141,7 @@ namespace collvoid {
         std::vector<std::pair<collvoid::Vector2, collvoid::Vector2> > footprint_lines_;
 
         //COLLVOID
-        boost::mutex me_lock_, obstacle_lock_, neighbors_lock_;
+        boost::mutex obstacle_lock_;
 
         //me stuff
         tf::TransformListener *tf_;
@@ -147,6 +158,34 @@ namespace collvoid {
         ros::ServiceClient get_obstacles_srv_;
         ros::ServiceClient get_me_srv_, get_neighbors_srv_;
 
+
+        bool use_dwa_score_;
+        Eigen::Vector3f pos_, vel_;
+
+        //obstacle check
+        base_local_planner::LocalPlannerUtil *planner_util_;
+
+        double pdist_scale_;
+
+        double sim_period_;///< @brief The number of seconds to use to compute max/min vels for dwa
+
+        double forward_point_distance_;
+        double goal_heading_sq_dist_;
+
+        std::vector<geometry_msgs::PoseStamped> global_plan_;
+
+        boost::mutex configuration_mutex_;
+
+        // see constructor body for explanations
+        base_local_planner::SimpleTrajectoryGenerator generator_;
+        base_local_planner::ObstacleCostFunction* obstacle_costs_;
+
+        base_local_planner::MapGridCostFunction* path_costs_;
+        base_local_planner::MapGridCostFunction* goal_costs_;
+        base_local_planner::MapGridCostFunction* goal_front_costs_;
+        base_local_planner::MapGridCostFunction* alignment_costs_;
+        base_local_planner::SimpleScoredSamplingPlanner scored_sampling_planner_;
+        std::vector<base_local_planner::TrajectoryCostFunction *> critics_;
 
 
     };

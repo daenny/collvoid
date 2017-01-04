@@ -3,7 +3,6 @@
 //
 
 #include <tf/transform_listener.h>
-#include <boost/foreach.hpp>
 #include <visualization_msgs/MarkerArray.h>
 #include <costmap_2d/array_parser.h>
 #include <costmap_2d/footprint.h>
@@ -14,15 +13,15 @@ template<typename T>
 void getParam(const ros::NodeHandle nh, const std::string &name, T *place) {
     bool found = nh.getParam(name, *place);
     ROS_ASSERT_MSG (found, "Could not find parameter %s", name.c_str());
-    ROS_DEBUG_STREAM_NAMED ("init", "Initialized " << name << " to " << *place);
+    ROS_DEBUG_STREAM_NAMED ("init", std::string("Initialized ") << name << " to " << *place);
 }
 
 template<class T>
 T getParamDef(const ros::NodeHandle nh, const std::string &name, const T &default_val) {
     T val;
     nh.param(name, val, default_val);
-    ROS_DEBUG_STREAM_NAMED ("init", "Initialized " << name << " to " << val <<
-                                    "(default was " << default_val << ")");
+    ROS_DEBUG_STREAM_NAMED ("init", std::string("Initialized ") << name << " to " << val <<
+                                                   "(default was " << default_val << ")");
     return val;
 }
 
@@ -49,13 +48,14 @@ void MePublisher::init(ros::NodeHandle nh, tf::TransformListener *tf) {
 
     // agent params
     my_id_ = getParamDef<std::string>(private_nh, "name", my_id_);
-    ROS_INFO("My name is: %s", my_id_.c_str());
+
 
     private_nh.param<std::string>("base_frame", base_frame_, nh.getNamespace() + "/base_link");
     private_nh.param<std::string>("global_frame", global_frame_, "map");
 
 
     eps_ = getParamDef(private_nh, "eps", 0.1);
+    ROS_INFO("My name is: %s, Eps: %f", my_id_.c_str(), eps_);
     getParam(private_nh, "use_polygon_footprint", &use_polygon_footprint_);
     getParam(private_nh, "holo_robot", &holo_robot_);
     controlled_ = getParamDef(private_nh, "controlled", true);
@@ -66,8 +66,8 @@ void MePublisher::init(ros::NodeHandle nh, tf::TransformListener *tf) {
     getFootprint(ns_nh);
 
     //Publishers
-    me_pub_ = nh.advertise<visualization_msgs::MarkerArray>("me", 1);
-    polygon_pub_ = nh.advertise<geometry_msgs::PolygonStamped>("convex_hull", 1);
+    me_pub_ = nh.advertise<visualization_msgs::MarkerArray>("me", 1, true);
+    polygon_pub_ = nh.advertise<geometry_msgs::PolygonStamped>("convex_hull", 1, true);
     position_share_pub_ = nh.advertise<collvoid_msgs::PoseTwistWithCovariance>("/position_share", 1);
 
 
@@ -169,8 +169,8 @@ bool MePublisher::getGlobalPose(tf::Stamped <tf::Pose> &global_pose, std::string
         tf_->transformPose(target_frame, global_pose, global_pose);
     }
     catch (tf::TransformException ex) {
-        ROS_ERROR("%s", ex.what());
-        ROS_ERROR("point odom transform failed");
+        ROS_WARN_THROTTLE(2,"%s", ex.what());
+        ROS_WARN_THROTTLE(2, "point odom transform failed");
         return false;
     };
     return true;
@@ -271,10 +271,10 @@ void MePublisher::computeNewMinkowskiFootprint() {
         localization_footprint.push_back(convex_hull[i].point);
     }
 
-    BOOST_FOREACH(geometry_msgs::Point32 p, footprint_msg_.polygon.points) {
-                    own_footprint.push_back(Vector2(p.x, p.y));
-                    //      ROS_WARN("footprint point p = (%f, %f) ", footprint_[i].x, footprint_[i].y);
-                }
+    for(geometry_msgs::Point32 p: footprint_msg_.polygon.points) {
+        own_footprint.push_back(Vector2(p.x, p.y));
+        //      ROS_WARN("footprint point p = (%f, %f) ", footprint_[i].x, footprint_[i].y);
+    }
     minkowski_footprint_ = minkowskiSum(localization_footprint, own_footprint);
 
 
@@ -312,9 +312,9 @@ bool MePublisher::compareConvexHullPointsPosition(const ConvexHullPoint &p1, con
 
 void MePublisher::setMinkowskiFootprintVector2(geometry_msgs::PolygonStamped minkowski_footprint) {
     minkowski_footprint_.clear();
-    BOOST_FOREACH(geometry_msgs::Point32 p, minkowski_footprint.polygon.points) {
-                    minkowski_footprint_.push_back(Vector2(p.x, p.y));
-                }
+    for(geometry_msgs::Point32 p: minkowski_footprint.polygon.points) {
+        minkowski_footprint_.push_back(Vector2(p.x, p.y));
+    }
 }
 
 geometry_msgs::PolygonStamped MePublisher::createFootprintMsgFromVector2(const std::vector<Vector2> &footprint) {
@@ -322,12 +322,12 @@ geometry_msgs::PolygonStamped MePublisher::createFootprintMsgFromVector2(const s
     result.header.frame_id = base_frame_;
     result.header.stamp = ros::Time::now();
 
-    BOOST_FOREACH(Vector2 point, footprint) {
-                    geometry_msgs::Point32 p;
-                    p.x = point.x();
-                    p.y = point.y();
-                    result.polygon.points.push_back(p);
-                }
+    for(Vector2 point: footprint) {
+        geometry_msgs::Point32 p;
+        p.x = point.x();
+        p.y = point.y();
+        result.polygon.points.push_back(p);
+    }
 
     return result;
 }

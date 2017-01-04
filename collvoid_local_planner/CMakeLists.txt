@@ -6,6 +6,8 @@ project(collvoid_local_planner)
 find_package(catkin REQUIRED COMPONENTS
         roslib roscpp collvoid_msgs collvoid_srvs visualization_msgs laser_geometry tf angles base_local_planner pluginlib nav_core actionlib move_base_msgs std_srvs dynamic_reconfigure amcl)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+
 include_directories(
         include
         ${catkin_INCLUDE_DIRS}

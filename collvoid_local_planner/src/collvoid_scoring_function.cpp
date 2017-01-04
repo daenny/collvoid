@@ -5,7 +5,6 @@
 #include "collvoid_local_planner/collvoid_scoring_function.h"
 
 
-
 namespace collvoid_scoring_function
 {
 
@@ -16,13 +15,13 @@ namespace collvoid_scoring_function
         samples_pub_ = nh.advertise<visualization_msgs::MarkerArray>("samples", 1);
         vo_pub_ = nh.advertise<visualization_msgs::Marker>("vo", 1);
 
-        ros::NodeHandle co_nh("collvoid");
+        ros::NodeHandle co_nh("~/CollvoidScoring");
         use_truncation_ = co_nh.param("use_truncation", true);
         trunc_time_ = co_nh.param("trunctime", 8.);
         use_polygon_footprint_ = co_nh.param("use_polygon_footprint", true);
         max_dist_vo_ = co_nh.param("max_dist_vo", 0.1);
         points.clear();
-        ROS_INFO("Collvoid Scoring init done! Trunctime %f", trunc_time_);
+        ROS_INFO("Collvoid Scoring init done! Trunctime %f, max_dist_vo %f", trunc_time_, max_dist_vo_);
         //holo_robot_ = false;
     }
 
@@ -47,7 +46,7 @@ namespace collvoid_scoring_function
     bool CollvoidScoringFunction::getNeighbors() {
         collvoid_srvs::GetNeighbors srv;
         if (get_neighbors_srv_.call(srv)) {
-            BOOST_FOREACH(collvoid_msgs::PoseTwistWithCovariance msg, srv.response.neighbors) {
+            for(collvoid_msgs::PoseTwistWithCovariance msg: srv.response.neighbors) {
                             me_->agent_neighbors_.push_back(createAgentFromMsg(msg));
                         }
 
@@ -80,7 +79,7 @@ namespace collvoid_scoring_function
         agent->heading_ = tf::getYaw(msg.pose.pose.orientation);
 
         std::vector<Vector2> minkowski_footprint;
-        BOOST_FOREACH(geometry_msgs::Point32 p, msg.footprint.polygon.points) {
+        for(geometry_msgs::Point32 p: msg.footprint.polygon.points) {
                         minkowski_footprint.push_back(Vector2(p.x, p.y));
                     }
         agent->footprint_ = rotateFootprint(minkowski_footprint, agent->heading_);
@@ -116,10 +115,10 @@ namespace collvoid_scoring_function
 
         collvoid::publishVOs(me_->position_, me_->all_vos_, use_truncation_, "/map", "/map", vo_pub_);
         collvoid::publishPoints(me_->position_, points, "/map", "/map", samples_pub_);
-        for (size_t i = 0; i < me_->all_vos_.size(); ++i) {
-            VO v = me_->all_vos_.at(i);
-            //ROS_INFO("Origin %f %f", v.point.x(), v.point.y()) ;
-        }
+        //for (size_t i = 0; i < me_->all_vos_.size(); ++i) {
+        //    VO v = me_->all_vos_.at(i);
+        //    ROS_INFO("Origin %f %f", v.point.x(), v.point.y()) ;
+        // }
 
         points.clear();
 
@@ -167,14 +166,15 @@ namespace collvoid_scoring_function
         test_vel = time_diff * rotateVectorByAngle(vel_x, vel_y, -th_s + me_->heading_ + vel_theta/2);
         //test_vel = Vector2(vel_x,vel_y);
 
-        double cost = calculateVelCosts(test_vel, me_->all_vos_, me_->use_truncation_);
+        double cost = calculateVelCosts(test_vel, me_->agent_vos_, me_->use_truncation_);
 
         if (cost > 0) {
-            int n = (int)me_->all_vos_.size();
+            int n = (int)me_->agent_vos_.size();
             if (cost >= n * 2)
                 return -1;
             cost = 1 + (n * (n + 1) /2.) * 2./cost;
         }
+
         else
             cost = std::max((max_dist_vo_-sqrt(minDistToVOs(me_->all_vos_, test_vel, use_truncation_)))/max_dist_vo_, 0.);
 

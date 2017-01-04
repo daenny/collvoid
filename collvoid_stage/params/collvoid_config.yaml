@@ -1,17 +1,12 @@
-#/noise_std: 0.0
 
 CollvoidLocalPlanner:
-  global_frame_id: map
-
   use_obstacles: true
+  use_dwa_scoring: true
+  prune_plan: true
 
   time_to_holo: 0.4
   min_error_holo: 0.02
   max_error_holo: 0.10
-
-  use_polygon_footprint: true #footprint or radius
-
-  trunc_time: 10.0
   left_pref: -0.05
 
   type_vo: 0 #HRVO = 0, RVO = 1, VO = 2
@@ -20,4 +15,3 @@ CollvoidLocalPlanner:
   num_samples: 400 #num samples
   new_sampling: true
   use_truncation: true #truncate vos
-

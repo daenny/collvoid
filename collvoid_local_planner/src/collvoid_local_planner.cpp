@@ -48,7 +48,7 @@ template<typename T>
 void getParam(const ros::NodeHandle nh, const string &name, T *place) {
     bool found = nh.getParam(name, *place);
     ROS_ASSERT_MSG (found, "Could not find parameter %s", name.c_str());
-    ROS_DEBUG_STREAM_NAMED ("init", "Initialized " << name << " to " << *place);
+    ROS_DEBUG_STREAM_NAMED ("init", std::string("Initialized ") << name << " to " << *place);
 }
 
 
@@ -56,7 +56,7 @@ template<class T>
 T getParamDef(const ros::NodeHandle nh, const string &name, const T &default_val) {
     T val;
     nh.param(name, val, default_val);
-    ROS_DEBUG_STREAM_NAMED ("init", "Initialized " << name << " to " << val <<
+    ROS_DEBUG_STREAM_NAMED ("init", std::string("Initialized ") << name << " to " << val <<
                                                    "(default was " << default_val << ")");
     return val;
 }
@@ -70,7 +70,6 @@ namespace collvoid_local_planner {
 
     CollvoidLocalPlanner::~CollvoidLocalPlanner() {
         delete dsrv_;
-        delete obstacle_costs_;
     }
 
 
@@ -89,7 +88,7 @@ namespace collvoid_local_planner {
             planner_util_.initialize(tf, costmap, costmap_ros_->getGlobalFrameID());
             //ros::NodeHandle nh;
             me_ = ROSAgentPtr(new ROSAgent);
-            me_->init(private_nh, tf, &planner_util_);
+            me_->init(private_nh, tf, &planner_util_, costmap_ros_);
 
             skip_next_ = false;
             g_plan_pub_ = private_nh.advertise<nav_msgs::Path>("global_plan", 1);
@@ -101,17 +100,6 @@ namespace collvoid_local_planner {
 
             setup_ = false;
 
-            obstacle_costs_ = new base_local_planner::ObstacleCostFunction(planner_util_.getCostmap());
-            bool sum_scores;
-            private_nh.param("sum_scores", sum_scores, false);
-            obstacle_costs_->setSumScores(sum_scores);
-
-            std::vector<base_local_planner::TrajectoryCostFunction *> critics;
-            critics.push_back(obstacle_costs_);
-            std::vector<base_local_planner::TrajectorySampleGenerator *> generator_list;
-            generator_list.push_back(&generator_);
-
-            scored_sampling_planner_ = base_local_planner::SimpleScoredSamplingPlanner(generator_list, critics);
 
             //intialize the collision planner
             //collision_planner_.initialize("collision_planner", tf_, costmap_ros_);
@@ -152,38 +140,6 @@ namespace collvoid_local_planner {
         //ros::Duration(0.5).sleep();
         return true;
     }
-    /**
- * This function is used when other strategies are to be applied,
- * but the cost functions for obstacles are to be reused.
- */
-    bool CollvoidLocalPlanner::checkTrajectory(Eigen::Vector3f pos,
-                                               Eigen::Vector3f vel,
-                                               Eigen::Vector3f vel_samples)
-    {
-        obstacle_costs_->setFootprint(costmap_ros_->getRobotFootprint());
-        base_local_planner::Trajectory traj;
-        geometry_msgs::PoseStamped goal_pose = transformed_plan_.back();
-        Eigen::Vector3f goal(goal_pose.pose.position.x, goal_pose.pose.position.y, tf::getYaw(goal_pose.pose.orientation));
-        base_local_planner::LocalPlannerLimits limits = planner_util_.getCurrentLimits();
-        Eigen::Vector3f vsamples (6,0,9);
-
-        generator_.initialise(pos,
-                              vel,
-                              goal,
-                              &limits,
-                              vsamples);
-
-        generator_.generateTrajectory(pos, vel, vel_samples, traj);
-        double cost = scored_sampling_planner_.scoreTrajectory(traj, -1);
-        //if the trajectory is a legal one... the check passes
-        if(cost >= 0) {
-            return true;
-        }
-        ROS_WARN("Invalid Trajectory %f, %f, %f, cost: %f", vel_samples[0], vel_samples[1], vel_samples[2], cost);
-
-        //otherwise the check fails
-        return false;
-    }
 
 
 
@@ -222,12 +178,9 @@ namespace collvoid_local_planner {
         limits.trans_stopped_vel = config.trans_stopped_vel;
         limits.rot_stopped_vel = config.rot_stopped_vel;
 
-        generator_.setParameters(config.sim_time,
-                                 config.sim_granularity,
-                                 config.angular_sim_granularity,
-                                 config.use_dwa,
-                                 me_->sim_period_);
         planner_util_.reconfigureCB(limits, config.restore_defaults);
+
+        me_->reconfigure(config);
 
     }
 
@@ -239,6 +192,7 @@ namespace collvoid_local_planner {
 
         //when we get a new plan, we also want to clear any latch we may have on goal tolerances
         latchedStopRotateController_.resetLatching();
+        current_waypoint_ = 0;
         ROS_INFO("Got new plan");
         return planner_util_.setPlan(orig_global_plan);
     }
@@ -289,6 +243,7 @@ namespace collvoid_local_planner {
         tf::Stamped<tf::Pose> robot_vel;
         odom_helper_.getRobotVel(robot_vel);
 
+        me_->updatePlanAndLocalCosts(current_pose_, transformed_plan_, robot_vel);
         //check to see if we've reached the goal position
         if (latchedStopRotateController_.isPositionReached(&planner_util_, current_pose_)) {
             //publish an empty plan because we've reached our goal position
@@ -303,10 +258,11 @@ namespace collvoid_local_planner {
                                                                                   &planner_util_,
                                                                                   odom_helper_,
                                                                                   current_pose_,
-                                                                                  boost::bind(&CollvoidLocalPlanner::checkTrajectory, this, _1, _2, _3));
+                                                                                  boost::bind(&ROSAgent::checkTrajectory, me_, _1, _2, _3));
         }
 
         tf::Stamped<tf::Pose> target_pose;
+
         target_pose.setIdentity();
         target_pose.frame_id_ = planner_util_.getGlobalFrame(); //TODO should be base frame
         if (!skip_next_) {
@@ -316,60 +272,62 @@ namespace collvoid_local_planner {
         }
         tf::poseStampedMsgToTF(transformed_plan_.at(current_waypoint_), target_pose);
 
+        std::vector<geometry_msgs::PoseStamped> local_plan;
+        geometry_msgs::PoseStamped pos;
 
-        tf_->transformPose(me_->global_frame_, current_pose_, current_pose_);
+        tf::poseStampedTFToMsg(current_pose_, pos);
+        local_plan.push_back(pos);
+        geometry_msgs::PoseStamped pos2 = transformed_plan_.at(current_waypoint_);
+        local_plan.push_back(pos2);
+        publishGlobalPlan(transformed_plan_);
+        publishLocalPlan(local_plan);
+
+        tf::Stamped<tf::Pose> me_pose;
+
+        tf_->transformPose(me_->global_frame_, current_pose_, me_pose);
         tf_->transformPose(me_->global_frame_, target_pose, target_pose);
 
         geometry_msgs::Twist res;
 
 
 
-        res.linear.x = target_pose.getOrigin().x() - current_pose_.getOrigin().x();
-        res.linear.y = target_pose.getOrigin().y() - current_pose_.getOrigin().y();
-        res.angular.z = angles::shortest_angular_distance(tf::getYaw(current_pose_.getRotation()),
+        res.linear.x = target_pose.getOrigin().x() - me_pose.getOrigin().x();
+        res.linear.y = target_pose.getOrigin().y() - me_pose.getOrigin().y();
+        res.angular.z = angles::shortest_angular_distance(tf::getYaw(me_pose.getRotation()),
                                                           atan2(res.linear.y, res.linear.x));
 
 
         collvoid::Vector2 goal_dir = collvoid::Vector2(res.linear.x, res.linear.y);
         // collvoid::Vector2 goal_dir = collvoid::Vector2(goal_x,goal_y);
 
-        if (collvoid::abs(goal_dir) > planner_util_.getCurrentLimits().max_vel_x) {
-            goal_dir = planner_util_.getCurrentLimits().max_vel_x * collvoid::normalize(goal_dir);
+        if (collvoid::abs(goal_dir) > planner_util_.getCurrentLimits().max_trans_vel) {
+            goal_dir = planner_util_.getCurrentLimits().max_trans_vel * collvoid::normalize(goal_dir);
         }
 
-        else if (collvoid::abs(goal_dir) < planner_util_.getCurrentLimits().min_vel_x) {
-            goal_dir = planner_util_.getCurrentLimits().min_vel_x * 1.2 * collvoid::normalize(goal_dir);
+        else if (collvoid::abs(goal_dir) < planner_util_.getCurrentLimits().min_trans_vel) {
+            goal_dir = planner_util_.getCurrentLimits().min_trans_vel * 1.2 * collvoid::normalize(goal_dir);
         }
 
         collvoid::Vector2 pref_vel = collvoid::Vector2(goal_dir.x(), goal_dir.y());
+
+
+
         me_->computeNewVelocity(pref_vel, cmd_vel);
 
-
+        double cmd_vel_len = collvoid::abs(collvoid::Vector2(cmd_vel.linear.x, cmd_vel.linear.y));
         if (std::abs(cmd_vel.angular.z) < planner_util_.getCurrentLimits().min_rot_vel)
-            cmd_vel.angular.z = 0.0;
-        if (std::abs(cmd_vel.linear.x) < planner_util_.getCurrentLimits().min_vel_x)
-            cmd_vel.linear.x = 0.0;
-        if (std::abs(cmd_vel.linear.y) < planner_util_.getCurrentLimits().min_vel_y)
-            cmd_vel.linear.y = 0.0;
+            if (std::abs(cmd_vel.angular.z) > planner_util_.getCurrentLimits().min_rot_vel/2)
+                cmd_vel.angular.z =sign(cmd_vel.angular.z) *  planner_util_.getCurrentLimits().min_rot_vel;
+            else
+                cmd_vel.angular.z = 0.0;
 
+        return !(cmd_vel.angular.z == 0.0 && cmd_vel_len < planner_util_.getCurrentLimits().min_trans_vel);
 
-        //  if (!skip_next_ && current_waypoint_ < transformed_plan_.size()-1)
-        //transformed_plan_.erase(transformed_plan_.begin()+current_waypoint_,transformed_plan_.end());
-        //ROS_DEBUG("%s cmd_vel.x %6.4f, cmd_vel.y %6.4f, cmd_vel_z %6.4f", me_->getId().c_str(), cmd_vel.linear.x, cmd_vel.linear.y, cmd_vel.angular.z);
-        std::vector<geometry_msgs::PoseStamped> local_plan;
-        geometry_msgs::PoseStamped pos;
-
-        tf::poseStampedTFToMsg(current_pose_, pos);
-        local_plan.push_back(pos);
-        local_plan.push_back(transformed_plan_.at(current_waypoint_));
-        base_local_planner::publishPlan(transformed_plan_, g_plan_pub_);
-        base_local_planner::publishPlan(local_plan, l_plan_pub_);
-        //me_->publishOrcaLines();
-        return true;
     }
 
     void CollvoidLocalPlanner::findBestWaypoint(geometry_msgs::PoseStamped &target_pose,
                                                 const tf::Stamped<tf::Pose> &global_pose) {
+        //current_waypoint_ = 0;
         current_waypoint_ = 0;
         double min_dist = DBL_MAX;
         for (size_t i = current_waypoint_; i < transformed_plan_.size(); i++) {
@@ -377,7 +335,7 @@ namespace collvoid_local_planner {
             //double x = global_pose.getOrigin().x();
             double dist = base_local_planner::getGoalPositionDistance(global_pose, transformed_plan_.at(i).pose.position.x,
                                                                       transformed_plan_.at(i).pose.position.y);
-            if (dist < me_->getRadius() || dist < min_dist) {
+            if (dist < me_->fixed_robot_radius_ || dist < min_dist) {
                 min_dist = dist;
                 target_pose = transformed_plan_.at(i);
                 current_waypoint_ = i;

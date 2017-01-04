@@ -30,7 +30,6 @@
 
 #include "collvoid_local_planner/Agent.h"
 #include "collvoid_local_planner/orca.h"
-#include <boost/foreach.hpp>
 #include <angles/angles.h>
 
 namespace collvoid {
@@ -45,7 +44,7 @@ namespace collvoid {
 
         if (controlled_) {
             /* Create agent ORCA lines. */
-            BOOST_FOREACH (AgentPtr agent, agent_neighbors_) {
+            for (AgentPtr agent: agent_neighbors_) {
                             double timestep = agent->timestep_;
                             if (timestep < EPSILON)
                                 timestep = sim_period_;
@@ -64,36 +63,18 @@ namespace collvoid {
                             orca_lines_.push_back(line);
                         }
         }
-        size_t line_fail = linearProgram2(orca_lines_, max_speed_x_, pref_velocity, false, new_velocity_);
+        size_t line_fail = linearProgram2(orca_lines_, planner_util_->getCurrentLimits().max_vel_x, pref_velocity, false, new_velocity_);
 
         if (line_fail < orca_lines_.size()) {
-            linearProgram3(orca_lines_, num_obst_lines, line_fail, max_speed_x_, new_velocity_);
+            linearProgram3(orca_lines_, num_obst_lines, line_fail, planner_util_->getCurrentLimits().max_vel_x, new_velocity_);
         }
 
     }
 
-    void Agent::computeClearpathVelocity(Vector2 pref_velocity) {
-        if (controlled_) {
-            computeAgentVOs();
-        }
-        computeHumanVOs();
-        //ROS_INFO("Human founds: %d", (int)human_vos_.size());
-        new_velocity_ = calculateClearpathVelocity(samples_, all_vos_, human_vos_, agent_vos_, static_vos_, additional_orca_lines_,
-                                                   pref_velocity, velocity_, max_speed_x_, use_truncation_, new_sampling_, use_obstacles_, position_, heading_, unrotated_footprint, costmap_, world_model_);
-    }
-
-    void Agent::computeSampledVelocity(Vector2 pref_velocity) {
-        if (controlled_) {
-            computeAgentVOs();
-        }
-        computeHumanVOs();
-        new_velocity_ = calculateNewVelocitySampled(samples_, all_vos_, pref_velocity, max_speed_x_, position_, heading_, velocity_, use_truncation_,
-                                                    unrotated_footprint, costmap_, world_model_);
-    }
 
 
     void Agent::computeHumanVOs() {
-        BOOST_FOREACH (AgentPtr agent, human_neighbors_) {
+        for (AgentPtr agent: human_neighbors_) {
                         VO new_agent_vo;
                         bool created = false;
                         //use footprint or radius to create VO
@@ -133,7 +114,7 @@ namespace collvoid {
 
 
     void Agent::computeAgentVOs() {
-        BOOST_FOREACH (AgentPtr agent, agent_neighbors_) {
+        for (AgentPtr agent: agent_neighbors_) {
                         VO new_agent_vo;
                         //use footprint or radius to create VO
                         if (use_polygon_footprint_) {

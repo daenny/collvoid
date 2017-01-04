@@ -13,8 +13,6 @@
 #include <collvoid_srvs/GetMe.h>
 
 #include <visualization_msgs/MarkerArray.h>
-#include <boost/foreach.hpp>
-
 #include "collvoid_local_planner/Vector2.h"
 #include "collvoid_local_planner/Utils.h"
 #include "collvoid_local_planner/Agent.h"

@@ -138,50 +138,32 @@ namespace collvoid {
         visualization_msgs::MarkerArray point_array;
         // point_array.markers.resize(MAX_POINTS);
         // point_array.markers.clear();
+        visualization_msgs::Marker sphere;
 
+        sphere.header.frame_id = target_frame;
+        sphere.header.stamp = ros::Time::now();
+        sphere.ns = name_space;
+        sphere.action = visualization_msgs::Marker::ADD;
+        sphere.pose.orientation.w = 1.0;
+        sphere.type = visualization_msgs::Marker::SPHERE_LIST;
+        sphere.scale.x = 0.1;
+        sphere.scale.y = 0.1;
+        sphere.scale.z = 0.1;
+        sphere.color.r = 0.5;
+        sphere.color.a = 1.0;
+        sphere.id = 0;
         for (int i = 0; i < (int) points.size(); i++) {
 
-            visualization_msgs::Marker sphere;
-
-            sphere.header.frame_id = target_frame;
-            sphere.header.stamp = ros::Time::now();
-            sphere.ns = name_space;
-            sphere.action = visualization_msgs::Marker::ADD;
-            sphere.pose.orientation.w = 1.0;
-            sphere.type = visualization_msgs::Marker::SPHERE;
-            sphere.scale.x = 0.1;
-            sphere.scale.y = 0.1;
-            sphere.scale.z = 0.1;
-            sphere.color.r = 0.5;
-            sphere.color.a = 1.0;
-            sphere.id = i;
             geometry_msgs::Point p;
             p.x = pos.x() + points[i].velocity.x();
             p.y = pos.y() + points[i].velocity.y();
             p.z = points[i].cost;
             //p.z = 0.1;
             sphere.points.push_back(p);
-            sphere.pose.position.x = p.x;
-            sphere.pose.position.y = p.y;
-            sphere.pose.position.z = p.z;
-            point_array.markers.push_back(sphere);
         }
+        point_array.markers.push_back(sphere);
 
-        for (int i = point_array.markers.size(); i < MAX_POINTS_; i++) {
-            visualization_msgs::Marker sphere_list;
-            sphere_list.header.frame_id = target_frame;
-            sphere_list.header.stamp = ros::Time::now();
-            sphere_list.ns = name_space;
-            sphere_list.action = visualization_msgs::Marker::DELETE;
-            sphere_list.id = i;
-            geometry_msgs::Point p;
-            sphere_list.points.push_back(p);
-            sphere_list.pose.position.x = p.x;
-            sphere_list.pose.position.y = p.y;
-            sphere_list.pose.position.z = p.z;
-            point_array.markers.push_back(sphere_list);
 
-        }
         samples_pub.publish(point_array);
     }
 
@@ -199,6 +181,7 @@ namespace collvoid {
         line_list.color.g = 1.0;
         line_list.color.a = 1.0;
         line_list.id = 1;
+        line_list.lifetime = ros::Duration(1);
         geometry_msgs::Point p;
         for (int i = 0; i < (int) orca_lines.size(); i++) {
             p.x = position.x() + orca_lines[i].point.x() - orca_lines[i].dir.x();
@@ -230,7 +213,7 @@ namespace collvoid {
         visualization_msgs::MarkerArray sphere_list;
         sphere_list.markers.clear();
 
-        BOOST_FOREACH(AgentPtr agent, neighbors){
+        for(AgentPtr agent: neighbors){
                         Vector2 position = agent->position_;
                         double yaw = agent->heading_;
                         double radius = agent->radius_;
@@ -257,6 +240,7 @@ namespace collvoid {
         marker.markers[id].color.r = 1.0;
         marker.markers[id].color.a = 1.0;
         marker.markers[id].id = id;
+        marker.markers[id].lifetime = ros::Duration(1);
 
         marker.markers[id].pose.position.x = position.x();
         marker.markers[id].pose.position.y = position.y();
@@ -275,6 +259,7 @@ namespace collvoid {
         marker.markers[id].color.r = 1.0;
         marker.markers[id].color.a = 1.0;
         marker.markers[id].id = id;
+        marker.markers[id].lifetime = ros::Duration(1);
 
         geometry_msgs::Point p;
         p.x = position.x();
@@ -301,6 +286,7 @@ namespace collvoid {
         line_list.color.r = 1.0;
         line_list.color.a = 1.0;
         line_list.id = 1;
+        line_list.lifetime = ros::Duration(1);
         geometry_msgs::Point p;
         for (int i = 0; i < (int) obstacles_lines.size(); i++) {
             p.x = obstacles_lines[i].points[0].x();

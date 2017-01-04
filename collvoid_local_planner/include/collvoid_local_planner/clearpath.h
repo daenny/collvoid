@@ -35,6 +35,7 @@
 #include <costmap_2d/costmap_2d.h>
 #include <base_local_planner/costmap_model.h>
 #include <base_local_planner/local_planner_limits.h>
+#include <base_local_planner/local_planner_util.h>
 
 
 #define RAYRAY 0
@@ -56,17 +57,6 @@ namespace collvoid {
         std::vector<Vector2> points;
         ros::Time last_seen;
     };
-
-
-    VO createObstacleVO(Vector2 &position1, const std::vector<Vector2> &footprint1, Vector2 &vel1, Vector2 &position2,
-                        const std::vector<Vector2> &footprint2);
-
-    VO createObstacleVO(Vector2 &position1, double radius1, Vector2 &vel1, Vector2 &position2, double radius2);
-
-    VO createObstacleVO(Vector2 &position1, double radius1, const std::vector<Vector2> &footprint1, Vector2 &obst1,
-                        Vector2 &obst2);
-    VO createObstacleVO(Vector2 &position1, const std::vector<Vector2> &footprint1, const std::vector<Vector2> &obst, Vector2 &obst_position);
-
 
     //Footprint based:
     VO createVO(Vector2 &position1, const std::vector<Vector2> &footprint1, Vector2 &position2,
@@ -97,7 +87,6 @@ namespace collvoid {
     VO createTruncVO(VO &vo, double time);//, double combinedRadius, Vector2 relPosition);
 
 
-
     //Clearpath
     bool isInsideVO(VO vo, Vector2 point, bool use_truncation);
 
@@ -106,29 +95,14 @@ namespace collvoid {
     void addCircleLineIntersections(std::vector<VelocitySample> &samples, const Vector2 &pref_vel, double max_speed,
                                     bool use_truncation, const Vector2 &point, const Vector2 &dir);
 
-    void addIntersectPoint(std::vector<VelocitySample> &samples, const Vector2 &pref_vel, double max_speed,
-                           bool use_truncation, Vector2 point, const std::vector<VO> &truncated_vos);
-
     void addRayVelocitySamples(std::vector<VelocitySample> &samples, const std::vector<Line> &additional_constraints,
                                const Vector2 &pref_vel, Vector2 point1, Vector2 dir1, Vector2 point2, Vector2 dir2,
                                double max_speed, int TYPE);
 
-    Vector2 calculateClearpathVelocity(std::vector<VelocitySample> &samples, const std::vector<VO> &all_vos,
-                                       const std::vector<VO> &human_vos, const std::vector<VO> &agent_vos, const std::vector<VO> &static_vos,
-                                       const std::vector<Line> &additional_constraints, const Vector2 &pref_vel, const Vector2 &cur_vel,
-                                       double max_speed, bool use_truncation, bool new_sampling, bool use_obstacles,
-                                       const Vector2 &position, double heading,
-                                       std::vector<geometry_msgs::Point> footprint_spec,
-                                       costmap_2d::Costmap2D* costmap,
-                                       base_local_planner::WorldModel* world_model);
-
-    Vector2 evaluateClearpathSamples(std::vector<VelocitySample> &sorted_samples, const std::vector<VO> &truncated_vos, const std::vector<VO> &agent_vos,const std::vector<VO> &human_vos,
-                                     const std::vector<Line> &additional_constraints,
-                                     const Vector2 &pref_vel, double max_speed, const Vector2 &position, double heading, const Vector2& cur_speed, bool use_truncation,
-                                     std::vector<geometry_msgs::Point> footprint_spec,
-                                     costmap_2d::Costmap2D* costmap,
-                                     base_local_planner::WorldModel* world_model);
-
+    void createClearpathSamples(std::vector<VelocitySample> &samples, const std::vector<VO> &all_vos,
+                                const std::vector<VO> &human_vos, const std::vector<VO> &agent_vos, const std::vector<VO> &static_vos,
+                                const std::vector<Line> &additional_constraints, const Vector2 &pref_vel,  const Vector2 &cur_vel,
+                                double max_speed, bool use_truncation);
 
     //Sample based
     void createSamplesWithinMovementConstraints(std::vector<VelocitySample> &samples, double cur_vel_x,
@@ -136,29 +110,13 @@ namespace collvoid {
                                                 base_local_planner::LocalPlannerLimits &limits, double heading,
                                                 Vector2 pref_vel, double sim_period, int num_samples, bool holo_robot);
 
-
-    double footprintCost (
-            const double& x,
-            const double& y,
-            const double& th,
-            std::vector<geometry_msgs::Point> footprint_spec,
-            costmap_2d::Costmap2D* costmap,
-            base_local_planner::WorldModel* world_model);
-
     double calculateVelCosts(const Vector2 &test_vel, const std::vector<VO> &truncated_vos, bool use_truncation);
-
-    Vector2 calculateNewVelocitySampled(std::vector<VelocitySample> &samples, const std::vector<VO> &truncated_vos,
-                                        const Vector2 &pref_vel, double max_speed,
-                                        const Vector2 &position, double heading,
-                                        const Vector2 &cur_speed, bool use_truncation,
-                                        std::vector<geometry_msgs::Point> footprint_spec,
-                                        costmap_2d::Costmap2D* costmap,
-                                        base_local_planner::WorldModel* world_model);
-
 
     bool isSafeVelocity(const std::vector<VO> &truncated_vos, Vector2 vel, bool use_truncation);
 
-    double distToVO(VO vo, Vector2 point, bool use_truncation);
+
+    double distToVO(VO vo, Vector2 point, bool use_truncation, bool return_negative);
+
 
     void createSamplesAroundOptVel(std::vector<VelocitySample> &samples, double max_dist_x,
                                    double max_dist_y, double min_vel_x,

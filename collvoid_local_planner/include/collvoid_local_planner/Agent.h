@@ -35,6 +35,7 @@
 #include <collvoid_local_planner/Utils.h>
 #include <collvoid_local_planner/clearpath.h>
 #include <boost/shared_ptr.hpp>
+#include <base_local_planner/local_planner_util.h>
 
 namespace collvoid{
 
@@ -45,8 +46,6 @@ namespace collvoid{
         virtual ~Agent(){};
 
         void computeOrcaVelocity(Vector2 pref_velocity, bool convex);
-        void computeClearpathVelocity(Vector2 pref_velocity);
-        void computeSampledVelocity(Vector2 pref_velocity);
 
 
         void computeAgentVOs();
@@ -60,6 +59,8 @@ namespace collvoid{
         double getRadius();
         collvoid::Vector2 getPosition();
         collvoid::Vector2 getVelocity();
+
+        base_local_planner::LocalPlannerUtil *planner_util_;
 
 
         //config
@@ -90,10 +91,6 @@ namespace collvoid{
 
         std::vector<Vector2> footprint_;
 
-        std::vector<geometry_msgs::Point> unrotated_footprint;
-        costmap_2d::Costmap2D* costmap_;
-        base_local_planner::WorldModel* world_model_;
-
         Vector2 new_velocity_;
 
 
@@ -101,7 +98,6 @@ namespace collvoid{
         double cur_allowed_error_;
 
         //Orca
-        double max_speed_x_;
         std::vector<Line> orca_lines_, additional_orca_lines_;
 
         //VO stuff

@@ -33,7 +33,6 @@
 #include <cmath>
 #include <limits>
 #include <vector>
-#include <boost/foreach.hpp>
 
 #include "collvoid_local_planner/Vector2.h"
 

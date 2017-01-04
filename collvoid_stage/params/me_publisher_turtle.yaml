@@ -1,9 +1,5 @@
 collvoid:
-  global_frame: map
-  # base_frame: /robot_0/base_link
   holo_robot: false
   controlled: true
-
-  use_polygon_footprint: true # true #footprint or radius
-  eps: 0.1
+  eps: 0.3
   publish_me_frequency: 10

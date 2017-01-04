@@ -111,8 +111,6 @@ class CreateRunFiles(object):
 
     def create_yaml_file(self):
         with open(self.output_dir + '/params_created.yaml', 'w') as yaml_file:
-            yaml_file.write("/use_sim_time: true\n")
-
             angle = 360.0 / self.num_robots
             for x in range(self.num_robots):
                 angle_x = x * angle - 45
@@ -130,7 +128,9 @@ class CreateRunFiles(object):
             f_launch.write("<launch>\n")
             f_launch.write(
                 '  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_stage)/world/' + self.world_name + '_map.yaml"/>\n')
+            f_launch.write('  <rosparam command="load" file="$(find collvoid_stage)/params/stage_params.yaml"/>\n')
             f_launch.write('  <rosparam command="load" file="$(find collvoid_stage)/params_created.yaml"/>\n')
+
             if self.run_experiments:
                 f_launch.write(
                     '  <node pkg="stage_ros" type="stageros" name="stageros" args="-g $(find collvoid_stage)/world/' + self.world_name + '_created.world" respawn="false" output="screen" />\n')
@@ -177,6 +177,7 @@ class CreateRunFiles(object):
                 f_launch.write('  <node pkg="collvoid_controller" type="watchdog.py" name="watchdog" output="screen"/>\n')
             else:
                 f_launch.write('  <node pkg="collvoid_controller" type="controller.py" name="controller" output="screen"/>\n')
+                f_launch.write('  <node pkg="collvoid_controller" type="collvoid_visualizer.py" name="controller_viz" output="screen"/>\n')
                 f_launch.write('  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find collvoid_stage)/multi_view.rviz" output="screen" />\n')
 
             s = ""

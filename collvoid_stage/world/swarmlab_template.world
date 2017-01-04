@@ -1,5 +1,5 @@
 resolution 0.02 # set the resolution of the underlying raytrace model in meters
-interval_sim 100 # simulation timestep in milliseconds
+interval_sim 50 # simulation timestep in milliseconds
 #interval_real 100
 
 window
@@ -16,10 +16,9 @@ define map model
   gui_grid 0
   gui_move 0
   gui_outline 0
-  obstacle_return 0
+  obstacle_return 1
   gripper_return 0
   fiducial_return 0
-  laser_return 1
 )
 
 map

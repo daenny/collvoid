@@ -71,7 +71,6 @@ namespace collvoid_local_planner {
         void publishGlobalPlan(std::vector<geometry_msgs::PoseStamped> &path);
 
         void findBestWaypoint(geometry_msgs::PoseStamped& target_pose, const tf::Stamped<tf::Pose>& global_pose);
-        bool checkTrajectory(Eigen::Vector3f pos, Eigen::Vector3f vel, Eigen::Vector3f vel_samples);
 
         bool clearCostmapsService(std_srvs::Empty::Request &req, std_srvs::Empty::Response &resp);
         //Dyn reconfigure
@@ -99,11 +98,6 @@ namespace collvoid_local_planner {
 
         std::vector<geometry_msgs::PoseStamped> transformed_plan_;
         ros::Publisher g_plan_pub_, l_plan_pub_;
-
-        //obstacle check
-        base_local_planner::SimpleTrajectoryGenerator generator_;
-        base_local_planner::ObstacleCostFunction* obstacle_costs_;
-        base_local_planner::SimpleScoredSamplingPlanner scored_sampling_planner_;
 
         ros::ServiceServer  clear_costmaps_srv_;
 

@@ -29,9 +29,9 @@
 
 
 #include <angles/angles.h>
-#include <boost/foreach.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <collvoid_srvs/GetObstacles.h>
+#include <base_local_planner/trajectory.h>
 
 #include "collvoid_local_planner/ROSAgent.h"
 
@@ -43,7 +43,7 @@ template<typename T>
 void getParam(const ros::NodeHandle nh, const std::string &name, T *place) {
     bool found = nh.getParam(name, *place);
     ROS_ASSERT_MSG (found, "Could not find parameter %s", name.c_str());
-    ROS_DEBUG_STREAM_NAMED ("init", "Initialized " << name << " to " << *place);
+    ROS_DEBUG_STREAM_NAMED ("init", std::string("Initialized ") << name << " to " << *place);
 }
 
 
@@ -51,8 +51,8 @@ template<class T>
 T getParamDef(const ros::NodeHandle nh, const std::string &name, const T &default_val) {
     T val;
     nh.param(name, val, default_val);
-    ROS_DEBUG_STREAM_NAMED ("init", "Initialized " << name << " to " << val <<
-                                    "(default was " << default_val << ")");
+    ROS_DEBUG_STREAM_NAMED ("init", std::string("Initialized ") << name << " to " << val <<
+                                                                "(default was " << default_val << ")");
     return val;
 }
 
@@ -60,22 +60,104 @@ using namespace collvoid;
 
 namespace collvoid {
 
-    ROSAgent::ROSAgent() {
-        initialized_ = false;
-        cur_allowed_error_ = 0;
-        min_dist_obst_ = DBL_MAX;
+
+    void ROSAgent::reconfigure(collvoid_local_planner::CollvoidConfig &config){
+        boost::mutex::scoped_lock l(configuration_mutex_);
+
+        generator_.setParameters(config.sim_time,
+                                 config.sim_granularity,
+                                 config.angular_sim_granularity,
+                                 config.use_dwa,
+                                 sim_period_);
+
+        double resolution = planner_util_->getCostmap()->getResolution();
+        pdist_scale_ = config.path_distance_bias;
+        // pdistscale used for both path and alignment, set  forward_point_distance to zero to discard alignment
+        path_costs_->setScale(resolution * pdist_scale_ * 0.5);
+        alignment_costs_->setScale(resolution * pdist_scale_ * 0.5);
+
+
+        goal_costs_->setScale(resolution * config.goal_distance_bias * 0.5);
+        goal_front_costs_->setScale(resolution * config.goal_distance_bias * 0.5);
+
+
+        obstacle_costs_->setScale(resolution * config.occdist_scale);
+
+
+        forward_point_distance_ = config.forward_point_distance;
+        goal_front_costs_->setXShift(forward_point_distance_);
+        alignment_costs_->setXShift(forward_point_distance_);
+        goal_heading_sq_dist_ = config.goal_sq_dist;
+
+
+        // obstacle costs can vary due to scaling footprint feature
+        obstacle_costs_->setParams(config.max_trans_vel, 0, 0);
+
+        //collvoid_
+        orca_ = config.orca;
+        use_polygon_footprint_ = config.convex;
+        use_truncation_ = config.use_truncation;
+        num_samples_ = config.num_samples;
+        type_vo_ = config.type_vo;
+
+        time_to_holo_ = config.time_to_holo;
+        min_error_holo_ = config.min_error_holo;
+        max_error_holo_ = config.max_error_holo;
+
+        trunc_time_ = config.trunc_time;
+        left_pref_ = config.left_pref;
+
+        use_dwa_score_ = config.use_dwa_scoring;
     }
+
+
+    ROSAgent::ROSAgent():
+        initialized_ (false),
+        min_dist_obst_ (DBL_MAX)
+        {
+            cur_allowed_error_ = 0;
+        }
 
     ROSAgent::~ROSAgent() {
-        delete world_model_;
+        delete obstacle_costs_;
+        delete path_costs_;
+        delete goal_costs_;
+        delete goal_front_costs_;
+        delete alignment_costs_;
     }
 
-    void ROSAgent::init(ros::NodeHandle private_nh, tf::TransformListener *tf, base_local_planner::LocalPlannerUtil *planner_util) {
+    void ROSAgent::init(ros::NodeHandle private_nh, tf::TransformListener *tf, base_local_planner::LocalPlannerUtil *planner_util,
+                        costmap_2d::Costmap2DROS* costmap_ros) {
         tf_ = tf;
         planner_util_ = planner_util;
+        costmap_ros_ = costmap_ros;
 
-        costmap_ = planner_util_->getCostmap();
-        world_model_ = new base_local_planner::CostmapModel(*costmap_);
+        bool sum_scores;
+        private_nh.param("sum_scores", sum_scores, false);
+
+        obstacle_costs_ = new base_local_planner::ObstacleCostFunction (planner_util->getCostmap());
+        path_costs_ = new base_local_planner::MapGridCostFunction(planner_util->getCostmap(), 0.0, 0.0, false);
+        goal_costs_ = new base_local_planner::MapGridCostFunction(planner_util->getCostmap(), 0.0, 0.0, true);
+        goal_front_costs_ = new base_local_planner::MapGridCostFunction(planner_util->getCostmap(), 0.0, 0.0, true);
+        alignment_costs_ = new base_local_planner::MapGridCostFunction(planner_util->getCostmap(), 0.0, 0.0, false);
+
+        obstacle_costs_->setSumScores(sum_scores);
+
+        //path_costs_->setScale(0);
+        goal_costs_->setScale(0);
+        goal_front_costs_->setScale(0);
+        alignment_costs_->setScale(0);
+
+        //obstacle check
+        critics_.push_back((base_local_planner::TrajectoryCostFunction *&&) obstacle_costs_); // discards trajectories that move into obstacles
+        //critics_.push_back((base_local_planner::TrajectoryCostFunction *&&) goal_front_costs_); // prefers trajectories that make the nose go towards (local) nose goal
+
+        //critics_.push_back((base_local_planner::TrajectoryCostFunction *&&) alignment_costs_); // prefers trajectories that keep the robot nose on nose path
+        critics_.push_back((base_local_planner::TrajectoryCostFunction *&&) path_costs_); // prefers trajectories on global path
+        //critics_.push_back((base_local_planner::TrajectoryCostFunction *&&) goal_costs_); // prefers trajectories that go towards (local) goal, based on wave propagation
+        std::vector<base_local_planner::TrajectorySampleGenerator *> generator_list;
+        generator_list.push_back(&generator_);
+        scored_sampling_planner_ = base_local_planner::SimpleScoredSamplingPlanner(generator_list, critics_);
 
         //sim period
         std::string controller_frequency_param_name;
@@ -100,6 +182,7 @@ namespace collvoid {
         else
             wheel_base_ = 0.0;
 
+
         getParam(private_nh, "robot_radius", &fixed_robot_radius_);
 
         //other params agent
@@ -112,6 +195,8 @@ namespace collvoid {
         getParam(private_nh, "orca", &orca_);
         getParam(private_nh, "clearpath", &clearpath_);
         getParam(private_nh, "use_truncation", &use_truncation_);
+        use_dwa_score_ = getParamDef(private_nh, "use_dwa_scoring", true);
+        new_sampling_ = getParamDef(private_nh, "new_sampling", true);
 
         num_samples_ = getParamDef(private_nh, "num_samples", 400);
         type_vo_ = getParamDef(private_nh, "type_vo", 0); //HRVO
@@ -124,16 +209,16 @@ namespace collvoid {
 
         getParam(private_nh, "use_obstacles", &use_obstacles_);
         controlled_ = getParamDef(private_nh, "controlled", true);
-        
+
         ros::NodeHandle nh;
         //Publishers
         vo_pub_ = nh.advertise<visualization_msgs::Marker>("vo", 1);
-        neighbors_pub_ = nh.advertise<visualization_msgs::MarkerArray>("neighbors", 1);
+        neighbors_pub_ = nh.advertise<visualization_msgs::MarkerArray>("neighbors", 1, true);
 
-        lines_pub_ = nh.advertise<visualization_msgs::Marker>("orca_lines", 1);
-        samples_pub_ = nh.advertise<visualization_msgs::MarkerArray>("samples", 1);
-        speed_pub_ = nh.advertise<visualization_msgs::Marker>("speed", 1);
-        obstacles_pub_ = nh.advertise<visualization_msgs::Marker>("obstacles", 1);
+        lines_pub_ = nh.advertise<visualization_msgs::Marker>("orca_lines", 1, true);
+        samples_pub_ = nh.advertise<visualization_msgs::MarkerArray>("samples", 1, true);
+        speed_pub_ = nh.advertise<visualization_msgs::Marker>("speed", 1, true);
+        obstacles_pub_ = nh.advertise<visualization_msgs::Marker>("obstacles", 1, true);
 
         //new obstacles from python service
         get_obstacles_srv_ = nh.serviceClient<collvoid_srvs::GetObstacles>("get_obstacles");
@@ -157,13 +242,10 @@ namespace collvoid {
             this->heading_ = tf::getYaw(msg.pose.pose.orientation);
 
             std::vector<Vector2> minkowski_footprint;
-            unrotated_footprint.clear();
-            BOOST_FOREACH(geometry_msgs::Point32 p, msg.footprint.polygon.points) {
+            for(geometry_msgs::Point32 p: msg.footprint.polygon.points) {
                             minkowski_footprint.push_back(Vector2(p.x, p.y));
                             geometry_msgs::Point px;
-                            px.x = p.x;
-                            px.y = p.y;
-                            unrotated_footprint.push_back(px);
+
                         }
             footprint_lines_.clear();
             collvoid::Vector2 first = collvoid::Vector2(minkowski_footprint.at(0).x(), minkowski_footprint.at(0).y());
@@ -206,9 +288,9 @@ namespace collvoid {
         collvoid_srvs::GetNeighbors srv;
         this->agent_neighbors_.clear();
         if (get_neighbors_srv_.call(srv)) {
-            BOOST_FOREACH(collvoid_msgs::PoseTwistWithCovariance msg, srv.response.neighbors) {
-                            this->agent_neighbors_.push_back(createAgentFromMsg(msg));
-                        }
+            for(collvoid_msgs::PoseTwistWithCovariance msg: srv.response.neighbors) {
+                this->agent_neighbors_.push_back(createAgentFromMsg(msg));
+            }
 
             std::sort(this->agent_neighbors_.begin(), this->agent_neighbors_.end(),
                       boost::bind(&ROSAgent::compareNeighborsPositions, this, _1, _2));
@@ -221,8 +303,6 @@ namespace collvoid {
         }
     }
 
-
-
     AgentPtr ROSAgent::createAgentFromMsg(collvoid_msgs::PoseTwistWithCovariance &msg) {
         AgentPtr agent = AgentPtr(new Agent());
         agent->radius_ = msg.radius;
@@ -231,9 +311,9 @@ namespace collvoid {
         agent->heading_ = tf::getYaw(msg.pose.pose.orientation);
 
         std::vector<Vector2> minkowski_footprint;
-        BOOST_FOREACH(geometry_msgs::Point32 p, msg.footprint.polygon.points) {
-                        minkowski_footprint.push_back(Vector2(p.x, p.y));
-                    }
+        for(geometry_msgs::Point32 p: msg.footprint.polygon.points) {
+            minkowski_footprint.push_back(Vector2(p.x, p.y));
+        }
         agent->footprint_ = rotateFootprint(minkowski_footprint, agent->heading_);
 
         if (agent->footprint_.size() < 3 && use_polygon_footprint_)
@@ -253,6 +333,7 @@ namespace collvoid {
         }
         return agent;
     }
+
 
     bool ROSAgent::getTwistServiceCB(collvoid_local_planner::GetCollvoidTwist::Request &req, collvoid_local_planner::GetCollvoidTwist::Response &res) {
         tf::Stamped<tf::Pose> goal_pose, global_pose;
@@ -358,12 +439,54 @@ namespace collvoid {
         }
         else {
             samples_.clear();
+            obstacle_costs_->setFootprint(costmap_ros_->getRobotFootprint());
+
+            if (use_dwa_score_) {
+                for (std::vector<base_local_planner::TrajectoryCostFunction*>::iterator loop_critic = critics_.begin(); loop_critic != critics_.end(); ++loop_critic) {
+                    base_local_planner::TrajectoryCostFunction* loop_critic_p = *loop_critic;
+                    if (loop_critic_p->prepare() == false) {
+                        ROS_WARN("A scoring function failed to prepare");
+                    }
+                }
+                geometry_msgs::PoseStamped goal_pose = global_plan_.back();
+                Eigen::Vector3f goal(goal_pose.pose.position.x, goal_pose.pose.position.y, tf::getYaw(goal_pose.pose.orientation));
+                Eigen::Vector3f vsamples (1,1,1);
+                generator_.initialise(pos_,
+                                      vel_,
+                                      goal,
+                                      &limits,
+                                      vsamples);
+            }
+
+            //account for nh error
+            radius_ += cur_allowed_error_;
+            if (controlled_) {
+                computeAgentVOs();
+            }
+            computeHumanVOs();
+
             if (clearpath_) {
+                createClearpathSamples(samples_, all_vos_, human_vos_, agent_vos_, static_vos_, additional_orca_lines_,
+                                       pref_velocity, velocity_, planner_util_->getCurrentLimits().max_vel_x, use_truncation_);
                 computeClearpathVelocity(pref_velocity);
             }
             else {
+                createSamplesWithinMovementConstraints(samples_, this->velocity_.x(),
+                                                       this->velocity_.y(), this->current_angular_speed_,
+                                                       limits,
+                                                       heading_, pref_velocity,
+                                                       sim_period_, num_samples_, holo_robot_);
+
                 computeSampledVelocity(pref_velocity);
             }
+            radius_ -= cur_allowed_error_;
+
+            publishHoloSpeed(position_, new_velocity_, global_frame_, name_space_, speed_pub_);
+            publishVOs(position_, all_vos_, use_truncation_, global_frame_, name_space_, vo_pub_);
+
+            publishPoints(position_, samples_, global_frame_, name_space_, samples_pub_);
+            publishOrcaLines(additional_orca_lines_, position_, global_frame_, name_space_, lines_pub_);
+
         }
 
         double speed_ang = atan2(new_velocity_.y(), new_velocity_.x());
@@ -378,7 +501,7 @@ namespace collvoid {
             else
                 vstar = limits.max_vel_x;
 
-            cmd_vel.linear.x = std::min(vstar, vMaxAng());
+            cmd_vel.linear.x = std::max(std::min(vstar, vMaxAng()), limits.min_vel_x);
             cmd_vel.linear.y = 0.0;
 
             //ROS_ERROR("dif_ang %f", dif_ang);
@@ -397,6 +520,9 @@ namespace collvoid {
 //                ROS_ERROR("base twist %f", base_odom_.twist.twist.angular.z);
 //                ROS_ERROR("cmd_vel %f", cmd_vel.angular.z);
 //                ROS_ERROR("last_cmd_vel %f", last_twist_ang_);
+                if (std::abs(dif_ang) > 4.0 * M_PI / 4.0) {
+                    cmd_vel.linear.x = 0;
+                }
                 last_twist_ang_ = cmd_vel.angular.z;
             }
             else {
@@ -432,46 +558,52 @@ namespace collvoid {
 
     }
 
+    void ROSAgent::computeSampledVelocity(Vector2 pref_vel) {
 
-    void ROSAgent::computeClearpathVelocity(Vector2 pref_velocity) {
-        boost::mutex::scoped_lock lock(neighbors_lock_);
+        // VelocitySample pref_vel_sample;
+        // pref_vel_sample.velocity = pref_vel;
+        // samples_.push_back(pref_vel_sample);
 
-        //account for nh error
-        radius_ += cur_allowed_error_;
-        ((Agent *) this)->computeClearpathVelocity(pref_velocity);
-        radius_ -= cur_allowed_error_;
+        // VelocitySample null_vel;
+        // null_vel.velocity = Vector2(0,0);
+        // null_vel.dist_to_pref_vel = absSqr(pref_vel);
+        // samples_.push_back(null_vel);
 
-        publishHoloSpeed(position_, new_velocity_, global_frame_, name_space_, speed_pub_);
-        publishVOs(position_, all_vos_, use_truncation_, global_frame_, name_space_, vo_pub_);
+        double min_cost = DBL_MAX;
+        Vector2 best_vel;
 
-        publishPoints(position_, samples_, global_frame_, name_space_, samples_pub_);
-        publishOrcaLines(additional_orca_lines_, position_, global_frame_, name_space_, lines_pub_);
-
-    }
-
-
-    void ROSAgent::computeSampledVelocity(Vector2 pref_velocity) {
+        double vel_x, vel_y;
         base_local_planner::LocalPlannerLimits limits = planner_util_->getCurrentLimits();
-        createSamplesWithinMovementConstraints(samples_, this->velocity_.x(),
-                                               this->velocity_.y(), this->current_angular_speed_,
-                                               limits,
-                                               heading_, pref_velocity,
-                                               sim_period_, num_samples_, holo_robot_);
 
-        //account for nh error
-        boost::mutex::scoped_lock lock(neighbors_lock_);
+        for (int i = 0; i < (int) samples_.size(); i++) {
 
-        //tf::Stamped<tf::Pose> global_pose;
-        //odom_pose_ = Vector2(global_pose.getOrigin().x(), global_pose.getOrigin().y());
-        radius_ += cur_allowed_error_;
-        ((Agent *) this)->computeSampledVelocity(pref_velocity);
-        radius_ -= cur_allowed_error_;
+            VelocitySample cur = samples_[i];
+            double cost = calculateVelCosts(cur.velocity, all_vos_, use_truncation_);
+            cost += 2 * absSqr(cur.velocity - pref_vel);
+            //cost += std::min(-minDistToVOs(truncated_vos, cur.velocity, use_truncation),0.1);
+            cost += -minDistToVOs(all_vos_, cur.velocity, use_truncation_);
+            cost += 2 * absSqr(cur.velocity - velocity_);
+            double footprint_cost = 0;
+            if (use_dwa_score_) {
 
-        //    Vector2 null_vec = Vector2(0,0);
-        publishHoloSpeed(position_, new_velocity_, global_frame_, name_space_, speed_pub_);
-        publishVOs(position_, all_vos_, use_truncation_, global_frame_, name_space_, vo_pub_);
-        publishPoints(position_, samples_, global_frame_, name_space_, samples_pub_);
-        publishOrcaLines(additional_orca_lines_, position_, global_frame_, name_space_, lines_pub_);
+                Eigen::Vector3f twist = createTwistFromVector(samples_[i].velocity, limits);
+                footprint_cost = scoreTrajectory(twist);
+
+                //ROS_ERROR("footprint_cost %f", footprint_cost);
+                if (footprint_cost < 0.) {
+                    samples_[i].cost = 100;
+                }
+                samples_[i].cost = cost + footprint_cost;
+            }
+
+            if (cost < min_cost) {
+                min_cost = cost;
+                best_vel = cur.velocity;
+            }
+
+        }
+        //ROS_ERROR("min_cost %f", min_cost);
+        new_velocity_ = best_vel;
 
     }
 
@@ -520,8 +652,6 @@ namespace collvoid {
             addMovementConstraintsDiff(cur_allowed_error_, time_to_holo_, limits.max_vel_x, limits.max_rot_vel, heading_, v_max_ang,
                                        additional_orca_lines_);
         }
-        max_speed_x_ = vMaxAng();
-
     }
 
 
@@ -529,34 +659,43 @@ namespace collvoid {
         std::vector<Obstacle> obstacles;
         collvoid_srvs::GetObstacles srv;
         if (get_obstacles_srv_.call(srv)) {
-            sensor_msgs::PointCloud in, result;
+            //sensor_msgs::PointCloud in, result;
+            tf::StampedTransform obst_to_global_transform;
+            if (srv.response.obstacles.size() > 0) {
+                try {
+                    tf_->waitForTransform(global_frame_, srv.response.obstacles.at(0).header.frame_id,
+                                          srv.response.obstacles.at(0).header.stamp,
+                                          ros::Duration(0.2));
+                    tf_->lookupTransform(global_frame_, srv.response.obstacles.at(0).header.frame_id,
+                                         srv.response.obstacles.at(0).header.stamp, obst_to_global_transform);
+                }
+                catch (tf::TransformException &ex) {
+                    ROS_WARN(
+                            "Failed to transform the goal pose from %s into the %s frame: %s",
+                            srv.response.obstacles.at(0).header.frame_id.c_str(), global_frame_.c_str(), ex.what());
+                    return obstacles;
+                }
 
-            BOOST_FOREACH(geometry_msgs::PolygonStamped poly, srv.response.obstacles) {
-                            Obstacle obst;
-                            in.header.stamp = poly.header.stamp;
-                            in.header.frame_id = poly.header.frame_id;
-                            obst.last_seen = poly.header.stamp;
-                            //geometry_msgs::PointStamped in;
-                            in.points = poly.polygon.points;
-                            try {
-                                tf_->waitForTransform(global_frame_, in.header.frame_id, in.header.stamp,
-                                                      ros::Duration(0.1));
-                                tf_->transformPointCloud(global_frame_, in, result);
-                            }
-                            catch(tf::TransformException& ex) {
-                                ROS_WARN(
-                                        "Failed to transform the goal pose from %s into the %s frame: %s",
-                                        in.header.frame_id.c_str(), global_frame_.c_str(), ex.what());
-                                continue;
+                tf::Stamped<tf::Point> tf_pose;
+                geometry_msgs::PoseStamped newer_pose;
+                geometry_msgs::Point p;
+                Vector2 v;
+                for (geometry_msgs::PolygonStamped poly: srv.response.obstacles) {
+                    Obstacle obst;
+                    for (geometry_msgs::Point32 p32: poly.polygon.points) {
+                        p.x = p32.x;
+                        p.y = p32.y;
 
-                            }
-                            BOOST_FOREACH (geometry_msgs::Point32 p, result.points) {
-                                            Vector2 v = Vector2(p.x, p.y);
-                                            obst.points.push_back(v);
+                        tf::pointMsgToTF(p, tf_pose);
+                        tf_pose.setData(obst_to_global_transform * tf_pose);
 
-                                        }
-                            obstacles.push_back(obst);
-                        }
+                        v = Vector2(tf_pose.getX(), tf_pose.getY());
+                        obst.points.push_back(v);
+
+                    }
+                    obstacles.push_back(obst);
+                }
+            }
         }
         else {
             ROS_WARN("Could not get Obstacles from service");
@@ -572,36 +711,40 @@ namespace collvoid {
 
             std::vector<Obstacle> obstacles = getObstacles();
             min_dist_obst_ = DBL_MAX;
-            BOOST_FOREACH(Obstacle obst, obstacles) {
-                            //obst.points = rotateFootprint(obst.points, heading_);
-                            Vector2 obst_center = (obst.points[0] + obst.points[2])/2.;
-                            double dist = distSqPointLineSegment(obst.points[0], obst.points[1], position_);
-                            dist = std::min(dist, distSqPointLineSegment(obst.points[1], obst.points[2], position_));
-                            dist = std::min(dist, distSqPointLineSegment(obst.points[2], obst.points[3], position_));
-                            dist = std::min(dist, distSqPointLineSegment(obst.points[0], obst.points[3], position_));
+            std::vector<Vector2> obst_footprint;
+            for(Obstacle obst: obstacles) {
+                //obst.points = rotateFootprint(obst.points, heading_);
+                Vector2 obst_center = (obst.points[0] + obst.points[2])/2.;
+                double dist = distSqPointLineSegment(obst.points[0], obst.points[1], position_);
+                dist = std::min(dist, distSqPointLineSegment(obst.points[1], obst.points[2], position_));
+                dist = std::min(dist, distSqPointLineSegment(obst.points[2], obst.points[3], position_));
+                dist = std::min(dist, distSqPointLineSegment(obst.points[0], obst.points[3], position_));
 
-                            if (dist < min_dist_obst_) {
-                                min_dist_obst_ = dist;
-                            }
-                            std::vector<Vector2> obst_footprint;
-                            BOOST_FOREACH(Vector2 p, obst.points) {
-                                            obst_footprint.push_back(p-obst_center);
-                                        }
-                            if (orca_) {
+                if (dist < min_dist_obst_) {
+                    min_dist_obst_ = dist;
+                }
 
-                                createObstacleLine(footprint_, obst.points[0], obst.points[1]);
-                                createObstacleLine(footprint_, obst.points[1], obst.points[2]);
-                                createObstacleLine(footprint_, obst.points[2], obst.points[3]);
-                                createObstacleLine(footprint_, obst.points[3], obst.points[0]);
-                            }
-                            else {
-                                Vector2 null = Vector2(0,0);
-                                VO obstacle_vo = createVO(position_, footprint_, obst_center, obst_footprint, null);
-                                obstacle_vo = createTruncVO(obstacle_vo, 2);
-                                static_vos_.push_back(obstacle_vo);
-                                all_vos_.push_back(obstacle_vo);
-                            }
-                        }
+                if (dist > planner_util_->getCurrentLimits().max_trans_vel * trunc_time_)
+                    continue;
+                obst_footprint.clear();
+                for(Vector2 p: obst.points) {
+                    obst_footprint.push_back(p-obst_center);
+                }
+                if (orca_) {
+
+                    createObstacleLine(footprint_, obst.points[0], obst.points[1]);
+                    createObstacleLine(footprint_, obst.points[1], obst.points[2]);
+                    createObstacleLine(footprint_, obst.points[2], obst.points[3]);
+                    createObstacleLine(footprint_, obst.points[3], obst.points[0]);
+                }
+                else {
+                    Vector2 null = Vector2(0,0);
+                    VO obstacle_vo = createVO(position_, footprint_, obst_center, obst_footprint, null);
+                    obstacle_vo = createTruncVO(obstacle_vo, 0.5);
+                    static_vos_.push_back(obstacle_vo);
+                    all_vos_.push_back(obstacle_vo);
+                }
+            }
         }
 
     }
@@ -760,17 +903,312 @@ namespace collvoid {
         }
     }
 
-    void ROSAgent::reconfigure(collvoid_local_planner::CollvoidConfig &cfg){
+    void ROSAgent::updatePlanAndLocalCosts(tf::Stamped<tf::Pose> global_pose,
+                                           const std::vector<geometry_msgs::PoseStamped> &new_plan, const tf::Stamped<tf::Pose>& robot_vel)
+    {
+        global_plan_.resize(new_plan.size());
 
-        this->max_speed_x_ = planner_util_->getCurrentLimits().max_vel_x;
+        for (unsigned int i = 0; i < new_plan.size(); ++i) {
+            global_plan_[i] = new_plan[i];
+        }
+        // costs for going away from path
+        path_costs_->setTargetPoses(global_plan_);
+
+        // costs for not going towards the local goal as much as possible
+        goal_costs_->setTargetPoses(global_plan_);
+
+        // alignment costs
+        geometry_msgs::PoseStamped goal_pose = global_plan_.back();
+
+        pos_ = Eigen::Vector3f(global_pose.getOrigin().getX(), global_pose.getOrigin().getY(), tf::getYaw(global_pose.getRotation()));
+        vel_ = Eigen::Vector3f(robot_vel.getOrigin().getX(), robot_vel.getOrigin().getY(),tf::getYaw(robot_vel.getRotation()));
+
+        double sq_dist =
+                (pos_[0] - goal_pose.pose.position.x) * (pos_[0] - goal_pose.pose.position.x) +
+                (pos_[1] - goal_pose.pose.position.y) * (pos_[1] - goal_pose.pose.position.y);
+
+        // we want the robot nose to be drawn to its final position
+        // (before robot turns towards goal orientation), not the end of the
+        // path for the robot center. Choosing the final position after
+        // turning towards goal orientation causes instability when the
+        // robot needs to make a 180 degree turn at the end
+        std::vector<geometry_msgs::PoseStamped> front_global_plan = global_plan_;
+        double angle_to_goal = atan2(goal_pose.pose.position.y - pos_[1], goal_pose.pose.position.x - pos_[0]);
+        front_global_plan.back().pose.position.x = front_global_plan.back().pose.position.x +
+                                                   forward_point_distance_ * cos(angle_to_goal);
+        front_global_plan.back().pose.position.y = front_global_plan.back().pose.position.y + forward_point_distance_ *
+                                                                                              sin(angle_to_goal);
+
+        goal_front_costs_->setTargetPoses(front_global_plan);
+
+
+        // keeping the nose on the path
+        if (sq_dist > forward_point_distance_ * forward_point_distance_ ) {
+            double resolution = planner_util_->getCostmap()->getResolution();
+            alignment_costs_->setScale(resolution * pdist_scale_ * 0.5);
+            // costs for robot being aligned with path (nose on path, not ju
+            alignment_costs_->setTargetPoses(global_plan_);
+        } else {
+            // once we are close to goal, trying to keep the nose close to anything destabilizes behavior.
+            alignment_costs_->setScale(0.0);
+        }
     }
 
+    /**
+ * This function is used when other strategies are to be applied,
+ * but the cost functions for obstacles are to be reused.
+ */
+    double ROSAgent::scoreTrajectory(Eigen::Vector3f vel_samples)
+    {
+        base_local_planner::Trajectory traj;
+        generator_.generateTrajectory(pos_, vel_, vel_samples, traj);
+        double cost = scored_sampling_planner_.scoreTrajectory(traj, -1);
+        //if the trajectory is a legal one... the check passes
+        if(cost >= 0) {
+            return cost;
+        }
+        //ROS_WARN("Invalid Trajectory %f, %f, %f, cost: %f", vel_samples[0], vel_samples[1], vel_samples[2], cost);
+        //otherwise the check fails
+        return cost;
+    }
 
+    /**
+     * This function is used when other strategies are to be applied,
+     * but the cost functions for obstacles are to be reused.
+     */
+    bool ROSAgent::checkTrajectory(Eigen::Vector3f pos,
+                                               Eigen::Vector3f vel,
+                                               Eigen::Vector3f vel_samples)
+    {
+        obstacle_costs_->setFootprint(costmap_ros_->getRobotFootprint());
+        base_local_planner::Trajectory traj;
+        geometry_msgs::PoseStamped goal_pose = global_plan_.back();
+        Eigen::Vector3f goal(goal_pose.pose.position.x, goal_pose.pose.position.y, tf::getYaw(goal_pose.pose.orientation));
+        base_local_planner::LocalPlannerLimits limits = planner_util_->getCurrentLimits();
+        Eigen::Vector3f vsamples (1,1,1);
+
+        generator_.initialise(pos,
+                              vel,
+                              goal,
+                              &limits,
+                              vsamples);
+
+        generator_.generateTrajectory(pos, vel, vel_samples, traj);
+
+        double ps, gc, gfc, ac;
+        ps = path_costs_->getScale();
+        gc = goal_costs_->getScale();
+        gfc = goal_front_costs_->getScale();
+        ac = alignment_costs_->getScale();
+        path_costs_->setScale(0);
+        goal_costs_->setScale(0);
+        goal_front_costs_->setScale(0);
+        alignment_costs_->setScale(0);
+        double cost = scored_sampling_planner_.scoreTrajectory(traj, -1);
+        path_costs_->setScale(ps);
+        goal_costs_->setScale(gc);
+        goal_front_costs_->setScale(gfc);
+        alignment_costs_->setScale(ac);
+
+        //if the trajectory is a legal one... the check passes
+        if(cost >= 0) {
+            return true;
+        }
+        ROS_WARN("Invalid Trajectory %f, %f, %f, cost: %f", vel_samples[0], vel_samples[1], vel_samples[2], cost);
+
+        //otherwise the check fails
+        return false;
+    }
+
+    Eigen::Vector3f ROSAgent::createTwistFromVector(Vector2 speed, base_local_planner::LocalPlannerLimits &limits) {
+        double x, y, theta;
+
+        double speed_ang = atan2(speed.y(), speed.x());
+        double dif_ang = angles::shortest_angular_distance(heading_, speed_ang);
+
+        if (!holo_robot_) {
+            double vel = collvoid::abs(speed);
+            double vstar;
+
+            if (std::abs(dif_ang) > EPSILON)
+                vstar = calcVstar(vel, dif_ang);
+            else
+                vstar = limits.max_vel_x;
+
+            x = std::max(std::min(vstar, vMaxAng()), limits.min_vel_x);
+            y = 0.0;
+
+            //ROS_ERROR("dif_ang %f", dif_ang);
+            if (std::abs(dif_ang) > 3.0 * M_PI / 4.0) {
+                if (last_twist_ang_ != 0.0)
+                {
+                    theta = sign(last_twist_ang_) *
+                                        std::min(std::abs(dif_ang / time_to_holo_), limits.max_rot_vel);
+                }
+                else {
+                    theta = sign(dif_ang) *
+                                        std::min(std::abs(dif_ang / time_to_holo_), limits.max_rot_vel);
+
+                }
+                if (std::abs(dif_ang) > 4.0 * M_PI / 4.0) {
+                    x = 0;
+                }
+
+            }
+            else {
+                theta = sign(dif_ang) * std::min(std::abs(dif_ang / time_to_holo_), limits.max_rot_vel);
+            }
+
+        } // end non holo robot
+        else {
+            collvoid::Vector2 rotated_vel = rotateVectorByAngle(new_velocity_.x(), new_velocity_.y(), -heading_);
+
+            x = rotated_vel.x();
+            y = rotated_vel.y();
+            // if (min_dist < 1.0/2.0 * radius_) {
+            // 	if (min_dist == min_dist_neigh) {
+            // 	  dif_ang = dif_ang;
+            // 	}
+            // 	else {
+            // 	  double ang_obst = atan2(min_obst_vec.y(), min_obst_vec.x());
+            // 	  double diff = angles::shortest_angular_distance(heading_, ang_obst);
+
+            // 	  dif_ang = angles::shortest_angular_distance(0.0, diff - sign(diff) * M_PI / 2.0);
+            // 	}
+            // }
+            //      if (std::abs(dif_ang) < M_PI/2.0)
+        }
+
+        return Eigen::Vector3f(x, y, theta);
+    }
 
     double ROSAgent::vMaxAng() {
         double theoretical_max_v = planner_util_->getCurrentLimits().max_rot_vel * wheel_base_ / 2.0;
         //return theoretical_max_v - std::abs(base_odom_.twist.twist.angular.z) * wheel_base_/2.0;
         return planner_util_->getCurrentLimits().max_vel_x; //TODO: fixme!!
+    }
+
+
+    void ROSAgent::computeClearpathVelocity(Vector2 pref_vel) {
+        base_local_planner::LocalPlannerLimits limits = planner_util_->getCurrentLimits();
+        std::sort(samples_.begin(), samples_.end(), compareVelocitySamples);
+        //Vector2 new_vel = evaluateClearpathSamples(samples_, all_vos, agent_vos, human_vos, additional_orca_lines_, pref_vel, max_speed, position, heading, cur_vel, use_truncation, footprint_spec, costmap, world_model);
+        Vector2 new_vel = Vector2(0, 0); // = pref_vel;
+
+        bool valid = false;
+        bool foundOutside = false;
+        bool withinConstraints = true;
+        int optimal = -1;
+        std::vector<VelocitySample> safeSamples;
+        for (int i = 0; i < (int) samples_.size(); i++) {
+            withinConstraints = true;
+            valid = true;
+            if (!isWithinAdditionalConstraints(additional_orca_lines_, samples_[i].velocity)) {
+                withinConstraints = false;
+            }
+
+            for (int j = 0; j < (int) all_vos_.size(); j++) {
+                if (isInsideVO(all_vos_[j], samples_[i].velocity, use_truncation_)) {
+                    valid = false;
+                    if (j > optimal) {
+                        optimal = j;
+                        new_vel = samples_[i].velocity;
+                    }
+                    break;
+                }
+            }
+
+            double vel_x = 0.1 * samples_[i].velocity.x();
+            double vel_y = 0.1 * samples_[i].velocity.y();
+
+            double footprint_cost = 0.;
+            if (use_dwa_score_) {
+                Eigen::Vector3f twist = createTwistFromVector(samples_[i].velocity, limits);
+                footprint_cost = scoreTrajectory(twist);
+                //ROS_ERROR("footprint_cost %f", footprint_cost);
+            }
+
+
+            if (valid && withinConstraints && footprint_cost >= 0.) {
+                new_vel = samples_[i].velocity;
+                safeSamples.push_back(samples_[i]);
+            }
+            if (valid && !withinConstraints && !foundOutside) {
+                optimal = all_vos_.size();
+                new_vel = samples_[i].velocity;
+                foundOutside = true;
+                //TODO project on movement constraints
+            }
+        }
+
+        if (safeSamples.size()>0 && new_sampling_) {
+
+            new_vel = safeSamples[0].velocity;
+            double d = minDistToVOs(agent_vos_, new_vel, use_truncation_);
+            d = std::min(minDistToVOs(human_vos_, new_vel, use_truncation_), d);
+            if (d < 2 * EPSILON && (agent_vos_.size() + human_vos_.size()) >0 && collvoid::abs(pref_vel)>0.1) {
+// sample around optimal vel to find safe vel:
+                std::vector<VelocitySample> samples_around_opt;
+                double max_speed = planner_util_->getCurrentLimits().max_vel_x;
+                for (size_t i=0; i< (size_t)std::max((int)safeSamples.size(), 3); i++) {
+                    createSamplesAroundOptVel(samples_around_opt, 0.2, 0.2, max_speed, max_speed, max_speed, max_speed, safeSamples[i].velocity,
+                                              15);
+                }
+//    ROS_INFO("selected j %d, of size %d", optimal, (int) all_vos.size());
+
+                double bestDist = DBL_MAX;
+                for(VelocitySample& sample: samples_around_opt) {
+                    Vector2 vel = sample.velocity;
+                    if (isWithinAdditionalConstraints(additional_orca_lines_, vel) &&
+                        isSafeVelocity(all_vos_, vel, use_truncation_)) {
+                        VelocitySample cur = sample;
+
+                        double footprint_cost = 0;
+                        if (use_dwa_score_) {
+                            Eigen::Vector3f twist = createTwistFromVector(cur.velocity, limits);
+                            footprint_cost = scoreTrajectory(twist);
+                            if (footprint_cost < 0.) {
+                                footprint_cost = 100;
+                            }
+                        }
+                        double cost = footprint_cost;
+                        cost += 2 * sqrt(absSqr(cur.velocity - pref_vel));
+                        cost += 2 * (1. - minDistToVOs(agent_vos_, vel, use_truncation_));
+                        cost += 3. * ( 1. - minDistToVOs(human_vos_, vel, use_truncation_));
+                        cost += 1 * sqrt(absSqr(cur.velocity - velocity_));
+
+                        sample.cost = cost;
+                        if (cost < bestDist) {
+                            bestDist = cost;
+//ROS_WARN("best dist = %f", bestDist);
+                            new_vel = vel;
+                        }
+                    }
+                    else {
+                        sample.cost = -100;
+                    }
+                }
+                safeSamples.insert(safeSamples.end(), samples_around_opt.begin(), samples_around_opt.end());
+            }
+
+            samples_ = safeSamples;
+        }
+        else {
+            if (safeSamples.size()>0) {
+                new_vel = safeSamples[0].velocity;
+            }
+            else {
+                new_vel = planner_util_->getCurrentLimits().min_trans_vel * normalize(new_vel);
+                if (isnan(new_vel.x()) || isnan(new_vel.y())) {
+                    ROS_WARN("Did not find safe velocity, chosing 0");
+                    new_velocity_ = Vector2();
+                    return;
+                }
+
+                ROS_WARN("Did not find safe velocity, chosing outside constraints, %f, %f", new_vel.x(), new_vel.y());
+            }
+        }
+        new_velocity_ = new_vel;
     }
 
 }
