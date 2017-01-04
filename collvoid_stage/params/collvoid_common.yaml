@@ -1,8 +1,8 @@
 ## For collvoid_scoring_function and me publisher
 global_frame_id: map
 # base_frame: /robot_0/base_link
-max_dist_vo: 1.5
-trunc_time: 6.0
+max_dist_vo: 1.5  #for scoring function scale
+trunc_time: 10.0
 
 use_truncation: true
 use_polygon_footprint: true # true #footprint or radius
