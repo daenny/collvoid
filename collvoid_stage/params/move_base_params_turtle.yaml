@@ -101,7 +101,7 @@ max_planning_retries: 5
 controller_frequency: 10
 #global_planner_frequency: 1
 #shutdown_costmaps: true
-default_tolerance: 0.2
+default_tolerance: 0.25
 
 recovery_behaviors:
   - {name: conservative_reset, type: clear_costmap_recovery/ClearCostmapRecovery}
