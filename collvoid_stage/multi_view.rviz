@@ -11,6 +11,9 @@ Panels:
         - /FoundRobots1
         - /FoundRobots1/Namespaces1
         - /PoseArray1
+        - /Pose4
+        - /Pose5
+        - /Pose6
       Splitter Ratio: 0.5
     Tree Height: 1133
   - Class: rviz/Selection
@@ -62,21 +65,6 @@ Visualization Manager:
       Topic: /map
       Unreliable: false
       Value: true
-    - Alpha: 1
-      Axes Length: 1
-      Axes Radius: 0.1
-      Class: rviz/Pose
-      Color: 255; 25; 0
-      Enabled: false
-      Head Length: 0.3
-      Head Radius: 0.1
-      Name: Pose
-      Shaft Length: 1
-      Shaft Radius: 0.05
-      Shape: Arrow
-      Topic: /robot_0/move_base/current_goal
-      Unreliable: false
-      Value: false
     - Alpha: 1
       Class: rviz/Polygon
       Color: 25; 255; 0
@@ -146,7 +134,7 @@ Visualization Manager:
       Marker Topic: /robot_0/obstacles
       Name: Marker
       Namespaces:
-        collvoid: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -161,7 +149,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: Intensity
       Decay Time: 0
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 4096
@@ -178,7 +166,7 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -191,10 +179,10 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: Intensity
       Decay Time: 0
-      Enabled: true
+      Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
-      Max Intensity: 251
+      Max Intensity: 192
       Min Color: 0; 0; 0
       Min Intensity: 0
       Name: PointCloud2
@@ -208,7 +196,7 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Class: rviz/Group
       Displays:
         - Alpha: 1
@@ -449,7 +437,7 @@ Visualization Manager:
           Marker Topic: /robot_1/obstacles
           Name: Obstacles
           Namespaces:
-            collvoid: true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/Marker
@@ -457,7 +445,7 @@ Visualization Manager:
           Marker Topic: /robot_1/speed
           Name: HoloSpeed
           Namespaces:
-            collvoid: true
+            {}
           Queue Size: 100
           Value: true
         - Alpha: 0.7
@@ -549,14 +537,105 @@ Visualization Manager:
         robot_2: true
         robot_3: true
         robot_4: true
+        robot_5: true
       Queue Size: 100
       Value: true
     - Arrow Length: 0.3
       Class: rviz/PoseArray
       Color: 255; 25; 0
-      Enabled: true
+      Enabled: false
       Name: PoseArray
       Topic: /robot_1/particlecloud
+      Unreliable: false
+      Value: false
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.1
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.3
+      Head Radius: 0.1
+      Name: Pose
+      Shaft Length: 1
+      Shaft Radius: 0.05
+      Shape: Arrow
+      Topic: /robot_0/move_base/current_goal
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.1
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.3
+      Head Radius: 0.1
+      Name: Pose
+      Shaft Length: 1
+      Shaft Radius: 0.05
+      Shape: Arrow
+      Topic: /robot_1/move_base/current_goal
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.1
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.3
+      Head Radius: 0.1
+      Name: Pose
+      Shaft Length: 1
+      Shaft Radius: 0.05
+      Shape: Arrow
+      Topic: /robot_2/move_base/current_goal
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.1
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.3
+      Head Radius: 0.1
+      Name: Pose
+      Shaft Length: 1
+      Shaft Radius: 0.05
+      Shape: Arrow
+      Topic: /robot_3/move_base/current_goal
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.1
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.3
+      Head Radius: 0.1
+      Name: Pose
+      Shaft Length: 1
+      Shaft Radius: 0.05
+      Shape: Arrow
+      Topic: /robot_4/move_base/current_goal
+      Unreliable: false
+      Value: true
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.1
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.3
+      Head Radius: 0.1
+      Name: Pose
+      Shaft Length: 1
+      Shaft Radius: 0.05
+      Shape: Arrow
+      Topic: /robot_5/move_base/current_goal
       Unreliable: false
       Value: true
   Enabled: true
@@ -583,22 +662,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 22.7045
+      Distance: 6.47417
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -2.46206
-        Y: 1.06805
-        Z: -0.00720215
+        X: -0.0583848
+        Y: -1.01974
+        Z: -0.00939132
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 1.5498
+      Pitch: 1.5698
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.82819
+      Yaw: 4.68819
     Saved: ~
 Window Geometry:
   Displays:

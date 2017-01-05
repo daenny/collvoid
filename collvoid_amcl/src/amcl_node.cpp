@@ -1263,35 +1263,29 @@ AmclNode::laserReceived(const sensor_msgs::LaserScanConstPtr& laser_scan)
                         cloud_msg.poses[i]);
       }
       particlecloud_pub_.publish(cloud_msg);
-      if (!(resampled || force_publication)) {
-        //pf_cluster_t *cluster = set2 ->clusters + max_weight_hyp;
+      //pf_cluster_t *cluster = set2 ->clusters + max_weight_hyp;
 
-        // publish best cluster weighted particles
-        collvoid_msgs::PoseArrayWeighted cloud_msg2;
-        cloud_msg2.header.stamp = laser_scan->header.stamp;
-        cloud_msg2.header.frame_id = global_frame_id_;
-        cloud_msg2.poses = cloud_msg.poses;
-        cloud_msg2.weights.resize(set->sample_count);
-        int count = 0;
-        for (int i = 0; i < set->sample_count; i++) {
-          cloud_msg2.weights[count] = set->samples[i].weight;
-          count++;
-        }
-
-
-        //ROS_ERROR("max weight %f, count %d/%d", hyps[max_weight_hyp].weight, hyps[max_weight_hyp].count, set2->sample_count);
-        particlecloud_weighted_pub_.publish(cloud_msg2);
+      // publish best cluster weighted particles
+      collvoid_msgs::PoseArrayWeighted cloud_msg2;
+      cloud_msg2.header.stamp = laser_scan->header.stamp;
+      cloud_msg2.header.frame_id = global_frame_id_;
+      cloud_msg2.poses = cloud_msg.poses;
+      cloud_msg2.weights.resize(set->sample_count);
+      int count = 0;
+      for (int i = 0; i < set->sample_count; i++) {
+        cloud_msg2.weights[count] = set->samples[i].weight;
+        count++;
       }
+      //ROS_ERROR("max weight %f, count %d/%d", hyps[max_weight_hyp].weight, hyps[max_weight_hyp].count, set2->sample_count);
+      particlecloud_weighted_pub_.publish(cloud_msg2);
     }
   }
-
   if(resampled || force_publication) {
 
     // Read out the current hypotheses
     double max_weight = 0.0;
     int max_weight_hyp = -1;
     std::vector<amcl_hyp_t> hyps;
-
 
     hyps.resize(pf_->sets[pf_->current_set].cluster_count);
     for (int hyp_count = 0;
@@ -1317,7 +1311,7 @@ AmclNode::laserReceived(const sensor_msgs::LaserScanConstPtr& laser_scan)
     }
 
 
-    if (max_weight > 0.0) {
+    if (max_weight > 0.0 && false) {
       pf_sample_set_t *set2 = pf_->sets + pf_->current_set;
       //pf_cluster_t *cluster = set2 ->clusters + max_weight_hyp;
 
@@ -1346,9 +1340,12 @@ AmclNode::laserReceived(const sensor_msgs::LaserScanConstPtr& laser_scan)
 
       }
 
-      //ROS_ERROR("max weight %f, count %d/%d", hyps[max_weight_hyp].weight, hyps[max_weight_hyp].count, set2->sample_count);
+      ROS_ERROR("max weight %f, count %d/%d", hyps[max_weight_hyp].weight, hyps[max_weight_hyp].count,
+                set2->sample_count);
       particlecloud_weighted_pub_.publish(cloud_msg2);
     }
+
+
     if (max_weight > 0.0) {
 
       ROS_DEBUG("Max weight pose: %.3f %.3f %.3f",

@@ -1,5 +1,5 @@
 collvoid:
   holo_robot: false
   controlled: true
-  eps: 0.4
+  eps: 0.7
   publish_me_frequency: 10

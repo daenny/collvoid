@@ -34,11 +34,11 @@ DWAPlannerROS:
   vtheta_samples: 20  # 20
 
   # Trajectory Scoring Parameters
-  path_distance_bias: 24.0      # 32.0   - weighting for how much it should stick to the global path plan
-  goal_distance_bias: 32.0      # 24.0   - wighting for how much it should attempt to reach its goal
+  path_distance_bias: 32.0      # 32.0   - weighting for how much it should stick to the global path plan
+  goal_distance_bias: 24.0      # 24.0   - wighting for how much it should attempt to reach its goal
   collvoid_scale: 24.0
-  occdist_scale: 0.5           # 0.01   - weighting for how much the controller should avoid obstacles
-  forward_point_distance: 0.325 # 0.325  - how far along to place an additional scoring point
+  occdist_scale: 0.05           # 0.01   - weighting for how much the controller should avoid obstacles
+  forward_point_distance: 0.1 # 0.325  - how far along to place an additional scoring point
   stop_time_buffer: 0.2         # 0.2    - amount of time a robot must stop in before colliding for a valid traj.
   scaling_speed: 0.25           # 0.25   - absolute velocity at which to start scaling the robot's footprint
   max_scaling_factor: 0.2       # 0.2    - how much to scale the robot's footprint when at speed.
@@ -80,11 +80,11 @@ CollvoidLocalPlanner:
   angular_sim_granularity: 0.2
 
   # Trajectory Scoring Parameters
-  path_distance_bias: 24.0      # 32.0   - weighting for how much it should stick to the global path plan
-  goal_distance_bias: 32.0      # 24.0   - wighting for how much it should attempt to reach its goal
+  path_distance_bias: 32.0      # 32.0   - weighting for how much it should stick to the global path plan
+  goal_distance_bias: 24.0      # 24.0   - wighting for how much it should attempt to reach its goal
   collvoid_scale: 24.0
   occdist_scale: 0.5           # 0.01   - weighting for how much the controller should avoid obstacles
-  forward_point_distance: 0.325 # 0.325  - how far along to place an additional scoring point
+  forward_point_distance: 0. # 0.325  - how far along to place an additional scoring point
   stop_time_buffer: 0.2         # 0.2    - amount of time a robot must stop in before colliding for a valid traj.
   scaling_speed: 0.25           # 0.25   - absolute velocity at which to start scaling the robot's footprint
   max_scaling_factor: 0.2       # 0.2    - how much to scale the robot's footprint when at speed.
@@ -95,10 +95,13 @@ CollvoidLocalPlanner:
 
   holo_robot: false
   wheel_base: 0.25
-  robot_radius: 0.22
+  robot_radius: 0.20
 
 max_planning_retries: 5
 controller_frequency: 10
+#global_planner_frequency: 1
+#shutdown_costmaps: true
+default_tolerance: 0.2
 
 recovery_behaviors:
   - {name: conservative_reset, type: clear_costmap_recovery/ClearCostmapRecovery}
@@ -128,11 +131,17 @@ local_costmap:
   rolling_window: true
   width: 4.0
   height: 4.0
-  resolution: 0.025
+  resolution: 0.02
   plugins:
   - {name: obstacle_layer,      type: "costmap_2d::VoxelLayer"}
   - {name: stationary_robots,          type: "costmap_2d::ObstacleLayer"}
   - {name: inflation_layer,     type: "costmap_2d::InflationLayer"}
+  #cost_scaling_factor and inflation_radius were now moved to the inflation_layer ns
+  inflation_layer:
+    enabled:              true
+    cost_scaling_factor:  10.0  # exponential rate at which the obstacle cost drops off (default: 10)
+    inflation_radius:     0.25  # was 0.26 in previoys configuration
+
 
 
 global_costmap:
@@ -146,4 +155,10 @@ global_costmap:
   - {name: obstacle_layer,      type: "costmap_2d::VoxelLayer"}
   - {name: stationary_robots,          type: "costmap_2d::VoxelLayer"}
   - {name: inflation_layer,     type: "costmap_2d::InflationLayer"}
+  #cost_scaling_factor and inflation_radius were now moved to the inflation_layer ns
+  inflation_layer:
+    enabled:              true
+    cost_scaling_factor:  10.0  # exponential rate at which the obstacle cost drops off (default: 10)
+    inflation_radius:     0.26  # was 0.26 in previoys configuration
+
 

@@ -168,7 +168,7 @@ namespace collvoid_scoring_function
 
         double cost = calculateVelCosts(test_vel, me_->agent_vos_, me_->use_truncation_);
 
-        if (cost > 0) {
+        if (cost > 0.) {
             int n = (int)me_->agent_vos_.size();
             if (cost >= n * 2)
                 return -1;

@@ -45,23 +45,23 @@ namespace collvoid {
         if (controlled_) {
             /* Create agent ORCA lines. */
             for (AgentPtr agent: agent_neighbors_) {
-                            double timestep = agent->timestep_;
-                            if (timestep < EPSILON)
-                                timestep = sim_period_;
-                            Line line;
-                            if (!convex) {
-                                line = createOrcaLine(this, agent.get(), trunc_time_, timestep, left_pref_,
-                                                      cur_allowed_error_);
-                            }
-                            else {
-                                VO new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_,
-                                                           agent->footprint_, agent->velocity_, VOS);
-                                line = createOrcaLine(new_agent_vo.combined_radius, new_agent_vo.relative_position,
-                                                      velocity_, agent->velocity_, trunc_time_, timestep, left_pref_,
-                                                      cur_allowed_error_, agent->controlled_);
-                            }
-                            orca_lines_.push_back(line);
-                        }
+                double timestep = agent->timestep_;
+                if (timestep < EPSILON)
+                    timestep = sim_period_;
+                Line line;
+                if (!convex) {
+                    line = createOrcaLine(this, agent.get(), trunc_time_, timestep, left_pref_,
+                                          cur_allowed_error_);
+                }
+                else {
+                    VO new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_,
+                                               agent->footprint_, agent->velocity_, VOS);
+                    line = createOrcaLine(new_agent_vo.combined_radius, new_agent_vo.relative_position,
+                                          velocity_, agent->velocity_, trunc_time_, timestep, left_pref_,
+                                          cur_allowed_error_, agent->controlled_);
+                }
+                orca_lines_.push_back(line);
+            }
         }
         size_t line_fail = linearProgram2(orca_lines_, planner_util_->getCurrentLimits().max_vel_x, pref_velocity, false, new_velocity_);
 
@@ -75,95 +75,95 @@ namespace collvoid {
 
     void Agent::computeHumanVOs() {
         for (AgentPtr agent: human_neighbors_) {
-                        VO new_agent_vo;
-                        bool created = false;
-                        //use footprint or radius to create VO
-                        if (use_polygon_footprint_) {
-                            Vector2 rel_position = agent->position_ - position_;
-                            Vector2 speed = Vector2(0,0);
-                            //if (fabs(atan(rel_position)-heading_ ) < M_PI/2.) {
-                            ROS_INFO("angle betwee %f", angles::shortest_angular_distance(atan(rel_position), heading_));
-                            if (angles::shortest_angular_distance(atan(rel_position), heading_)< M_PI/2.){
-                                speed = normalize(position_ - agent->position_) * abs(agent->velocity_);
+            VO new_agent_vo;
+            bool created = false;
+            //use footprint or radius to create VO
+            if (use_polygon_footprint_) {
+                Vector2 rel_position = agent->position_ - position_;
+                Vector2 speed = Vector2(0,0);
+                //if (fabs(atan(rel_position)-heading_ ) < M_PI/2.) {
+                ROS_INFO("angle betwee %f", angles::shortest_angular_distance(atan(rel_position), heading_));
+                if (angles::shortest_angular_distance(atan(rel_position), heading_)< M_PI/2.){
+                    speed = normalize(position_ - agent->position_) * abs(agent->velocity_);
 
-                            }
-                            if (abs(rel_position)<2.){
-                                new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_,
-                                        //agent->footprint_, agent->velocity_, VOS);
-                                                        agent->footprint_, speed, VOS);
-                                created = true;
-                            }
+                }
+                if (abs(rel_position)<2.){
+                    new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_,
+                            //agent->footprint_, agent->velocity_, VOS);
+                                            agent->footprint_, speed, VOS);
+                    created = true;
+                }
 
-                        }
-                        else {
-                            new_agent_vo = createVO(position_, radius_, velocity_, agent->position_, agent->radius_,
-                                                    agent->velocity_, VOS);
-                            created = true;
-                        }
-                        if (created) {
-                            //truncate calculate with 100 to avoid code breaking..
-                            if (use_truncation_){
-                                new_agent_vo = createTruncVO(new_agent_vo, 20);
-                            }
-                            human_vos_.push_back(new_agent_vo);
-                            all_vos_.push_back(new_agent_vo);
-                        }
+            }
+            else {
+                new_agent_vo = createVO(position_, radius_, velocity_, agent->position_, agent->radius_,
+                                        agent->velocity_, VOS);
+                created = true;
+            }
+            if (created) {
+                //truncate calculate with 100 to avoid code breaking..
+                if (use_truncation_){
+                    new_agent_vo = createTruncVO(new_agent_vo, 20);
+                }
+                human_vos_.push_back(new_agent_vo);
+                all_vos_.push_back(new_agent_vo);
+            }
 
-                    }
+        }
     }
 
 
     void Agent::computeAgentVOs() {
         for (AgentPtr agent: agent_neighbors_) {
-                        VO new_agent_vo;
-                        //use footprint or radius to create VO
-                        if (use_polygon_footprint_) {
-                            if (agent->controlled_ && abs(agent->velocity_) > EPSILON)  {
-                                new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_,
-                                                        agent->footprint_, agent->velocity_, type_vo_);
-                            }
-                            else {
-                                new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_,
-                                                        agent->footprint_, agent->velocity_, VOS);
-                            }
-                        }
-                        else {
-                            if (agent->controlled_  && abs(agent->velocity_) > EPSILON) {
-                                new_agent_vo = createVO(position_, radius_, velocity_, agent->position_, agent->radius_,
-                                                        agent->velocity_, type_vo_);
-                            }
-                            else {
-                                new_agent_vo = createVO(position_, radius_, velocity_, agent->position_, agent->radius_,
-                                                        agent->velocity_, VOS);
-                            }
+            VO new_agent_vo;
+            //use footprint or radius to create VO
+            if (use_polygon_footprint_) {
+                if (agent->controlled_ && abs(agent->velocity_) > EPSILON)  {
+                    new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_,
+                                            agent->footprint_, agent->velocity_, type_vo_);
+                }
+                else {
+                    new_agent_vo = createVO(position_, footprint_, velocity_, agent->position_,
+                                            agent->footprint_, agent->velocity_, VOS);
+                }
+            }
+            else {
+                if (agent->controlled_  && abs(agent->velocity_) > EPSILON) {
+                    new_agent_vo = createVO(position_, radius_, velocity_, agent->position_, agent->radius_,
+                                            agent->velocity_, type_vo_);
+                }
+                else {
+                    new_agent_vo = createVO(position_, radius_, velocity_, agent->position_, agent->radius_,
+                                            agent->velocity_, VOS);
+                }
 
-                        }
-                        //truncate
-                        if (agent->controlled_ && use_truncation_) {
-                            if (abs(agent->velocity_) < EPSILON) {
-                                new_agent_vo = createTruncVO(new_agent_vo, 2);
-                                static_vos_.push_back(new_agent_vo);
-                            }
-                            else {
-                                new_agent_vo = createTruncVO(new_agent_vo, trunc_time_);
-                                agent_vos_.push_back(new_agent_vo);
-                            }
-                        }
-                        else if(!agent->controlled_ && use_truncation_) {
-                            new_agent_vo = createTruncVO(new_agent_vo, 100);
-                            agent_vos_.push_back(new_agent_vo);
-                        }
-                        else {
-                            if (abs(agent->velocity_) < EPSILON && agent->controlled_) {
-                                static_vos_.push_back(new_agent_vo);
-                            }
-                            else {
-                                agent_vos_.push_back(new_agent_vo);
-                            }
-                        }
-                        all_vos_.push_back(new_agent_vo);
+            }
+            //truncate
+            if (agent->controlled_ && use_truncation_) {
+                if (abs(agent->velocity_) < EPSILON) {
+                    new_agent_vo = createTruncVO(new_agent_vo, std::max((abs(velocity_) + abs(agent->velocity_)) * trunc_time_, 0.1));
+                    static_vos_.push_back(new_agent_vo);
+                }
+                else {
+                    new_agent_vo = createTruncVO(new_agent_vo, std::max((abs(velocity_) + abs(agent->velocity_)) * trunc_time_, 0.1));
+                    agent_vos_.push_back(new_agent_vo);
+                }
+            }
+            else if(!agent->controlled_ && use_truncation_) {
+                new_agent_vo = createTruncVO(new_agent_vo, 100);
+                agent_vos_.push_back(new_agent_vo);
+            }
+            else {
+                if (abs(agent->velocity_) < EPSILON && agent->controlled_) {
+                    static_vos_.push_back(new_agent_vo);
+                }
+                else {
+                    agent_vos_.push_back(new_agent_vo);
+                }
+            }
+            all_vos_.push_back(new_agent_vo);
 
-                    }
+        }
     }
 
     void Agent::setLeftPref(double left_pref) {

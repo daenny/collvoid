@@ -16,7 +16,8 @@
             <param name="~tf_prefix" value="$(arg robot)" />
             <param name="~/global_costmap/robot_base_frame" value="$(arg robot)/base_link" />
             <param name="~/local_costmap/robot_base_frame" value="$(arg robot)/base_link" />
-            <param name="~/local_costmap/global_frame" value="map" />
+            <!--<param name="~/local_costmap/global_frame" value="map" />-->
+            <!--<param name="~/local_costmap/global_frame" value="$(arg robot)/odom" />-->
             <!--<param name="~DWAPlannerROS/global_frame_id" value="$(arg robot)/odom" />-->
             <param name="base_local_planner" value="collvoid_dwa_local_planner/DWAPlannerROS" />
             <param name="base_global_planner" value="global_planner/GlobalPlanner" />

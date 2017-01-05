@@ -5,13 +5,7 @@ transform_tolerance: 0.3
 #footprint: [[-0.325, -0.325], [-0.325, 0.325], [0.325, 0.325], [0.46, 0.0], [0.325, -0.325]]
 robot_radius: 0.22
 
-footprint_padding: 0.01
-
-#cost_scaling_factor and inflation_radius were now moved to the inflation_layer ns
-inflation_layer:
-  enabled:              true
-  cost_scaling_factor:  10.0  # exponential rate at which the obstacle cost drops off (default: 10)
-  inflation_radius:     0.25  # was 0.26 in previoys configuration
+footprint_padding: 0.0
 
 static_layer:
   enabled:              true

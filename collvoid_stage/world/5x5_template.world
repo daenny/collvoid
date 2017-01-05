@@ -85,8 +85,8 @@ define obst model
   gui_nose 1
 )
 
-obst( pose [ 0 0 0.000 -95.374 ] name "obst_0" color "red")
-obst( pose [ 0 0 0.000 -95.374 ] name "obst_1" color "red")
+#obst( pose [ 0 0 0.000 -95.374 ] name "obst_0" color "red")
+#obst( pose [ 0 0 0.000 -95.374 ] name "obst_1" color "red")
 # add here robots
 #omni_robot( pose [ 8.164 4.633 0.000 -10.755 ] name "robot_0" color "dark slate blue")
 #roomba( pose [ -2.755 -1.040 0.000 15.000 ] name "robot_4" color "royal blue")

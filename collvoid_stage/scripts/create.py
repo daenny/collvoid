@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
 import math
+import os
 import sys
 import getopt
 import commands
+import yaml
 
 
 class CreateRunFiles(object):
@@ -23,12 +25,14 @@ class CreateRunFiles(object):
     dwa = False
     extra_sampling = False
     world_name = "swarmlab"
+    settings = None
 
     def __init__(self, argv):
         try:
-            opts, args = getopt.getopt(argv, "hn:s:oldtxf:Sw:",
+            opts, args = getopt.getopt(argv, "hn:s:oldtxf:Sw:y:",
                                        ["help", "numRobots=", "circleSize=", "omni", "localization", "dwa",
-                                        "extraSampling", "experiments", "bagFileName=", "Sticks", "world"])
+                                        "extraSampling", "experiments", "bagFileName=", "Sticks", "world",
+                                        "yaml_file="])
         except getopt.GetoptError:
             print 'create.py -n <numRobots> -s <circleSize> <-h> <-l> <-d> <-x> <-f> bagFile'
             sys.exit(2)
@@ -53,6 +57,20 @@ class CreateRunFiles(object):
             elif opt in ("-f", "--bagFileName"):
                 self.use_bag_file = True
                 self.bag_file_name = str(arg)
+            elif opt in ("-y", "--yaml_file"):
+                self.yamlfile = os.path.basename(arg)
+                self.output_dir = commands.getoutput('rospack find collvoid_stage')
+                try:
+                    with open(os.path.join(self.output_dir, self.yamlfile)) as f:
+                        self.settings = yaml.load(f)
+                except Exception as e:
+                    print("coudl not load yaml file from %s", os.path.join(self.output_dir, self.yamlfile))
+                    sys.exit(2)
+                self.num_robots = self.settings['num_robots']
+                self.world_name = "5x5"
+                self.center_x = 0
+                self.center_y = 0
+
             elif opt in ("-w", "--world"):
 
                 self.world_name = arg
@@ -62,12 +80,13 @@ class CreateRunFiles(object):
                 #            useSticks = True
                 #            omni = True
         self.output_dir = commands.getoutput('rospack find collvoid_stage')
+
         self.create_world_file()
-        self.create_yaml_file()
         self.create_launch_file()
+        if self.settings is None:
+            self.create_yaml_file()
 
     def create_world_file(self):
-
         with open(self.output_dir + '/world/' + self.world_name + '_created.world', 'w') as self.worldFileNew:
             with open(self.output_dir + '/world/' + self.world_name + '_template.world', 'r') as temp_world:
                 self.worldFileNew.write(temp_world.read())
@@ -83,13 +102,27 @@ class CreateRunFiles(object):
                 line = colors.readline()
             colors.close()
             # print cols
-            for x in range(self.num_robots):
-                angle = 360.0 / self.num_robots
-                anglePrint = x * angle - 180 - 45
-                angle = x * angle - 45
-                posX = self.circle_size * math.cos(angle / 360 * 2 * math.pi)
+            if self.settings is not None:
+                for o in range(self.settings['num_obstacles']):
+                    self.worldFileNew.write(
+                        'obst( pose [ {0:f} {1:f} 0 {2:f} ] name "obst_{3:d}" color "red")\n'.format(
+                            self.settings["obst_%d" % o]['x'], self.settings["obst_%d" % o]['y'],
+                            math.degrees(self.settings["obst_%d" % o]['ang']), o))
 
-                posY = self.circle_size * math.sin(angle / 360 * 2 * math.pi)
+            for x in range(self.num_robots):
+
+                if self.settings is None:
+                    angle = 360.0 / self.num_robots
+                    anglePrint = x * angle - 180 - 45
+                    angle = x * angle - 45
+                    posX = self.circle_size * math.cos(angle / 360 * 2 * math.pi)
+
+                    posY = self.circle_size * math.sin(angle / 360 * 2 * math.pi)
+                else:
+                    posX = self.settings["robot_%d" % x]['init_pose']['x']
+                    posY = self.settings["robot_%d" % x]['init_pose']['y']
+                    anglePrint = math.degrees(self.settings["robot_%d" % x]['init_pose']['ang'])
+
                 if self.omni or self.use_sticks:
                     if not self.use_sticks:
                         self.worldFileNew.write(
@@ -132,7 +165,11 @@ class CreateRunFiles(object):
             f_launch.write(
                 '  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_stage)/world/' + self.world_name + '_map.yaml"/>\n')
             f_launch.write('  <rosparam command="load" file="$(find collvoid_stage)/params/stage_params.yaml"/>\n')
-            f_launch.write('  <rosparam command="load" file="$(find collvoid_stage)/params_created.yaml"/>\n')
+
+            if self.settings is not None:
+                f_launch.write('  <rosparam command="load" file="$(find collvoid_stage)/' +self.yamlfile + '"/>\n')
+            else:
+                f_launch.write('  <rosparam command="load" file="$(find collvoid_stage)/params_created.yaml"/>\n')
 
             if self.run_experiments:
                 f_launch.write(
@@ -158,7 +195,9 @@ class CreateRunFiles(object):
                     f_launch.write('    <arg name="robot" value="robot_{0}"/>\n'.format(x))
                     f_launch.write('  </include>\n')
                 else:
-                    f_launch.write('  <node name="fake_localization" pkg="fake_localization" ns="robot_{0}" type="fake_localization" respawn="false">\n'.format(x))
+                    f_launch.write(
+                        '  <node name="fake_localization" pkg="fake_localization" ns="robot_{0}" type="fake_localization" respawn="false">\n'.format(
+                            x))
                     f_launch.write('    <param name="~tf_prefix" value="robot_{0}" />\n'.format(x))
                     f_launch.write('    <param name="~odom_frame_id" value="/robot_{0}/odom" />\n'.format(x))
                     f_launch.write('    <param name="~base_frame_id" value="/robot_{0}/base_link" />\n'.format(x))
@@ -173,22 +212,30 @@ class CreateRunFiles(object):
                 f_launch.write('    <arg name="controlled" value="true"/>\n')
 
                 f_launch.write('  </include>\n')
-                f_launch.write('  <node pkg="collvoid_controller" type="controller_robots.py" name="controller_robots" ns="robot_{0}" output="screen" />\n'.format(x))
+                f_launch.write(
+                    '  <node pkg="collvoid_controller" type="controller_robots.py" name="controller_robots" ns="robot_{0}" output="screen" />\n'.format(
+                        x))
                 f_launch.write('\n\n')
 
             if self.run_experiments:
-                f_launch.write('  <node pkg="collvoid_controller" type="watchdog.py" name="watchdog" output="screen"/>\n')
+                f_launch.write(
+                    '  <node pkg="collvoid_controller" type="watchdog.py" name="watchdog" output="screen"/>\n')
             else:
-                f_launch.write('  <node pkg="collvoid_controller" type="controller.py" name="controller" output="screen"/>\n')
-                f_launch.write('  <node pkg="collvoid_controller" type="collvoid_visualizer.py" name="controller_viz" output="screen"/>\n')
-                f_launch.write('  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find collvoid_stage)/multi_view.rviz" output="screen" />\n')
+                f_launch.write(
+                    '  <node pkg="collvoid_controller" type="controller.py" name="controller" output="screen"/>\n')
+                f_launch.write(
+                    '  <node pkg="collvoid_controller" type="collvoid_visualizer.py" name="controller_viz" output="screen"/>\n')
+                f_launch.write(
+                    '  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find collvoid_stage)/multi_view.rviz" output="screen" />\n')
 
             s = ""
 
             for x in range(self.num_robots):
                 s += "/robot_%d/base_pose_ground_truth " % (x)
             if self.use_bag_file:
-                f_launch.write('  <node pkg="rosbag" type="record" name="rosbag" args="record {0} /position_share /stall /stall_resolved /num_run /exceeded -O $(find collvoid_stage)/bags/{1}" output="screen"/>\n'.format(s, self.bag_file_name))
+                f_launch.write(
+                    '  <node pkg="rosbag" type="record" name="rosbag" args="record {0} /position_share /stall /stall_resolved /num_run /exceeded -O $(find collvoid_stage)/bags/{1}" output="screen"/>\n'.format(
+                        s, self.bag_file_name))
 
             f_launch.write("</launch>\n")
 
