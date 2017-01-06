@@ -141,11 +141,11 @@ namespace collvoid {
             //truncate
             if (agent->controlled_ && use_truncation_) {
                 if (abs(agent->velocity_) < EPSILON) {
-                    new_agent_vo = createTruncVO(new_agent_vo, std::max((abs(velocity_) + abs(agent->velocity_)) * trunc_time_, 0.1));
+                    new_agent_vo = createTruncVO(new_agent_vo, std::max((abs(velocity_) + abs(agent->velocity_)) * trunc_time_, 0.5));
                     static_vos_.push_back(new_agent_vo);
                 }
                 else {
-                    new_agent_vo = createTruncVO(new_agent_vo, std::max((abs(velocity_) + abs(agent->velocity_)) * trunc_time_, 0.1));
+                    new_agent_vo = createTruncVO(new_agent_vo, std::max((abs(velocity_) + abs(agent->velocity_)) * trunc_time_, 2.));
                     agent_vos_.push_back(new_agent_vo);
                 }
             }

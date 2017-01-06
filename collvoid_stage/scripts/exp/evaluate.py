@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+import commands
+import os
+
 import rosbag
 import sys
 import math
@@ -15,10 +18,11 @@ def dist_to_center(a):
 
 
 def bounding_box(pos):
-    if pos[0] < -4.5 or pos[0] > -0.0 or pos[1] < -0.5 or pos[1] > 5.5:
-        return True  # in the box
-    else:
-        return False  # out of the box
+    return True
+    #if pos[0] < -4.5 or pos[0] > -0.0 or pos[1] < -0.5 or pos[1] > 5.5:
+    #    return True  # in the box
+    #else:
+    #    return False  # out of the box
 
 
 def twist_to_uv((x, pose)):
@@ -41,6 +45,9 @@ if __name__ == '__main__':
     # fname = "../../bags/collvoid_5_cocalu_True_extrasampling_True.bag"
     print "reading %s .." % (fname)
     bag = rosbag.Bag(fname)
+    work_dir = commands.getoutput('rospack find collvoid_stage')
+    work_dir = os.path.join(work_dir, 'bags')
+    bag_name = os.path.basename(fname)
 
     count = 0
 
@@ -250,7 +257,7 @@ if __name__ == '__main__':
         POS_V += "];\n"
 
         # saving trajectories to file
-        matlab_fname = "./runs/%s_run%d.m" % (fname[0:-4], run)
+        matlab_fname = work_dir + "/runs/%s_run%d.m" % (bag_name[0:-4], run)
         #matlab_fname = "../../bags/run%d.m" % run
         print "saving trajectories to %s ..." % matlab_fname
         f = open(matlab_fname, 'w')
@@ -258,7 +265,7 @@ if __name__ == '__main__':
         f.write(POS_Y)
         f.write(POS_U)
         f.write(POS_V)
-        f.write("plot(-X', Y')\n")
+        f.write("%plot(-X', Y')\n")
         f.write("%quiver(-X(1,:), Y(1,:), -U(1,:), V(1,:))\n")
         f.close()
 

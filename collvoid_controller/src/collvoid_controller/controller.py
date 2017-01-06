@@ -4,7 +4,7 @@ import rospy
 try:
     import wx
 except ImportError:
-    raise ImportError, "The wxPython module is required to run this program"
+    raise ImportError("The wxPython module is required to run this program")
 
 from std_msgs.msg import String
 from std_srvs.srv import Empty
@@ -16,9 +16,7 @@ class Controller(wx.Frame):
         wx.Frame.__init__(self, parent, id, title)
         self.parent = parent
         self.initialized = False
-        self.initialize()
 
-    def initialize(self):
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(sizer)
 

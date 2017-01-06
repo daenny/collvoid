@@ -115,7 +115,7 @@ namespace collvoid {
     bool isSafeVelocity(const std::vector<VO> &truncated_vos, Vector2 vel, bool use_truncation);
 
 
-    double distToVO(VO vo, Vector2 point, bool use_truncation, bool return_negative);
+    double distToVO(VO vo, Vector2 point, bool use_truncation, bool return_negative=false);
 
 
     void createSamplesAroundOptVel(std::vector<VelocitySample> &samples, double max_dist_x,
@@ -123,7 +123,7 @@ namespace collvoid {
                                    double max_vel_x, double min_vel_y, double max_vel_y,
                                    Vector2 opt_vel, int num_samples);
 
-    double minDistToVOs(const std::vector<VO> &vos, Vector2 point, bool use_truncation);
+    double minDistToVOs(const std::vector<VO> &vos, Vector2 point, bool use_truncation,  bool return_negative=false);
 
 
     std::vector<Vector2> minkowskiSum(const std::vector<Vector2> polygon1, const std::vector<Vector2> polygon2);

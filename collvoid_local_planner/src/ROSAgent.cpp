@@ -438,7 +438,9 @@ namespace collvoid {
             computeOrcaVelocity(pref_velocity);
         }
         else {
+            boost::mutex::scoped_lock lock(computing_lock_);
             samples_.clear();
+            safe_samples_.clear();
             obstacle_costs_->setFootprint(costmap_ros_->getRobotFootprint());
 
             if (use_dwa_score_) {
@@ -483,8 +485,10 @@ namespace collvoid {
 
             publishHoloSpeed(position_, new_velocity_, global_frame_, name_space_, speed_pub_);
             publishVOs(position_, all_vos_, use_truncation_, global_frame_, name_space_, vo_pub_);
-
-            publishPoints(position_, samples_, global_frame_, name_space_, samples_pub_);
+            if (new_sampling_ && safe_samples_.size() > 0)
+                publishPoints(position_, safe_samples_, global_frame_, name_space_, samples_pub_);
+            else
+                publishPoints(position_, samples_, global_frame_, name_space_, samples_pub_);
             publishOrcaLines(additional_orca_lines_, position_, global_frame_, name_space_, lines_pub_);
 
         }
@@ -1038,7 +1042,6 @@ namespace collvoid {
             x = std::max(std::min(vstar, vMaxAng()), limits.min_vel_x);
             y = 0.0;
 
-            //ROS_ERROR("dif_ang %f", dif_ang);
             if (std::abs(dif_ang) > 3.0 * M_PI / 4.0) {
                 if (last_twist_ang_ != 0.0)
                 {
@@ -1090,6 +1093,7 @@ namespace collvoid {
 
 
     void ROSAgent::computeClearpathVelocity(Vector2 pref_vel) {
+
         base_local_planner::LocalPlannerLimits limits = planner_util_->getCurrentLimits();
         std::sort(samples_.begin(), samples_.end(), compareVelocitySamples);
         //Vector2 new_vel = evaluateClearpathSamples(samples_, all_vos, agent_vos, human_vos, additional_orca_lines_, pref_vel, max_speed, position, heading, cur_vel, use_truncation, footprint_spec, costmap, world_model);
@@ -1099,7 +1103,6 @@ namespace collvoid {
         bool foundOutside = false;
         bool withinConstraints = true;
         int optimal = -1;
-        std::vector<VelocitySample> safeSamples;
         for (int i = 0; i < (int) samples_.size(); i++) {
             withinConstraints = true;
             valid = true;
@@ -1118,8 +1121,6 @@ namespace collvoid {
                 }
             }
 
-            double vel_x = 0.1 * samples_[i].velocity.x();
-            double vel_y = 0.1 * samples_[i].velocity.y();
 
             double footprint_cost = 0.;
             if (use_dwa_score_) {
@@ -1131,7 +1132,7 @@ namespace collvoid {
 
             if (valid && withinConstraints && footprint_cost >= 0.) {
                 new_vel = samples_[i].velocity;
-                safeSamples.push_back(samples_[i]);
+                safe_samples_.push_back(samples_[i]);
             }
             if (valid && !withinConstraints && !foundOutside) {
                 optimal = all_vos_.size();
@@ -1141,27 +1142,28 @@ namespace collvoid {
             }
         }
 
-        if (safeSamples.size()>0 && new_sampling_) {
-
-            new_vel = safeSamples[0].velocity;
+        if (safe_samples_.size()>0 && new_sampling_) {
+            std::vector<VelocitySample> samples_around_opt;
+            new_vel = safe_samples_.at(0).velocity;
             double d = minDistToVOs(agent_vos_, new_vel, use_truncation_);
             d = std::min(minDistToVOs(human_vos_, new_vel, use_truncation_), d);
-            if (d < 2 * EPSILON && (agent_vos_.size() + human_vos_.size()) >0 && collvoid::abs(pref_vel)>0.1) {
+            if (d < 0.1 && (agent_vos_.size() + human_vos_.size()) >0 && collvoid::abs(pref_vel)>0.1) {
+            //if (collvoid::abs(pref_vel)>0.1) {
 // sample around optimal vel to find safe vel:
-                std::vector<VelocitySample> samples_around_opt;
-                double max_speed = planner_util_->getCurrentLimits().max_vel_x;
-                for (size_t i=0; i< (size_t)std::max((int)safeSamples.size(), 3); i++) {
-                    createSamplesAroundOptVel(samples_around_opt, 0.2, 0.2, max_speed, max_speed, max_speed, max_speed, safeSamples[i].velocity,
-                                              15);
+                double max_speed = planner_util_->getCurrentLimits().max_vel_x/2;
+                for (size_t i=0; i< (size_t)std::min((int)safe_samples_.size(), 3); i++) {
+                    createSamplesAroundOptVel(samples_around_opt, 0.2, 0.2, -max_speed, max_speed, -max_speed, max_speed, safe_samples_.at(i).velocity,
+                                              25);
+                    samples_around_opt.push_back(safe_samples_.at(i));
                 }
 //    ROS_INFO("selected j %d, of size %d", optimal, (int) all_vos.size());
 
                 double bestDist = DBL_MAX;
-                for(VelocitySample& sample: samples_around_opt) {
-                    Vector2 vel = sample.velocity;
+                double dist_to_pref, dist_vo;
+                for(VelocitySample& cur: samples_around_opt) {
+                    Vector2 vel = cur.velocity;
                     if (isWithinAdditionalConstraints(additional_orca_lines_, vel) &&
                         isSafeVelocity(all_vos_, vel, use_truncation_)) {
-                        VelocitySample cur = sample;
 
                         double footprint_cost = 0;
                         if (use_dwa_score_) {
@@ -1171,13 +1173,18 @@ namespace collvoid {
                                 footprint_cost = 100;
                             }
                         }
+                        double vo_scale = 1;
                         double cost = footprint_cost;
-                        cost += 2 * sqrt(absSqr(cur.velocity - pref_vel));
-                        cost += 2 * (1. - minDistToVOs(agent_vos_, vel, use_truncation_));
-                        cost += 3. * ( 1. - minDistToVOs(human_vos_, vel, use_truncation_));
-                        cost += 1 * sqrt(absSqr(cur.velocity - velocity_));
+                        dist_to_pref = sqrt(absSqr(cur.velocity - pref_vel));
+                        cost += 24 * dist_to_pref;
+                        dist_vo = std::max((vo_scale - sqrt(std::max(minDistToVOs(agent_vos_, vel, use_truncation_, true),0.)))/vo_scale, 0.);
+                        cost += 24 * dist_vo;
+                        cost += 36 * std::max(( vo_scale - sqrt(std::max(minDistToVOs(human_vos_, vel, use_truncation_, true), 0.)))/vo_scale, 0.);
+                        cost += 16 * std::max(( vo_scale - sqrt(std::max(minDistToVOs(static_vos_, vel, use_truncation_, true),0.)))/vo_scale, 0.);
 
-                        sample.cost = cost;
+                        cost += 16 * sqrt(absSqr(cur.velocity - velocity_));
+                        //ROS_ERROR("cost pref %f, cost vo %f", dist_to_pref, dist_vo);
+                        cur.cost = cost/100.;
                         if (cost < bestDist) {
                             bestDist = cost;
 //ROS_WARN("best dist = %f", bestDist);
@@ -1185,17 +1192,16 @@ namespace collvoid {
                         }
                     }
                     else {
-                        sample.cost = -100;
+                        cur.cost = -1;
                     }
                 }
-                safeSamples.insert(safeSamples.end(), samples_around_opt.begin(), samples_around_opt.end());
+                safe_samples_.insert(safe_samples_.end(), samples_around_opt.begin(), samples_around_opt.end());
             }
 
-            samples_ = safeSamples;
         }
         else {
-            if (safeSamples.size()>0) {
-                new_vel = safeSamples[0].velocity;
+            if (safe_samples_.size()>0) {
+                new_vel = safe_samples_[0].velocity;
             }
             else {
                 new_vel = planner_util_->getCurrentLimits().min_trans_vel * normalize(new_vel);

@@ -23,16 +23,16 @@ class CreateRunFiles(object):
     bag_file_name = "collvoid.bag"
     use_sticks = False
     dwa = False
-    extra_sampling = False
+    extra_sampling = True
     world_name = "swarmlab"
     settings = None
-
+    visualize = False
     def __init__(self, argv):
         try:
-            opts, args = getopt.getopt(argv, "hn:s:oldtxf:Sw:y:",
+            opts, args = getopt.getopt(argv, "hn:s:oldtxf:Sw:y:v",
                                        ["help", "numRobots=", "circleSize=", "omni", "localization", "dwa",
-                                        "extraSampling", "experiments", "bagFileName=", "Sticks", "world",
-                                        "yaml_file="])
+                                        "old_cocalu", "experiments", "bagFileName=", "Sticks", "world",
+                                        "yaml_file=", "visualize"])
         except getopt.GetoptError:
             print 'create.py -n <numRobots> -s <circleSize> <-h> <-l> <-d> <-x> <-f> bagFile'
             sys.exit(2)
@@ -48,12 +48,14 @@ class CreateRunFiles(object):
                 self.omni = True
             elif opt in ("-d", "--dwa"):
                 self.dwa = True
-            elif opt in ("-t", "--extraSampling"):
-                self.extra_sampling = True
+            elif opt in ("-t", "--old_cocalu"):
+                self.extra_sampling = False
             elif opt in ("-l", "--localization"):
                 self.localization = False
             elif opt in ("-x", "--experiments"):
                 self.run_experiments = True
+            elif opt in ("-v", "--visualize"):
+                self.visualize = True
             elif opt in ("-f", "--bagFileName"):
                 self.use_bag_file = True
                 self.bag_file_name = str(arg)
@@ -171,7 +173,7 @@ class CreateRunFiles(object):
             else:
                 f_launch.write('  <rosparam command="load" file="$(find collvoid_stage)/params_created.yaml"/>\n')
 
-            if self.run_experiments:
+            if self.run_experiments and not self.visualize:
                 f_launch.write(
                     '  <node pkg="stage_ros" type="stageros" name="stageros" args="-g $(find collvoid_stage)/world/' + self.world_name + '_created.world" respawn="false" output="screen" />\n')
             else:
@@ -205,8 +207,10 @@ class CreateRunFiles(object):
 
                 if self.dwa:
                     f_launch.write('  <include file="$(find collvoid_stage)/launch/move_base_dwa.launch">\n')
-                else:
+                elif self.extra_sampling:
                     f_launch.write('  <include file="$(find collvoid_stage)/launch/move_base_collvoid.launch">\n')
+                else:
+                    f_launch.write('  <include file="$(find collvoid_stage)/launch/move_base_collvoid_legacy.launch">\n')
                 f_launch.write('    <arg name="robot" value="robot_{0}"/>\n'.format(x))
                 f_launch.write('    <arg name="type" value="{0}"/>\n'.format(type_name))
                 f_launch.write('    <arg name="controlled" value="true"/>\n')
@@ -220,6 +224,11 @@ class CreateRunFiles(object):
             if self.run_experiments:
                 f_launch.write(
                     '  <node pkg="collvoid_controller" type="watchdog.py" name="watchdog" output="screen"/>\n')
+                if self.visualize:
+                    f_launch.write(
+                        '  <node pkg="collvoid_controller" type="collvoid_visualizer.py" name="controller_viz" output="screen"/>\n')
+                    f_launch.write(
+                        '  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find collvoid_stage)/multi_view.rviz" output="screen" />\n')
             else:
                 f_launch.write(
                     '  <node pkg="collvoid_controller" type="controller.py" name="controller" output="screen"/>\n')

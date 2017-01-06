@@ -102,7 +102,7 @@ namespace collvoid{
 
         //VO stuff
         std::vector<VO> all_vos_, agent_vos_, static_vos_, human_vos_;
-        std::vector<VelocitySample> samples_;
+        std::vector<VelocitySample> samples_, safe_samples_;
 
 
 

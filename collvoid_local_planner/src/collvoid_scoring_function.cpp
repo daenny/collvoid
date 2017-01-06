@@ -163,7 +163,7 @@ namespace collvoid_scoring_function
         else {
             test_vel = rotateVectorByAngle(vel_x, vel_y, me_->heading_);
         }*/
-        test_vel = time_diff * rotateVectorByAngle(vel_x, vel_y, -th_s + me_->heading_ + vel_theta/2);
+        test_vel = rotateVectorByAngle(vel_x, vel_y, -th_s + me_->heading_ + vel_theta/4.)/time_diff;
         //test_vel = Vector2(vel_x,vel_y);
 
         double cost = calculateVelCosts(test_vel, me_->agent_vos_, me_->use_truncation_);
@@ -175,9 +175,14 @@ namespace collvoid_scoring_function
             cost = 1 + (n * (n + 1) /2.) * 2./cost;
         }
 
-        else
-            cost = std::max((max_dist_vo_-sqrt(minDistToVOs(me_->all_vos_, test_vel, use_truncation_)))/max_dist_vo_, 0.);
+        else {
+            cost = 0.4 * std::max(
+                    (max_dist_vo_ - sqrt(std::max(minDistToVOs(me_->agent_vos_, test_vel, use_truncation_, true), 0.))) /
+                    max_dist_vo_, 0.);
 
+            cost += 0.5 * std::max(( max_dist_vo_ - sqrt(std::max(minDistToVOs(me_->human_vos_, test_vel, use_truncation_, true), 0.)))/max_dist_vo_, 0.);
+            cost += 0.3* std::max(( max_dist_vo_ - sqrt(std::max(minDistToVOs(me_->static_vos_, test_vel, use_truncation_, true), 0.)))/max_dist_vo_, 0.);
+        }
         VelocitySample v;
         v.velocity = test_vel;
         v.cost = cost;

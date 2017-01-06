@@ -6,7 +6,7 @@ import random
 
 from stage_ros.msg import Stall
 from std_msgs.msg import String
-from std_srvs.srv import Empty
+from std_srvs.srv import Empty, Trigger
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped, Quaternion, Twist
 from nav_msgs.msg import Odometry
 from socket import gethostname
@@ -27,6 +27,7 @@ class ControllerRobots(object):
     delayed_goal = None
     ground_truth = None
     zero_count = 0
+
     def __init__(self):
         self.stopped = True
 
@@ -49,9 +50,9 @@ class ControllerRobots(object):
 
         if len(self.goals) > 0:
             rospy.loginfo("goals: %s" % str(self.goals))
-            self.cur_goal = 0
+            self.cur_goal = -1
             self.num_goals = len(self.goals)
-            self.cur_goal_msg = self.return_cur_goal()
+            self.cur_goal_msg = None
 
         rospy.loginfo("Name: %s", self.hostname)
         self.pub_init_guess = rospy.Publisher("initialpose", PoseWithCovarianceStamped, queue_size=1)
@@ -68,8 +69,14 @@ class ControllerRobots(object):
         self.sub_stall = rospy.Subscriber("stall", Stall, self.cb_stall)
 
         self.reset_srv = rospy.ServiceProxy('move_base/clear_local_costmap', Empty)
-        self.global_reset_srv = rospy.ServiceProxy('move_base/clear_costmaps', Empty)
 
+        self.global_reset_srv = rospy.ServiceProxy('move_base/clear_costmaps', Empty)
+        rospy.Service('is_done', Trigger, self.cb_is_done)
+
+    def cb_is_done(self, req):
+        if self.client.get_state() == actionlib.GoalStatus.SUCCEEDED:
+            return {'success': True}
+        return {'success': False}
 
     def return_cur_goal(self):
         goal = MoveBaseGoal()
@@ -86,13 +93,12 @@ class ControllerRobots(object):
         self.stalled = msg.stall
 
     def cb_common_positions(self, msg):
-        if self.stopped:
+        if self.stopped or self.cur_goal_msg is None:
             return  # rospy.loginfo("%s"%rospy.get_master())
         if msg.robot_id == self.hostname:
             if dist(msg.pose.pose, self.cur_goal_msg.target_pose.pose) < THRESHOLD:
                 if self.client.get_state() == actionlib.GoalStatus.SUCCEEDED:
                     rospy.loginfo("Reached last goal")
-                    rospy.logerr("I AM DONE")
                     self.stopped = True
 
                 #if self.cur_goal == self.num_goals-1 and not self.circling:
@@ -173,9 +179,13 @@ class ControllerRobots(object):
             self.stopped = not self.stopped
 
         if "Start" in msg.data:
-            self.stopped = False
             self.global_reset_srv()
             self.reset_srv()
+            if self.cur_goal == -1:
+                self.cur_goal = 0
+            self.cur_goal_msg = self.return_cur_goal()
+            rospy.loginfo("sending new goal %d/%d", self.cur_goal, self.num_goals)
+            self.stopped = False
             self.client.send_goal(self.cur_goal_msg)
 
         if "init Guess" in msg.data:
@@ -210,11 +220,14 @@ class ControllerRobots(object):
             rospy.loginfo("Set circling to %s", str(self.circling))
 
         if "next Goal" in msg.data:
-            self.stopped = False
             self.cur_goal += 1
             if self.cur_goal == self.num_goals:
                 self.cur_goal = 0
+            self.global_reset_srv()
+            self.reset_srv()
+            rospy.loginfo("sending new goal %d/%d", self.cur_goal, self.num_goals)
             self.cur_goal_msg = self.return_cur_goal()
+            self.stopped = False
             self.client.send_goal(self.cur_goal_msg)
             rospy.loginfo("Send new Goal")
 

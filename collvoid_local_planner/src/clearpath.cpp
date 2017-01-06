@@ -697,14 +697,14 @@ namespace collvoid {
         return true;
     }
 
-    double minDistToVOs(const std::vector<VO>& vos, Vector2 point, bool use_truncation) {
+    double minDistToVOs(const std::vector<VO>& vos, Vector2 point, bool use_truncation, bool return_negative) {
         double dist = DBL_MAX;
         if (vos.size() == 0) {
 
             return 1.;
         }
         for(VO vo: vos) {
-            double d = distToVO(vo, point, use_truncation, true);
+            double d = distToVO(vo, point, use_truncation, return_negative);
             if (d < dist) {
                 dist = d;
             }
@@ -712,7 +712,7 @@ namespace collvoid {
         return dist;
     }
 
-    double distToVO(VO vo, Vector2 point, bool use_truncation, bool return_negative=false) {
+    double distToVO(VO vo, Vector2 point, bool use_truncation, bool return_negative) {
         double factor = 1;
         if (isInsideVO(vo, point, use_truncation)) {
             if (!return_negative)
@@ -748,10 +748,10 @@ namespace collvoid {
 
         double min_x, max_x, min_y, max_y;
 
-        min_x = std::max(-max_vel_x, opt_vel.x() - max_dist_x);
+        min_x = std::max(min_vel_x, opt_vel.x() - max_dist_x);
         max_x = std::min(max_vel_x, opt_vel.x() + max_dist_x);
 
-        min_y = std::max(-max_vel_y, opt_vel.y() - max_dist_y);
+        min_y = std::max(min_vel_y, opt_vel.y() - max_dist_y);
         max_y = std::min(max_vel_y, opt_vel.y() + max_dist_y);
 
         double step_x, step_y;
