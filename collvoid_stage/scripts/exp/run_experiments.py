@@ -20,10 +20,10 @@ rand.seed(0)
 
 circle = False
 verbose = True
-visualize = True
+visualize = False
 
 NUM_OBSTACLES = [4]
-NUM_ROBOTS = [5, 4, 3, 2]
+NUM_ROBOTS = [6, 5, 4, 3, 2]
 SETTINGS = ["cocalu_dwa", "cocalu_sampling", "cocalu"]
 
 YAML_TEMPLATE = 'goals_robots_R_obstacles_O_created.yaml'
