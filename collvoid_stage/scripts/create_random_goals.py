@@ -53,7 +53,6 @@ class CreateRandomGoals(object):
         yaml_file = dict()
         for n in range(self.num_robots):
             yaml_file["_".join(['robot', str(n)])] = dict()
-            yaml_file["_".join(['robot', str(n)])]['goals'] = list()
 
         yaml_file['num_robots'] = self.num_robots
         yaml_file['num_obstacles'] = self.num_obstacles
@@ -62,6 +61,8 @@ class CreateRandomGoals(object):
             print("generating obstacles")
 
             self.created_obstacles = []
+            for idx in range(self.num_robots):
+                yaml_file["_".join(['robot', str(idx)])]['goals'] = list()
 
             for obstacle in range(self.num_obstacles):
                 pos = None

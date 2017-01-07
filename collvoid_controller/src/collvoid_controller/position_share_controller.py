@@ -19,6 +19,7 @@ global_frame = rospy.get_param('~global_frame', '/map')
 last_seen_threshold = rospy.get_param('~last_seen_threshold', 2.)
 
 Z_HEIGHT = 0.
+STATIC_SCALE = 0.95
 
 
 def quat_array_from_msg(o):
@@ -162,8 +163,8 @@ class PositionShareController(object):
                     p_x = p.x
                     p_y = p.y
                     p_rotated = xform_foot((p_x, p_y))
-                    p_x = p_rotated[0] + pos_rel[0]
-                    p_y = p_rotated[1] + pos_rel[1]
+                    p_x = STATIC_SCALE * p_rotated[0] + pos_rel[0]
+                    p_y = STATIC_SCALE * p_rotated[1] + pos_rel[1]
                     cloud_points.append((p_x, p_y, Z_HEIGHT))
             else:
                 if self.neighbors[name]['stationary']:

@@ -282,39 +282,38 @@ void DWAPlanner::updatePlanAndLocalCosts(tf::Stamped<tf::Pose> global_pose,
     geometry_msgs::PoseStamped goal_pose = global_plan_.back();
 
     Eigen::Vector3f pos(global_pose.getOrigin().getX(), global_pose.getOrigin().getY(), tf::getYaw(global_pose.getRotation()));
-    double sq_dist =
-        (pos[0] - goal_pose.pose.position.x) * (pos[0] - goal_pose.pose.position.x) +
-        (pos[1] - goal_pose.pose.position.y) * (pos[1] - goal_pose.pose.position.y);
+       double sq_dist =
+                (pos[0] - goal_pose.pose.position.x) * (pos[0] - goal_pose.pose.position.x) +
+                (pos[1] - goal_pose.pose.position.y) * (pos[1] - goal_pose.pose.position.y);
 
-    // we want the robot nose to be drawn to its final position
-    // (before robot turns towards goal orientation), not the end of the
-    // path for the robot center. Choosing the final position after
-    // turning towards goal orientation causes instability when the
-    // robot needs to make a 180 degree turn at the end
-    std::vector<geometry_msgs::PoseStamped> front_global_plan = global_plan_;
-    double angle_to_goal = atan2(goal_pose.pose.position.y - pos[1], goal_pose.pose.position.x - pos[0]);
-    front_global_plan.back().pose.position.x = front_global_plan.back().pose.position.x +
-      forward_point_distance_ * cos(angle_to_goal);
-    front_global_plan.back().pose.position.y = front_global_plan.back().pose.position.y + forward_point_distance_ *
-      sin(angle_to_goal);
+        // we want the robot nose to be drawn to its final position
+        // (before robot turns towards goal orientation), not the end of the
+        // path for the robot center. Choosing the final position after
+        // turning towards goal orientation causes instability when the
+        // robot needs to make a 180 degree turn at the end
+        std::vector<geometry_msgs::PoseStamped> front_global_plan = global_plan_;
+        double angle_to_goal = atan2(goal_pose.pose.position.y - pos[1], goal_pose.pose.position.x - pos[0]);
+        front_global_plan.back().pose.position.x = front_global_plan.back().pose.position.x +
+                                                   forward_point_distance_ * cos(angle_to_goal);
+        front_global_plan.back().pose.position.y = front_global_plan.back().pose.position.y + forward_point_distance_ *
+                                                                                              sin(angle_to_goal);
 
-    goal_front_costs_.setTargetPoses(front_global_plan);
-    
-    // keeping the nose on the path
-    if (sq_dist > goal_heading_sq_dist_) {
-        front_global_plan.back().pose.position.x = front_global_plan.back().pose.position.x + forward_point_distance_ * cos(angle_to_goal);
-        front_global_plan.back().pose.position.y = front_global_plan.back().pose.position.y + forward_point_distance_ * sin(angle_to_goal);
-        double resolution = planner_util_->getCostmap()->getResolution();
-        alignment_costs_.setScale(resolution * pdist_scale_ * 0.5);
-        goal_alignment_cost_.setScale(0);
-        // costs for robot being aligned with path (nose on path, not ju
-        alignment_costs_.setTargetPoses(global_plan_);
-    } else {
-        // once we are close to goal, trying to keep the nose close to anything destabilizes behavior.
-        alignment_costs_.setScale(0.0);
-        goal_alignment_cost_.setScale(heading_bias_);
+        goal_front_costs_.setTargetPoses(front_global_plan);
+
+
+        // keeping the nose on the path
+        if (sq_dist > forward_point_distance_ * forward_point_distance_ ) {
+            double resolution = planner_util_->getCostmap()->getResolution();
+            alignment_costs_.setScale(resolution * pdist_scale_ * 0.5);
+            // costs for robot being aligned with path (nose on path, not ju
+            alignment_costs_.setTargetPoses(global_plan_);
+        } else {
+            // once we are close to goal, trying to keep the nose close to anything destabilizes behavior.
+            alignment_costs_.setScale(0.0);
+        }
+
     }
-}
+
 
 
 /*

@@ -149,7 +149,7 @@ private:
     tf::Stamped<tf::Pose> current_pose_;
 
     base_local_planner::LatchedStopRotateController latchedStopRotateController_;
-
+    base_local_planner::WorldModel* world_model_;
 
     bool initialized_;
 

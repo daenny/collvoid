@@ -111,6 +111,7 @@ namespace collvoid_dwa_local_planner
             costmap_2d::Costmap2D *costmap = costmap_ros_->getCostmap();
 
             planner_util_.initialize(tf, costmap, costmap_ros_->getGlobalFrameID());
+            world_model_ = new base_local_planner::CostmapModel(*costmap_ros->getCostmap());
 
             //create the actual planner that we'll use.. it'll configure itself from the parameter server
             dp_ = boost::shared_ptr<DWAPlanner>(new DWAPlanner(name, &planner_util_));
@@ -171,6 +172,7 @@ namespace collvoid_dwa_local_planner
         latchedStopRotateController_.resetLatching();
 
         ROS_INFO("Got new plan");
+        blocked_path_count_ = 0;
         return dp_->setPlan(orig_global_plan);
     }
 
@@ -209,6 +211,7 @@ namespace collvoid_dwa_local_planner
     {
         //make sure to clean things up
         delete dsrv_;
+        delete world_model_;
     }
 
     bool DWAPlannerROS::dwaComputeVelocityCommands(tf::Stamped<tf::Pose> &global_pose, geometry_msgs::Twist &cmd_vel)
@@ -358,6 +361,7 @@ namespace collvoid_dwa_local_planner
             distance = distance2D(trajectory[i], robot_pose_msg);
             if (distance < 0.2 || distance > obstacle_max_distance_)  // TODO use footprint!
                 continue;
+
 
             double x = trajectory[i].pose.position.x;
             double y = trajectory[i].pose.position.y;

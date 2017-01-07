@@ -20,7 +20,8 @@
             <param name="~/local_costmap/global_frame" value="$(arg robot)/odom" />
             <!--<param name="~DWAPlannerROS/global_frame_id" value="$(arg robot)/odom" />-->
             <param name="base_local_planner" value="collvoid_dwa_local_planner/DWAPlannerROS" />
-            <param name="base_global_planner" value="global_planner/GlobalPlanner" />
+            <!--<param name="base_global_planner" value="global_planner/GlobalPlanner" />-->
+            <param name="base_global_planner" value="navfn/NavfnROS" />-
             <!--<param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" />-->
 
         </node>
