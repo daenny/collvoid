@@ -38,6 +38,14 @@ class Watchdog(object):
         rospy.loginfo('init watchdog')
         self.NUM_REPETITIONS = rospy.get_param("~num_repetitions")  # How many repititions in total?
         rospy.sleep(8)  # wait 8 sec, so everything is started and all topics are there
+
+        # publisher for collisions
+        self.stall_pub = rospy.Publisher("/stall", Int32, queue_size=1)
+        self.stall_resolved_pub = rospy.Publisher("/stall_resolved", Int32, queue_size=1)
+        self.exceeded_pub = rospy.Publisher("/exceeded", Bool, queue_size=1)
+        self.num_run_pub = rospy.Publisher("/num_run", Int32, queue_size=1)
+        self.obst_pub = rospy.Publisher("/obstacles", PoseStamped, queue_size=1)
+
         topics = rospy.get_published_topics()
         # stall topics
         stall_subs = []
@@ -62,13 +70,6 @@ class Watchdog(object):
                 self.obst_subs.append(rospy.Subscriber(t, Odometry, self.cb_obst, i, queue_size=1))
                 i += 1
         self.obst_published = [False] * len(self.obst_subs)
-
-        # publisher for collisions
-        self.stall_pub = rospy.Publisher("/stall", Int32, queue_size=1)
-        self.stall_resolved_pub = rospy.Publisher("/stall_resolved", Int32, queue_size=1)
-        self.exceeded_pub = rospy.Publisher("/exceeded", Bool, queue_size=1)
-        self.num_run_pub = rospy.Publisher("/num_run", Int32, queue_size=1)
-        self.obst_pub = rospy.Publisher("/obstacles", PoseStamped, queue_size=1)
 
         self.start_time = rospy.Time.now()
         self.controller = ControllerHeadless()
