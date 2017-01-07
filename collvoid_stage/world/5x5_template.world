@@ -34,7 +34,7 @@ define hokuyo ranger
 (
   sensor(
     range [0.0 4.0]
-    fov 270
+    fov 200
     samples 270
     size [ 0.05 0.05 0.1 ]
   )
@@ -80,7 +80,7 @@ define youbot position
 
 define obst model
 (
-  size [0.400 0.300 0.400]
+  size [0.400 0.400 0.400]
   origin [0.000 0.000 0.000 0.000]
   gui_nose 1
 )

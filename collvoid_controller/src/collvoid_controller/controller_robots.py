@@ -15,7 +15,7 @@ from move_base_msgs.msg import *
 
 import tf.transformations
 
-MAX_ZERO_COUNT = 10
+MAX_ZERO_COUNT = 20
 THRESHOLD = 0.15
 
 
@@ -142,7 +142,8 @@ class ControllerRobots(object):
                     twist = Twist()
                     twist.linear.x = 0.05
                     self.pub_cmd_vel.publish(twist)
-
+                #self.client.cancel_all_goals()
+                #self.client.send_goal(self.cur_goal_msg)
                 str = "%s Start" % self.hostname
                 self.pub_commands_robot.publish(String(str))
         else:
@@ -232,8 +233,8 @@ class ControllerRobots(object):
             rospy.loginfo("Send new Goal")
 
         if "send delayed Goal" in msg.data:
-            self.stopped = False
             if self.delayed_goal is not None:
+                self.stopped = False
                 self.client.send_goal(self.delayed_goal)
 
 

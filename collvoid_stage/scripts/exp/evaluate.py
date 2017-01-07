@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import commands
+import glob
 import os
 
 import rosbag
@@ -7,6 +8,19 @@ import sys
 import math
 import numpy
 import tf
+
+algorithms = {'cocalu_dwa_.bag': {'name': 'dwa'},
+              'cocalu_sampling_.bag': {'name': 'sampling'},
+              'cocalu_.bag': {'name': 'legacy'}
+}
+
+results_keys = ["collisions",
+                "avg_time", "avg_time_std",
+                "avg_distance", "avg_distance_std",
+                "avg_jerk_lin", "avg_jerk_lin_std",
+                "avg_jerk_ang", "avg_jerk_ang_std"
+                ]
+results_file_name = "0-summary.m"
 
 
 def dist(a, b):
@@ -36,30 +50,73 @@ def twist_to_uv((x, pose)):
     return (math.cos(alpha) * abs(x), math.sin(alpha) * abs(x))
 
 
-if __name__ == '__main__':
-    if not (len(sys.argv) == 2):
-       print "usage: evaluate.py <filename>"
-       sys.exit(-1)
+def print_dict_key(key, results_dict, algo, num_robots):
+    line = algo + '_'
+    line += key + '=['
+    for n in num_robots:
+        line += str(results_dict[n][key]) + ', '
+    line = line[:-2]
+    line += "];\n"
+    return line
 
-    fname = argv = sys.argv[1]
-    # fname = "../../bags/collvoid_5_cocalu_True_extrasampling_True.bag"
-    print "reading %s .." % (fname)
-    bag = rosbag.Bag(fname)
-    work_dir = commands.getoutput('rospack find collvoid_stage')
-    work_dir = os.path.join(work_dir, 'bags')
-    bag_name = os.path.basename(fname)
+
+def print_dict(results_dict, res_file):
+    num_robots = list(results_dict['num_robots'])
+    num_robots.sort()
+    num_robots = [str(x) for x in num_robots]
+    with open(res_file, 'w') as f:
+        for algo in algorithms:
+            f.write("%% " + algo[:-5] + " results\n\n")
+            for result_key in results_keys:
+                f.write(print_dict_key(result_key, results_dict[algo], algorithms[algo]['name'], num_robots))
+            f.write("%% end results\n\n")
+        for result_key in results_keys:
+            line = result_key + ' = ['
+            for algo in algorithms:
+                line += algorithms[algo]['name'] + "_" + result_key
+                line += '; '
+            line = line[:-2]
+            line += "];\n"
+            f.write(line)
+
+
+
+
+
+def evaluate_dir(dirname, create_matlab_runs):
+    bag_files = glob.glob(os.path.join(dirname, "*.bag"))
+
+    results = {'num_robots': set()}
+    for algo in algorithms:
+        results[algo] = {}
+    for bag in bag_files:
+        num, res_dict = evalutate_bagfile(bag, create_matlab_runs)
+        results['num_robots'].add(int(num))
+        for algo in algorithms:
+            if algo in bag:
+                results[algo][num] = res_dict
+
+    res_file = os.path.join(dirname, results_file_name)
+    print_dict(results, res_file)
+
+
+def evalutate_bagfile(bagfile, create_matlab_runs):
+    bag = rosbag.Bag(bagfile)
+
+    # work_dir = commands.getoutput('rospack find collvoid_stage')
+    # work_dir = os.path.join(work_dir, 'bags')
+    bag_name = os.path.basename(bagfile)
+    work_dir = os.path.dirname(bagfile)
+    # work_dir = os.path.join(work_dir, bag_name.split("_")[0])
 
     count = 0
-
     runs = []
-    robots = {}
+
     stall = []
     stall_resolved = []
-    num_robots = -1
     exceeded = []
     sys.stdout.write("evaluating run ...")
 
-    distance = 0
     skipped = 0
     # read all messages
     run = -1
@@ -85,13 +142,13 @@ if __name__ == '__main__':
             continue
         if stopped:
             continue
-        if "ground_truth" in topic:
+        if "ground_truth" in topic and "robot" in topic:  # now we have also obstacle topics
             robot_name = topic[1:8]
         #    continue
         # which run
         # run = msg.run
-        #if topic == "/position_share":
-        #    robot_name = msg.robot_id
+        # if topic == "/position_share":
+        #   robot_name = msg.robot_id
             count += 1
             # create new run
             if len(runs) < run + 1:
@@ -100,7 +157,7 @@ if __name__ == '__main__':
                 runs.append({})
 
             # create new robot
-            if not robot_name in runs[run]:
+            if robot_name not in runs[run]:
                 # print "first time i have seen %s in run %d"%(robot_name, run)
                 runs[run][robot_name] = {}
                 robot = runs[run][robot_name]
@@ -187,87 +244,92 @@ if __name__ == '__main__':
     distance_array = []
     loc_err_array = []
 
-    COLLISION_TIME = 60
-
     # run loop
     for run in range(len(runs)):
         print "run %d (%d robots):" % (run, num_robots)
+        if create_matlab_runs:
+            # generating trajectories for matlab
 
-        # generating trajectories for matlab
+            POS_X = "X = ["
+            POS_Y = "Y = ["
+            POS_U = "U = ["
+            POS_V = "V = ["
 
-        POS_X = "X = ["
-        POS_Y = "Y = ["
-        POS_U = "U = ["
-        POS_V = "V = ["
+            max_length = 0
+            for robot_name in runs[run]:
+                robot = runs[run][robot_name]
+                max_length = max(max_length, len(robot['pos_ground_truth']))
 
-        max_length = 0
-        for robot_name in runs[run]:
-            robot = runs[run][robot_name]
-            max_length = max(max_length, len(robot['pos_ground_truth']))
+            for robot_name in runs[run]:
+                robot = runs[run][robot_name]
+                # unpack x and y
+                pos_x = map(lambda x: x[0], robot['pos_ground_truth'])
+                while len(pos_x) < max_length:
+                    pos_x.append(pos_x[-1])
 
-        for robot_name in runs[run]:
-            robot = runs[run][robot_name]
-            # unpack x and y
-            pos_x = map(lambda x: x[0], robot['pos_ground_truth'])
-            while len(pos_x) < max_length:
-                pos_x.append(pos_x[-1])
+                pos_y = map(lambda x: x[1], robot['pos_ground_truth'])
+                while len(pos_y) < max_length:
+                    pos_y.append(pos_y[-1])
 
-            pos_y = map(lambda x: x[1], robot['pos_ground_truth'])
-            while len(pos_y) < max_length:
-                pos_y.append(pos_y[-1])
+                pos_u = map(lambda x: x[0], robot['twist_ground_truth'])
+                while len(pos_u) < max_length:
+                    pos_u.append(0)
 
-            pos_u = map(lambda x: x[0], robot['twist_ground_truth'])
-            while len(pos_u) < max_length:
-                pos_u.append(0)
+                pos_v = map(lambda x: x[1], robot['twist_ground_truth'])
+                while len(pos_v) < max_length:
+                    pos_v.append(0)
 
-            pos_v = map(lambda x: x[1], robot['twist_ground_truth'])
-            while len(pos_v) < max_length:
-                pos_v.append(0)
+                for x in pos_x:
+                    POS_X += str(x) + ", "
+                POS_X = POS_X[0:-2]  # delete last ,
+                POS_X += ";\n"
 
-            for x in pos_x:
-                POS_X += str(x) + ", "
-            POS_X = POS_X[0:-2]  # delete last ,
-            POS_X += ";\n"
+                for y in pos_y:
+                    POS_Y += str(y) + ", "
+                POS_Y = POS_Y[0:-2]  # delete last ,
+                POS_Y += ";\n"
 
-            for y in pos_y:
-                POS_Y += str(y) + ", "
-            POS_Y = POS_Y[0:-2]  # delete last ,
-            POS_Y += ";\n"
+                for u in pos_u:
+                    POS_U += str(u) + ", "
+                POS_U = POS_U[0:-2]  # delete last ,
+                POS_U += ";\n"
 
-            for u in pos_u:
-                POS_U += str(u) + ", "
-            POS_U = POS_U[0:-2]  # delete last ,
-            POS_U += ";\n"
+                for v in pos_v:
+                    POS_V += str(v) + ", "
+                POS_V = POS_V[0:-2]  # delete last ,
+                POS_V += ";\n"
 
-            for v in pos_v:
-                POS_V += str(v) + ", "
-            POS_V = POS_V[0:-2]  # delete last ,
-            POS_V += ";\n"
+            POS_X = POS_X[0:-2]  # delete last ; and \n
+            POS_X += "];\n"
 
-        POS_X = POS_X[0:-2]  # delete last ; and \n
-        POS_X += "];\n"
+            POS_Y = POS_Y[0:-2]  # delete last ; and \n
+            POS_Y += "];\n"
 
-        POS_Y = POS_Y[0:-2]  # delete last ; and \n
-        POS_Y += "];\n"
+            POS_U = POS_U[0:-2]  # delete last ; and \n
+            POS_U += "];\n"
 
-        POS_U = POS_U[0:-2]  # delete last ; and \n
-        POS_U += "];\n"
+            POS_V = POS_V[0:-2]  # delete last ; and \n
+            POS_V += "];\n"
 
-        POS_V = POS_V[0:-2]  # delete last ; and \n
-        POS_V += "];\n"
+            matlab_path = os.path.join(work_dir, 'runs')
+            if not os.path.exists(matlab_path):
+                os.makedirs(matlab_path)
 
-        # saving trajectories to file
-        matlab_fname = work_dir + "/runs/%s_run%d.m" % (bag_name[0:-4], run)
-        #matlab_fname = "../../bags/run%d.m" % run
-        print "saving trajectories to %s ..." % matlab_fname
-        f = open(matlab_fname, 'w')
-        f.write(POS_X)
-        f.write(POS_Y)
-        f.write(POS_U)
-        f.write(POS_V)
-        f.write("%plot(-X', Y')\n")
-        f.write("%quiver(-X(1,:), Y(1,:), -U(1,:), V(1,:))\n")
-        f.close()
+            # saving trajectories to file
+            if "seed" in bag_name:
+                matlab_fname = os.path.join(matlab_path, "%s_run%d.m" % (bag_name.split("seed")[0], run))
+            else:
+                matlab_fname = os.path.join(matlab_path, "%s_run%d.m" % (bag_name[0:-4], run))
+
+            print "saving trajectories to %s ..." % matlab_fname
+
+            with open(matlab_fname, 'w') as f:
+                f.write(POS_X)
+                f.write(POS_Y)
+                f.write(POS_U)
+                f.write(POS_V)
+                f.write("%plot(-X', Y')\n")
+                f.write("%quiver(-X(1,:), Y(1,:), -U(1,:), V(1,:))\n")
 
         if len(runs[run]) != num_robots:
             print "!" * 10 + " NOT ALL ROBOTS STARTED " + "!" * 10
@@ -308,16 +370,6 @@ if __name__ == '__main__':
             # avg_loc_error = sum(robot['loc_error']) / len(robot['loc_error'])
 
             in_box = map(lambda x: bounding_box(x), robot['pos_ground_truth'])
-            # if not min(in_box):
-            #    print "!" * 10 + " ROBOT OUT OF BOX " + "!" * 10
-            #    skip = True
-            #    out_of_box_count += 1
-            #    break
-
-
-
-
-            # if (time > COLLISION_TIME):
 
             #    if dist_to_center(robot['last_pos_ground_truth']) > 2.0:
             #        print "!" * 10 + " DEADLOCK " + "!" * 10
@@ -325,13 +377,12 @@ if __name__ == '__main__':
             #    else:
             #        print "!" * 10 + " COLLISION " + "!" * 10
             #        collision_count += 1
-            #    
+            #
             #    skip = True
             #    break
             #
             if run_max_time < time:
                 run_max_time = time
-
 
             # compute linear jerk cost
             dts = robot['dt']
@@ -352,7 +403,10 @@ if __name__ == '__main__':
                 # skip = True
                 small_jerk_count += 1
                 # break
-
+            if distance < 0.1:
+                print "!" * 10 + " 0 DIST " + "!" * 10
+                skip = True
+                break
             # compute angular jerk cost
 
             vel_ang = robot['vel_ang']
@@ -422,6 +476,16 @@ if __name__ == '__main__':
     coll_res_total = numpy.sum(stall_resolved)
     # coll_res_std = numpy.std(stall_resolved)
 
+    results_dict = {"collisions": coll_total,
+                    "avg_time": time_max_avg,
+                    "avg_time_std": time_max_std,
+                    "avg_distance": distance_avg,
+                    "avg_distance_std": distance_std,
+                    "avg_jerk_lin": jerk_lin_avg,
+                    "avg_jerk_lin_std": jerk_lin_avg,
+                    "avg_jerk_ang": jerk_ang_avg,
+                    "avg_jerk_ang_std": jerk_ang_std}
+
     localization = fname.find("True")
     if localization < 0:
         localization = False
@@ -433,17 +497,25 @@ if __name__ == '__main__':
         num_robots, str(localization), run_count, coll_total, coll_runs, coll_res_total, coll_resolved_runs, exceeded_count,
         out_of_box_count, not_started_count, small_jerk_count, time_max_avg, time_max_std, distance_avg, distance_std,
         jerk_lin_avg, jerk_lin_std, jerk_ang_avg, jerk_ang_std, loc_err_avg, loc_err_std)
-    #    print stall
-    #   print stall_resolved
-    #
-    #print exceeded
-    print "collisions=[collisions %f];"%coll_total
-    print "avg_time=[avg_time %f];"%time_max_avg
-    print "avg_time_var=[avg_time_var %f];"%time_max_std
-    print "avg_distance=[avg_distance %f];"%distance_avg
-    print "avg_distance_std=[avg_distance_std %f];"%distance_std
-    print "avg_jerk_lin=[avg_jerk_lin %f];"%jerk_lin_avg
-    print "avg_jerk_lin_std=[avg_jerk_lin_std %f];"%jerk_lin_std
-    print "avg_jerk_ang=[avg_jerk_ang %f];"%jerk_ang_avg
-    print "avg_jerk_ang_std=[avg_jerk_ang_std %f];"%jerk_ang_std
+
+    return str(num_robots), results_dict
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+       print "usage: evaluate.py <dirname> <opt. no run files>"
+       sys.exit(-1)
+
+    fname = sys.argv[1]
+    create_runs = True
+    if len(sys.argv) == 3:
+        create_runs = False
+
+    path = os.path.join(os.getcwd(), fname)
+    print "reading %s .." % (path)
+    evaluate_dir(path, create_runs)
+
+
+
+
 

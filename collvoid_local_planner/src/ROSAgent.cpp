@@ -112,11 +112,11 @@ namespace collvoid {
 
 
     ROSAgent::ROSAgent():
-        initialized_ (false),
-        min_dist_obst_ (DBL_MAX)
-        {
-            cur_allowed_error_ = 0;
-        }
+            initialized_ (false),
+            min_dist_obst_ (DBL_MAX)
+    {
+        cur_allowed_error_ = 0;
+    }
 
     ROSAgent::~ROSAgent() {
         delete obstacle_costs_;
@@ -243,21 +243,28 @@ namespace collvoid {
 
             std::vector<Vector2> minkowski_footprint;
             for(geometry_msgs::Point32 p: msg.footprint.polygon.points) {
-                            minkowski_footprint.push_back(Vector2(p.x, p.y));
-                            geometry_msgs::Point px;
+                minkowski_footprint.push_back(Vector2(p.x, p.y));
+                geometry_msgs::Point px;
 
-                        }
+            }
+            if (minkowski_footprint.size()<3 && this->use_polygon_footprint_) {
+                ROS_FATAL("Me: %s, configured to use polygon footprint but size < 3, size is %d", msg.robot_id.c_str(), (int)minkowski_footprint.size());
+                return false;
+            }
             footprint_lines_.clear();
-            collvoid::Vector2 first = collvoid::Vector2(minkowski_footprint.at(0).x(), minkowski_footprint.at(0).y());
+            collvoid::Vector2 first = collvoid::Vector2(minkowski_footprint.at(0).x(),
+                                                        minkowski_footprint.at(0).y());
             collvoid::Vector2 old = collvoid::Vector2(minkowski_footprint.at(0).x(), minkowski_footprint.at(0).y());
             //add linesegments for footprint
             for (size_t i = 0; i < minkowski_footprint.size(); i++) {
-                collvoid::Vector2 point = collvoid::Vector2(minkowski_footprint.at(i).x(), minkowski_footprint.at(i).y());
+                collvoid::Vector2 point = collvoid::Vector2(minkowski_footprint.at(i).x(),
+                                                            minkowski_footprint.at(i).y());
                 footprint_lines_.push_back(std::make_pair(old, point));
                 old = point;
             }
             //add last segment
             footprint_lines_.push_back(std::make_pair(old, first));
+
 
             this->footprint_ = rotateFootprint(minkowski_footprint, this->heading_);
             if (this->footprint_.size() < 3 && use_polygon_footprint_)
@@ -405,7 +412,10 @@ namespace collvoid {
 
 
     void ROSAgent::computeNewVelocity(Vector2 pref_velocity, geometry_msgs::Twist &cmd_vel) {
-        getMe();
+        if (!getMe()) {
+            ROS_WARN("Could not get me from service");
+            return;
+        }
         getNeighbors();
 
         new_velocity_ = Vector2(0.0, 0.0);
@@ -981,8 +991,8 @@ namespace collvoid {
      * but the cost functions for obstacles are to be reused.
      */
     bool ROSAgent::checkTrajectory(Eigen::Vector3f pos,
-                                               Eigen::Vector3f vel,
-                                               Eigen::Vector3f vel_samples)
+                                   Eigen::Vector3f vel,
+                                   Eigen::Vector3f vel_samples)
     {
         obstacle_costs_->setFootprint(costmap_ros_->getRobotFootprint());
         base_local_planner::Trajectory traj;
@@ -1046,11 +1056,11 @@ namespace collvoid {
                 if (last_twist_ang_ != 0.0)
                 {
                     theta = sign(last_twist_ang_) *
-                                        std::min(std::abs(dif_ang / time_to_holo_), limits.max_rot_vel);
+                            std::min(std::abs(dif_ang / time_to_holo_), limits.max_rot_vel);
                 }
                 else {
                     theta = sign(dif_ang) *
-                                        std::min(std::abs(dif_ang / time_to_holo_), limits.max_rot_vel);
+                            std::min(std::abs(dif_ang / time_to_holo_), limits.max_rot_vel);
 
                 }
                 if (std::abs(dif_ang) > 4.0 * M_PI / 4.0) {
@@ -1148,7 +1158,7 @@ namespace collvoid {
             double d = minDistToVOs(agent_vos_, new_vel, use_truncation_);
             d = std::min(minDistToVOs(human_vos_, new_vel, use_truncation_), d);
             if (d < 0.1 && (agent_vos_.size() + human_vos_.size()) >0 && collvoid::abs(pref_vel)>0.1) {
-            //if (collvoid::abs(pref_vel)>0.1) {
+                //if (collvoid::abs(pref_vel)>0.1) {
 // sample around optimal vel to find safe vel:
                 double max_speed = planner_util_->getCurrentLimits().max_vel_x/2;
                 for (size_t i=0; i< (size_t)std::min((int)safe_samples_.size(), 3); i++) {

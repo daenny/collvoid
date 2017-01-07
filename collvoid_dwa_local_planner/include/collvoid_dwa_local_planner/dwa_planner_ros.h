@@ -106,6 +106,18 @@ public:
      */
     bool isGoalReached();
 
+    /**
+   * Check if a trajectory (normally a part of a global plan) is free of obstacles
+   * within obstacle_max_distance_ meters from the robot
+   * @param robot_pose Current robot pose
+   * @param trajectory Trajectory to check
+   * @param distance Distance from the robot to the closest obstacle, if any
+   * @return True if the trajectory is free, false otherwise
+   */
+    bool freeOfObstacles(const tf::Stamped<tf::Pose>& robot_local_pose,
+                       const std::vector<geometry_msgs::PoseStamped>& plan, double& distance);
+
+
     inline bool isInitialized() const { return initialized_; }
 
 private:
@@ -117,7 +129,7 @@ private:
     void publishGlobalPlan(std::vector<geometry_msgs::PoseStamped> &path);
 
     bool clearCostmapsService(std_srvs::Empty::Request &req, std_srvs::Empty::Response &resp);
-
+    void clearCostmaps();
     tf::TransformListener *tf_; ///< @brief Used for transforming point clouds
 
     // for visualisation, publishers of global and local plan
@@ -144,6 +156,36 @@ private:
 
     base_local_planner::OdometryHelperRos odom_helper_;
     std::string odom_topic_;
+
+    // Trajectory free parameters
+    double obstacle_max_distance_ = 1.6;
+    size_t blocked_path_count_ = 0;
+    size_t max_blocked_paths_  = 10;  // blocked_path_count_ can grow until this value before considering a path blocked
+
+    inline double distance2D(const geometry_msgs::PoseStamped& p1, const geometry_msgs::PoseStamped& p2)
+{
+  double x1 = p1.pose.position.x, x2 = p2.pose.position.x;
+  double y1 = p1.pose.position.y, y2 = p2.pose.position.y;
+  return std::sqrt(std::pow(x2 - x1, 2.0) + std::pow(y2 - y1, 2.0));
+}
+
+inline double distance2D(const geometry_msgs::PoseStamped& p, const std::vector<geometry_msgs::PoseStamped>& t, size_t& closest_point)
+{
+  double min_distance = std::numeric_limits<double>::infinity();
+  for (size_t i = 0; i < t.size(); i++)
+  {
+    double distance = distance2D(p, t[i]);
+    if (distance < min_distance)
+    {
+      min_distance = distance;
+      closest_point = i;
+    }
+  }
+  return min_distance;
+}
+
+
+
 };
 };
 #endif

@@ -32,11 +32,11 @@ DWAPlannerROS:
   vx_samples: 6       # 3
   vy_samples: 1       # diff drive robot, there is only one sample
   vtheta_samples: 20  # 20
-
+  prune_plan: true
   # Trajectory Scoring Parameters
-  path_distance_bias: 32.0      # 32.0   - weighting for how much it should stick to the global path plan
+  path_distance_bias: 48.0      # 32.0   - weighting for how much it should stick to the global path plan
   goal_distance_bias: 24.0      # 24.0   - wighting for how much it should attempt to reach its goal
-  collvoid_scale: 24.0
+  collvoid_scale: 32.0
   occdist_scale: 0.05           # 0.01   - weighting for how much the controller should avoid obstacles
   forward_point_distance: 0.1 # 0.325  - how far along to place an additional scoring point
   stop_time_buffer: 0.2         # 0.2    - amount of time a robot must stop in before colliding for a valid traj.
@@ -44,7 +44,7 @@ DWAPlannerROS:
   max_scaling_factor: 0.2       # 0.2    - how much to scale the robot's footprint when at speed.
 
   # Oscillation Prevention Parameters
-  oscillation_reset_dist: 0.05  # 0.05   - how far to travel before resetting oscillation flags
+  oscillation_reset_dist: 0.15  # 0.05   - how far to travel before resetting oscillation flags
 
   # Debugging
   publish_traj_pc : true
@@ -101,7 +101,9 @@ max_planning_retries: 5
 controller_frequency: 10
 #global_planner_frequency: 1
 #shutdown_costmaps: true
-default_tolerance: 0.25
+
+GlobalPlanner:
+  default_tolerance: 0.2
 
 recovery_behaviors:
   - {name: conservative_reset, type: clear_costmap_recovery/ClearCostmapRecovery}
@@ -111,11 +113,11 @@ recovery_behaviors:
   - {name: really_aggressive_reset, type: clear_costmap_recovery/ClearCostmapRecovery}
 
 conservative_reset:
-  layer_names: ["obstacle_layer", "stationary_robots"]
+  layer_names: ["stationary_robots"]
   reset_distance: 2.0
 
 aggressive_reset:
-  layer_names: ["obstacle_layer", "stationary_robots"]
+  layer_names: ["stationary_robots"]
   reset_distance: 0.38
 
 really_aggressive_reset:
@@ -139,7 +141,7 @@ local_costmap:
   #cost_scaling_factor and inflation_radius were now moved to the inflation_layer ns
   inflation_layer:
     enabled:              true
-    cost_scaling_factor:  10.0  # exponential rate at which the obstacle cost drops off (default: 10)
+    cost_scaling_factor:  20.0  # exponential rate at which the obstacle cost drops off (default: 10)
     inflation_radius:     0.25  # was 0.26 in previoys configuration
 
 
@@ -153,7 +155,7 @@ global_costmap:
   plugins:
   - {name: static_layer,            type: "costmap_2d::StaticLayer"}
   - {name: obstacle_layer,      type: "costmap_2d::VoxelLayer"}
-  - {name: stationary_robots,          type: "costmap_2d::VoxelLayer"}
+  - {name: stationary_robots,          type: "costmap_2d::ObstacleLayer"}
   - {name: inflation_layer,     type: "costmap_2d::InflationLayer"}
   #cost_scaling_factor and inflation_radius were now moved to the inflation_layer ns
   inflation_layer:

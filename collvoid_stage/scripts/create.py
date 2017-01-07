@@ -27,12 +27,14 @@ class CreateRunFiles(object):
     world_name = "swarmlab"
     settings = None
     visualize = False
+    num_repetitions = 50
+
     def __init__(self, argv):
         try:
-            opts, args = getopt.getopt(argv, "hn:s:oldtxf:Sw:y:v",
+            opts, args = getopt.getopt(argv, "hn:s:oldtxf:Sw:y:vr:",
                                        ["help", "numRobots=", "circleSize=", "omni", "localization", "dwa",
                                         "old_cocalu", "experiments", "bagFileName=", "Sticks", "world",
-                                        "yaml_file=", "visualize"])
+                                        "yaml_file=", "visualize", "num_repetitions"])
         except getopt.GetoptError:
             print 'create.py -n <numRobots> -s <circleSize> <-h> <-l> <-d> <-x> <-f> bagFile'
             sys.exit(2)
@@ -52,6 +54,8 @@ class CreateRunFiles(object):
                 self.extra_sampling = False
             elif opt in ("-l", "--localization"):
                 self.localization = False
+            elif opt in ("-r", "--num_repetitions"):
+                self.num_repetitions = int(arg)
             elif opt in ("-x", "--experiments"):
                 self.run_experiments = True
             elif opt in ("-v", "--visualize"):
@@ -223,7 +227,9 @@ class CreateRunFiles(object):
 
             if self.run_experiments:
                 f_launch.write(
-                    '  <node pkg="collvoid_controller" type="watchdog.py" name="watchdog" output="screen"/>\n')
+                    '  <node pkg="collvoid_controller" type="watchdog.py" name="Watchdog" output="screen">\n')
+                f_launch.write('  <param name="num_repetitions" value="' + str(self.num_repetitions) + '"/>\n')
+                f_launch.write('  </node>\n')
                 if self.visualize:
                     f_launch.write(
                         '  <node pkg="collvoid_controller" type="collvoid_visualizer.py" name="controller_viz" output="screen"/>\n')
@@ -243,7 +249,7 @@ class CreateRunFiles(object):
                 s += "/robot_%d/base_pose_ground_truth " % (x)
             if self.use_bag_file:
                 f_launch.write(
-                    '  <node pkg="rosbag" type="record" name="rosbag" args="record {0} /position_share /stall /stall_resolved /num_run /exceeded -O $(find collvoid_stage)/bags/{1}" output="screen"/>\n'.format(
+                    '  <node pkg="rosbag" type="record" name="rosbag" args="record {0} /position_share /stall /stall_resolved /obstacles /num_run /exceeded -O $(find collvoid_stage)/bags/{1}" output="screen"/>\n'.format(
                         s, self.bag_file_name))
 
             f_launch.write("</launch>\n")

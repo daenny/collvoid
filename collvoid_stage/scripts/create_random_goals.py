@@ -8,14 +8,14 @@ import sys
 import math
 
 NUM_GOALS = 10
-MIN_DIST = 0.75
+MIN_DIST = 1.0
 
 X_RANGE = [-2., 2.]
 Y_RANGE = [-2., 2.]
 
-MAX_TRIES_SINGLE = 100
+MAX_TRIES_SINGLE = 1000
 
-MAX_TRIES_GLOBAL = 10
+MAX_TRIES_GLOBAL = 20
 
 
 def create_position():
@@ -55,48 +55,57 @@ class CreateRandomGoals(object):
             yaml_file["_".join(['robot', str(n)])] = dict()
             yaml_file["_".join(['robot', str(n)])]['goals'] = list()
 
-        self.created_obstacles = []
         yaml_file['num_robots'] = self.num_robots
         yaml_file['num_obstacles'] = self.num_obstacles
+        found = False
+        for g in range(MAX_TRIES_GLOBAL):
+            print("generating obstacles")
 
-        for obstacle in range(self.num_obstacles):
-            pos = None
-            while not self.check_if_valid(pos, self.created_obstacles):
-                pos = create_position()
-            self.created_obstacles.append(pos)
+            self.created_obstacles = []
 
-        for idx, obst in enumerate(self.created_obstacles):
-            yaml_file["_".join(['obst', str(idx)])] = obst
+            for obstacle in range(self.num_obstacles):
+                pos = None
+                while not self.check_if_valid(pos, self.created_obstacles):
+                    pos = create_position()
+                self.created_obstacles.append(pos)
 
-        for g in range(NUM_GOALS + 1):
-            found = False
-            current_conf = []
-            for _ in range(MAX_TRIES_GLOBAL):
-                found = True
-                for n in range(self.num_robots):
-                    found_single = False
-                    for _ in range(MAX_TRIES_SINGLE):
-                        pos = create_position()
-                        if self.check_if_valid(pos, current_conf):
-                            current_conf.append(pos)
-                            found_single = True
+            for idx, obst in enumerate(self.created_obstacles):
+                yaml_file["_".join(['obst', str(idx)])] = obst
+
+            init_conf = None
+            for g in range(NUM_GOALS + 1):
+                current_conf = []
+                for _ in range(MAX_TRIES_GLOBAL):
+                    found = True
+                    for n in range(self.num_robots):
+                        found_single = False
+                        for _ in range(MAX_TRIES_SINGLE):
+                            pos = create_position()
+                            if self.check_if_valid(pos, current_conf, init_conf, n):
+                                current_conf.append(pos)
+                                found_single = True
+                                break
+                        if not found_single:
+                            found = False
                             break
-                    if not found_single:
-                        found = False
+                    if found:
                         break
-                if found:
+                    else:
+                        current_conf = []
+                if not found:
                     break
-                else:
-                    current_conf = []
-            if not found:
-                print("could not find configuration")
-                sys.exit(2)
-
-            for idx, p in enumerate(current_conf):
-                if g == 0:
-                    yaml_file["_".join(['robot', str(idx)])]['init_pose'] = p
-                else:
-                    yaml_file["_".join(['robot', str(idx)])]['goals'].append(p)
+                for idx, p in enumerate(current_conf):
+                    if g == 0:
+                        print("found init conf")
+                        init_conf = current_conf
+                        yaml_file["_".join(['robot', str(idx)])]['init_pose'] = p
+                    else:
+                        yaml_file["_".join(['robot', str(idx)])]['goals'].append(p)
+            if found:
+                break
+        if not found:
+            print("could not find configuration")
+            sys.exit(2)
 
         self.output_dir = commands.getoutput('rospack find collvoid_stage')
         with open(os.path.join(self.output_dir,
@@ -104,13 +113,16 @@ class CreateRandomGoals(object):
                   'w') as f:
             yaml.dump(yaml_file, f)
 
-    def check_if_valid(self, pos, current_conf):
+    def check_if_valid(self, pos, current_conf, previous_conf=None, n=0):
         if pos is None:
             return False
         for pos_b in self.created_obstacles:
             if dist(pos, pos_b) < MIN_DIST:
                 return False
-
+        if previous_conf is not None:
+            #for p in previous_conf:
+            if dist(pos, previous_conf[n]) < MIN_DIST:
+                return False
         for pos_b in current_conf:
             if dist(pos, pos_b) < MIN_DIST:
                 return False
