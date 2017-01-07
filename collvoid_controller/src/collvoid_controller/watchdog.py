@@ -89,6 +89,8 @@ class Watchdog(object):
             self.controller.all_start()
 
     def cb_obst(self, msg, i):
+        if self.INIT:
+            return
         if self.obst_published[i]:
             self.obst_subs[i].unregister()
         self.obst_published[i] = True
