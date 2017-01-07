@@ -11,6 +11,7 @@ from socket import gethostname
 import tf
 import tf.transformations
 import numpy as np
+from threading import Lock
 
 __author__ = 'danielclaes'
 
@@ -58,6 +59,7 @@ class PositionShareController(object):
         rospy.loginfo("Position Share started with name: %s", self.name)
 
         self.neighbors = {}
+        self.neighbors_lock = Lock()
         self.me = None
 
         self.sensor_link = rospy.get_param("~base_frame_id", rospy.get_namespace()[1:] + "base_link")
@@ -79,7 +81,7 @@ class PositionShareController(object):
 
         # self.reset_srv = rospy.ServiceProxy('move_base/DWAPlannerROS/clear_local_costmap', Empty, persistent=True)
         # rospy.wait_for_service('move_base/DWAPlannerROS/clear_local_costmap', timeout=10.)
-        rospy.Subscriber('/position_share', PoseTwistWithCovariance, self.position_share_cb)
+        rospy.Subscriber('/position_share', PoseTwistWithCovariance, self.position_share_cb, queue_size=1)
         rospy.Service('get_neighbors', GetNeighbors, self.get_neighbors_cb)
 
     def position_share_cb(self, msg):
@@ -87,31 +89,33 @@ class PositionShareController(object):
         :param msg:
         :type msg: PoseTwistWithCovariance
         """
-        if msg.robot_id == self.name:
-            self.me = msg
-            return
-        if msg.robot_id not in self.neighbors:
-            self.neighbors[msg.robot_id] = {}
-            self.neighbors[msg.robot_id]['stationary'] = False
-        robot = self.neighbors[msg.robot_id]
-        robot['robot_id'] = msg.robot_id
-        robot['controlled'] = msg.controlled
-        robot['twist'] = msg.twist
-        robot['position'] = msg.pose
-        robot['footprint'] = msg.footprint
-        robot['radius'] = msg.radius
-        robot['holo_robot'] = msg.holo_robot
-        robot['holo_speed'] = msg.holonomic_velocity
-        robot['radius'] = msg.radius
-        robot['last_seen'] = msg.header.stamp  # or rospy.Time.now()
+        with self.neighbors_lock:
+            if msg.robot_id == self.name:
+                self.me = msg
+                return
+            if msg.robot_id not in self.neighbors:
+                self.neighbors[msg.robot_id] = {}
+                self.neighbors[msg.robot_id]['stationary'] = False
+            robot = self.neighbors[msg.robot_id]
+            robot['robot_id'] = msg.robot_id
+            robot['controlled'] = msg.controlled
+            robot['twist'] = msg.twist
+            robot['position'] = msg.pose
+            robot['footprint'] = msg.footprint
+            robot['radius'] = msg.radius
+            robot['holo_robot'] = msg.holo_robot
+            robot['holo_speed'] = msg.holonomic_velocity
+            robot['radius'] = msg.radius
+            robot['last_seen'] = msg.header.stamp  # or rospy.Time.now()
 
     def get_neighbors_cb(self, req):
-        response = GetNeighborsResponse()
-        time = rospy.Time.now()
-        for name in self.neighbors:
-            if (time - self.neighbors[name]['last_seen']).to_sec() < last_seen_threshold:
-                response.neighbors.append(self.create_msg(self.neighbors[name], time))
-        return response
+        with self.neighbors_lock:
+            response = GetNeighborsResponse()
+            time = rospy.Time.now()
+            for name in self.neighbors:
+                if (time - self.neighbors[name]['last_seen']).to_sec() < last_seen_threshold:
+                    response.neighbors.append(self.create_msg(self.neighbors[name], time))
+            return response
 
     def create_msg(self, robot, time):
         msg = PoseTwistWithCovariance()
@@ -130,54 +134,55 @@ class PositionShareController(object):
         return msg
 
     def publish_static_robots(self):
-        time = rospy.Time.now()
+        with self.neighbors_lock:
+            time = rospy.Time.now()
 
-        cloud_points = []
-        if self.me is None or (time - self.me.header.stamp).to_sec() > last_seen_threshold:
-            return
+            cloud_points = []
+            if self.me is None or (time - self.me.header.stamp).to_sec() > last_seen_threshold:
+                return
 
-        my_pose = self.me.pose.pose
-        _, _, my_theta = tf.transformations.euler_from_quaternion(quat_array_from_msg(my_pose.orientation))
+            my_pose = self.me.pose.pose
+            _, _, my_theta = tf.transformations.euler_from_quaternion(quat_array_from_msg(my_pose.orientation))
 
-        change = False
-        for name in self.neighbors:
-            if (time - self.neighbors[name]['last_seen']).to_sec() < last_seen_threshold \
-                    and ((abs(self.neighbors[name]['twist'].twist.linear.x) < 0.05 and abs(
-                        self.neighbors[name]['twist'].twist.linear.y) < 0.05)):
+            change = False
+            for name in self.neighbors:
+                if (time - self.neighbors[name]['last_seen']).to_sec() < last_seen_threshold \
+                        and ((abs(self.neighbors[name]['twist'].twist.linear.x) < 0.05 and abs(
+                            self.neighbors[name]['twist'].twist.linear.y) < 0.05)):
 
-                if not self.neighbors[name]['stationary']:
-                    change = True
-                    self.neighbors[name]['stationary'] = True
+                    if not self.neighbors[name]['stationary']:
+                        change = True
+                        self.neighbors[name]['stationary'] = True
 
-                cur_pose = self.neighbors[name]['position'].pose
-                _, _, cur_theta = tf.transformations.euler_from_quaternion(quat_array_from_msg(cur_pose.orientation))
+                    cur_pose = self.neighbors[name]['position'].pose
+                    _, _, cur_theta = tf.transformations.euler_from_quaternion(quat_array_from_msg(cur_pose.orientation))
 
-                relative_pose_x = cur_pose.position.x - my_pose.position.x
-                relative_pose_y = cur_pose.position.y - my_pose.position.y
+                    relative_pose_x = cur_pose.position.x - my_pose.position.x
+                    relative_pose_y = cur_pose.position.y - my_pose.position.y
 
-                xform_foot = make_rotation_transformation(cur_theta - my_theta)
-                xform_to_baselink = make_rotation_transformation(-my_theta)
-                pos_rel = xform_to_baselink((relative_pose_x, relative_pose_y))
+                    xform_foot = make_rotation_transformation(cur_theta - my_theta)
+                    xform_to_baselink = make_rotation_transformation(-my_theta)
+                    pos_rel = xform_to_baselink((relative_pose_x, relative_pose_y))
 
-                for p in self.neighbors[name]['footprint'].polygon.points:
-                    p_x = p.x
-                    p_y = p.y
-                    p_rotated = xform_foot((p_x, p_y))
-                    p_x = STATIC_SCALE * p_rotated[0] + pos_rel[0]
-                    p_y = STATIC_SCALE * p_rotated[1] + pos_rel[1]
-                    cloud_points.append((p_x, p_y, Z_HEIGHT))
-            else:
-                if self.neighbors[name]['stationary']:
-                    self.neighbors[name]['stationary'] = False
-                    change = True
+                    for p in self.neighbors[name]['footprint'].polygon.points:
+                        p_x = p.x
+                        p_y = p.y
+                        p_rotated = xform_foot((p_x, p_y))
+                        p_x = STATIC_SCALE * p_rotated[0] + pos_rel[0]
+                        p_y = STATIC_SCALE * p_rotated[1] + pos_rel[1]
+                        cloud_points.append((p_x, p_y, Z_HEIGHT))
+                else:
+                    if self.neighbors[name]['stationary']:
+                        self.neighbors[name]['stationary'] = False
+                        change = True
 
-        if change or True:
-            self.clearing_laser_scan.header.stamp = self.me.header.stamp
-            self.clearing_laser_pub.publish(self.clearing_laser_scan)
+            if change or True:
+                self.clearing_laser_scan.header.stamp = self.me.header.stamp
+                self.clearing_laser_pub.publish(self.clearing_laser_scan)
 
-        static_robots_cloud = pcl2.create_cloud_xyz32(self.cloud_header, cloud_points)
-        static_robots_cloud.header.stamp = self.me.header.stamp
-        self.point_cloud_pub.publish(static_robots_cloud)
+            static_robots_cloud = pcl2.create_cloud_xyz32(self.cloud_header, cloud_points)
+            static_robots_cloud.header.stamp = self.me.header.stamp
+            self.point_cloud_pub.publish(static_robots_cloud)
 
     def predict_pose(self, robot, time):
         time_delta = (time - robot['last_seen']).to_sec()

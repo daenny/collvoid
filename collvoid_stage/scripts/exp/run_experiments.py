@@ -56,7 +56,7 @@ def start_environment(output_screen=True):
 
 
 if __name__ == '__main__':
-    SHUTDOWN_TIME = 10
+    SHUTDOWN_TIME = 12
     circ_size = 1.7  # constant
     work_dir = commands.getoutput('rospack find collvoid_stage')
     work_dir = os.path.join(work_dir, 'scripts')
@@ -108,5 +108,6 @@ if __name__ == '__main__':
 
                     popen.terminate()
                     print "-" * 80
-                    popen.wait(SHUTDOWN_TIME)
+
                     time.sleep(SHUTDOWN_TIME)
+                    popen.kill()
