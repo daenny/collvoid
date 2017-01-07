@@ -249,7 +249,7 @@ class CreateRunFiles(object):
                 s += "/robot_%d/base_pose_ground_truth " % (x)
             if self.use_bag_file:
                 f_launch.write(
-                    '  <node pkg="rosbag" type="record" name="rosbag" args="record {0} /position_share /stall /stall_resolved /obstacles /num_run /exceeded -O $(find collvoid_stage)/bags/{1}" output="screen"/>\n'.format(
+                    '  <node pkg="rosbag" type="record" name="rosbag" args="record {0} /position_share /stall /stall_resolved /obstacles /goals /num_run /exceeded -O $(find collvoid_stage)/bags/{1}" output="screen"/>\n'.format(
                         s, self.bag_file_name))
 
             f_launch.write("</launch>\n")

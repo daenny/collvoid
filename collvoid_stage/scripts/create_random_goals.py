@@ -8,14 +8,17 @@ import sys
 import math
 
 NUM_GOALS = 10
-MIN_DIST = 1.0
+MIN_DIST = 0.9
 
-X_RANGE = [-2., 2.]
-Y_RANGE = [-2., 2.]
+MIN_DIST_INIT_OTHER = 0.5
+MIN_DIST_INIT_OWN = 2.
+
+X_RANGE = [-2.0, 2.0]
+Y_RANGE = [-2.0, 2.0]
 
 MAX_TRIES_SINGLE = 1000
 
-MAX_TRIES_GLOBAL = 20
+MAX_TRIES_GLOBAL = 50
 
 
 def create_position():
@@ -31,9 +34,12 @@ def dist(pos_a, pos_b):
 
 
 class CreateRandomGoals(object):
-    def __init__(self, argv):
-        random.seed(0)
+    num_robots = None
+    num_obstacles = None
 
+    def __init__(self, argv):
+
+        self.seed = 0
         try:
             opts, args = getopt.getopt(argv, "n:o:s:", ["num_robots=", "num_obstacles=", "seed="])
         except getopt.GetoptError:
@@ -45,11 +51,12 @@ class CreateRandomGoals(object):
             if opt in ("-o", "--num_obstacles"):
                 self.num_obstacles = int(arg)
             if opt in ("-s", "--seed"):
-                random.seed(int(arg))
+                self.seed = int(arg)
+
         if not self.num_robots or not self.num_obstacles:
             print("wrong usage")
             sys.exit(2)
-
+        random.seed(self.seed)
         yaml_file = dict()
         for n in range(self.num_robots):
             yaml_file["_".join(['robot', str(n)])] = dict()
@@ -109,21 +116,29 @@ class CreateRandomGoals(object):
             sys.exit(2)
 
         self.output_dir = commands.getoutput('rospack find collvoid_stage')
-        with open(os.path.join(self.output_dir,
-                               "_".join(['goals', 'robots', str(self.num_robots), 'obstacles', str(self.num_obstacles), 'created.yaml'])),
-                  'w') as f:
+        if self.seed == 0:
+            file_name = os.path.join(self.output_dir,
+                                     "_".join( ['goals', 'robots', str(self.num_robots), 'obstacles', str(self.num_obstacles), 'created.yaml']))
+        else:
+            file_name = os.path.join(self.output_dir,
+                                     "_".join( ['goals', 'robots', str(self.num_robots), 'obstacles', str(self.num_obstacles), str(self.seed), 'created.yaml']))
+
+        with open(file_name, 'w') as f:
             yaml.dump(yaml_file, f)
 
-    def check_if_valid(self, pos, current_conf, previous_conf=None, n=0):
+    def check_if_valid(self, pos, current_conf, init_conf=None, n=0):
         if pos is None:
             return False
         for pos_b in self.created_obstacles:
             if dist(pos, pos_b) < MIN_DIST:
                 return False
-        if previous_conf is not None:
-            #for p in previous_conf:
-            if dist(pos, previous_conf[n]) < MIN_DIST:
+        if init_conf is not None:
+            if dist(pos, init_conf[n]) < MIN_DIST_INIT_OWN:
                 return False
+            for p in init_conf:
+                if dist(pos, p) < MIN_DIST_INIT_OTHER:
+                    return False
+
         for pos_b in current_conf:
             if dist(pos, pos_b) < MIN_DIST:
                 return False

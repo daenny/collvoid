@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+
 import commands
 import glob
 import os
@@ -6,19 +11,21 @@ import os
 import rosbag
 import sys
 import math
-import numpy
+import numpy as np
 import tf
 
 algorithms = {'cocalu_dwa_.bag': {'name': 'dwa'},
               'cocalu_sampling_.bag': {'name': 'sampling'},
               'cocalu_.bag': {'name': 'legacy'}
-}
+              }
 
-results_keys = ["collisions",
-                "avg_time", "avg_time_std",
-                "avg_distance", "avg_distance_std",
-                "avg_jerk_lin", "avg_jerk_lin_std",
-                "avg_jerk_ang", "avg_jerk_ang_std"
+results_keys = [("collisions", {'sum': np.sum}),
+                ("exceeded", {'sum': np.sum}),
+                ("collisions_resolved", {'sum': np.sum}),
+                ("avg_time", {'avg': np.mean, 'std': np.std}),
+                ("avg_distance", {'avg': np.mean, 'std': np.std}),
+                ("avg_jerk_lin", {'avg': np.mean, 'std': np.std}),
+                ("avg_jerk_ang", {'avg': np.mean, 'std': np.std})
                 ]
 results_file_name = "0-summary.m"
 
@@ -33,30 +40,35 @@ def dist_to_center(a):
 
 def bounding_box(pos):
     return True
-    #if pos[0] < -4.5 or pos[0] > -0.0 or pos[1] < -0.5 or pos[1] > 5.5:
+    # if pos[0] < -4.5 or pos[0] > -0.0 or pos[1] < -0.5 or pos[1] > 5.5:
     #    return True  # in the box
-    #else:
+    # else:
     #    return False  # out of the box
 
 
+def get_yaw(pose):
+    q = [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
+    alpha = tf.transformations.euler_from_quaternion(q)[2]
+    return alpha
+
+
 def twist_to_uv((x, pose)):
-    q = []
-    q.append(pose.orientation.x)
-    q.append(pose.orientation.y)
-    q.append(pose.orientation.z)
-    q.append(pose.orientation.w)
+    q = [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
     alpha = tf.transformations.euler_from_quaternion(q)[2]
     #    alpha += math.pi / 2
-    return (math.cos(alpha) * abs(x), math.sin(alpha) * abs(x))
+    return math.cos(alpha) * abs(x), math.sin(alpha) * abs(x)
 
 
-def print_dict_key(key, results_dict, algo, num_robots):
-    line = algo + '_'
-    line += key + '=['
-    for n in num_robots:
-        line += str(results_dict[n][key]) + ', '
-    line = line[:-2]
-    line += "];\n"
+def print_dict_key_with_functions(key, results_dict, algo, num_robots):
+    key, funcs_dict = key
+    line = ''
+    for name_func in funcs_dict:
+        line += algo + '_'
+        line += key + '_' + name_func + '=['
+        for n in num_robots:
+            line += str(funcs_dict[name_func](results_dict[n][key])) + ', '
+        line = line[:-2]
+        line += "];\n"
     return line
 
 
@@ -68,19 +80,18 @@ def print_dict(results_dict, res_file):
         for algo in algorithms:
             f.write("%% " + algo[:-5] + " results\n\n")
             for result_key in results_keys:
-                f.write(print_dict_key(result_key, results_dict[algo], algorithms[algo]['name'], num_robots))
+                f.write(
+                    print_dict_key_with_functions(result_key, results_dict[algo], algorithms[algo]['name'], num_robots))
             f.write("%% end results\n\n")
-        for result_key in results_keys:
-            line = result_key + ' = ['
-            for algo in algorithms:
-                line += algorithms[algo]['name'] + "_" + result_key
-                line += '; '
-            line = line[:-2]
-            line += "];\n"
-            f.write(line)
-
-
-
+        for result_key, funcs in results_keys:
+            for func_key in funcs:
+                line = result_key + '_' + func_key + '= ['
+                for algo in algorithms:
+                    line += algorithms[algo]['name'] + "_" + result_key + "_" + func_key
+                    line += '; '
+                line = line[:-2]
+                line += "];\n"
+                f.write(line)
 
 
 def evaluate_dir(dirname, create_matlab_runs):
@@ -94,137 +105,169 @@ def evaluate_dir(dirname, create_matlab_runs):
         results['num_robots'].add(int(num))
         for algo in algorithms:
             if algo in bag:
-                results[algo][num] = res_dict
+                if num not in results[algo]:
+                    results[algo][num] = res_dict
+                else:
+                    for key in results[algo][num]:
+                        results[algo][num][key].extend(res_dict[key])
 
     res_file = os.path.join(dirname, results_file_name)
     print_dict(results, res_file)
 
 
-def evalutate_bagfile(bagfile, create_matlab_runs):
+def evalutate_bagfile(bagfile, create_matlab_runs, force_new=False):
     bag = rosbag.Bag(bagfile)
-
     # work_dir = commands.getoutput('rospack find collvoid_stage')
     # work_dir = os.path.join(work_dir, 'bags')
     bag_name = os.path.basename(bagfile)
     work_dir = os.path.dirname(bagfile)
     # work_dir = os.path.join(work_dir, bag_name.split("_")[0])
 
-    count = 0
-    runs = []
+    if os.path.exists(bagfile[:-4] + '.p') and not force_new:
+        print("Pickle file exists, reloading from saved path")
+        with open(bagfile[:-4] + '.p', 'r') as f:
+            data = pickle.load(f)
 
-    stall = []
-    stall_resolved = []
-    exceeded = []
-    sys.stdout.write("evaluating run ...")
+        stall = data['stall']
+        stall_resolved = data['stall_resolved']
+        exceeded = data['exceeded']
+        obst = data['obst']
+        runs = data['runs']
 
-    skipped = 0
-    # read all messages
-    run = -1
-    stopped = True
-    for topic, msg, t in bag.read_messages():
+    else:
+        print("Pickle file does not exist, rescanning, force new was", force_new)
 
-        if topic == "/stall":
-            stall.append(int(msg.data))
-            stopped = True
-            continue
-        if topic == "/stall_resolved":
-            stall_resolved.append(int(msg.data))
-            stopped = True
-            continue
-        if topic == "/exceeded":
-            exceeded.append(int(msg.data))
-            stopped = True
-            continue
+        count = 0
+        runs = []
 
-        if topic == "/num_run":
-            run += 1
-            stopped = False
-            continue
-        if stopped:
-            continue
-        if "ground_truth" in topic and "robot" in topic:  # now we have also obstacle topics
-            robot_name = topic[1:8]
-        #    continue
-        # which run
-        # run = msg.run
-        # if topic == "/position_share":
-        #   robot_name = msg.robot_id
-            count += 1
-            # create new run
-            if len(runs) < run + 1:
-                sys.stdout.write(" %d" % run)
-                sys.stdout.flush()
-                runs.append({})
+        stall = []
+        stall_resolved = []
+        exceeded = []
+        obst = []
+        sys.stdout.write("evaluating run ...")
 
-            # create new robot
-            if robot_name not in runs[run]:
-                # print "first time i have seen %s in run %d"%(robot_name, run)
-                runs[run][robot_name] = {}
-                robot = runs[run][robot_name]
-                robot['start_time'] = msg.header.stamp
-                robot['last_time'] = robot['start_time']
-                robot['distance'] = 0
-                robot['last_pos_ground_truth'] = (msg.pose.pose.position.x,
-                                                  msg.pose.pose.position.y)
+        skipped = 0
+        # read all messages
+        run = -1
+        stopped = True
+        for topic, msg, t in bag.read_messages():
 
-                robot['pos_ground_truth'] = [robot['last_pos_ground_truth']]
-                robot['twist_ground_truth'] = [twist_to_uv((msg.twist.twist.linear.x, msg.pose.pose))]
+            if topic == "/stall":
+                stall.append(int(msg.data))
+                stopped = True
+                continue
+            if topic == "/stall_resolved":
+                stall_resolved.append(int(msg.data))
+                stopped = True
+                continue
+            if topic == "/exceeded":
+                exceeded.append(int(msg.data))
+                stopped = True
+                continue
+            if topic == "/obstacles":
+                obstacle = [msg.pose.position.x, msg.pose.position.y, math.degrees(get_yaw(msg.pose))]
+                obst.append(obstacle)
+                stopped = True
+                continue
 
-                # robot['loc_error'] = [msg.loc_error]
-                # robot['last_pos_ground_truth'] = (msg.ground_truth.pose.pose.position.x,
-                # msg.ground_truth.pose.pose.position.y)
+            if topic == "/num_run":
+                run += 1
+                stopped = False
+                continue
+            if stopped:
+                continue
+            if "ground_truth" in topic and "robot" in topic:  # now we have also obstacle topics
+                robot_name = topic[1:8]
+                #    continue
+                # which run
+                # run = msg.run
+                # if topic == "/position_share":
+                #   robot_name = msg.robot_id
+                count += 1
+                # create new run
+                if len(runs) < run + 1:
+                    sys.stdout.write(" %d" % run)
+                    sys.stdout.flush()
+                    runs.append({})
 
-                # robot['pos_ground_truth'] = [robot['last_pos_ground_truth']]
-                # robot['twist_ground_truth'] = [twist_to_uv((msg.ground_truth.twist.twist.linear.x, msg.ground_truth.pose.pose))]
-                robot['time'] = [0]
-                robot['vel_lin'] = [0]
-                robot['vel_ang'] = [0]
-                robot['dt'] = [0]
-                robot['temp_distance'] = 0
-                robot['temp_speed_lin'] = 0
-                robot['temp_last_time'] = robot['start_time']
-            else:
-                robot = runs[run][robot_name]
+                # create new robot
+                if robot_name not in runs[run]:
+                    # print "first time i have seen %s in run %d"%(robot_name, run)
+                    runs[run][robot_name] = {}
+                    robot = runs[run][robot_name]
+                    robot['start_time'] = msg.header.stamp
+                    robot['last_time'] = robot['start_time']
+                    robot['distance'] = 0
+                    robot['last_pos_ground_truth'] = (msg.pose.pose.position.x,
+                                                      msg.pose.pose.position.y)
 
-                # update last position and distance
-                pos = (msg.pose.pose.position.x,
-                       msg.pose.pose.position.y)
-                robot['pos_ground_truth'].append(pos)
-                robot['twist_ground_truth'].append(twist_to_uv((msg.twist.twist.linear.x, msg.pose.pose)))
-                robot['temp_distance'] += dist(robot['last_pos_ground_truth'], pos)
-                # pos =  (msg.ground_truth.pose.pose.position.x,
-                # msg.ground_truth.pose.pose.position.y)
-                # robot['pos_ground_truth'].append(pos)
-                # robot['twist_ground_truth'].append(twist_to_uv((msg.ground_truth.twist.twist.linear.x, msg.ground_truth.pose.pose)))
-                # robot['temp_distance'] += dist(robot['last_pos_ground_truth'], pos)
-                robot['distance'] += dist(robot['last_pos_ground_truth'], pos)
-                robot['last_pos_ground_truth'] = pos
+                    robot['pos_ground_truth'] = [robot['last_pos_ground_truth']]
+                    robot['twist_ground_truth'] = [twist_to_uv((msg.twist.twist.linear.x, msg.pose.pose))]
 
-                # robot['loc_error'].append(msg.loc_error)
+                    # robot['loc_error'] = [msg.loc_error]
+                    # robot['last_pos_ground_truth'] = (msg.ground_truth.pose.pose.position.x,
+                    # msg.ground_truth.pose.pose.position.y)
 
-                # dt = (msg.ground_truth.header.stamp - robot['temp_last_time']).to_sec()
-                dt = (msg.header.stamp - robot['temp_last_time']).to_sec()
-                if dt > 0.0:
-                    robot['dt'].append(dt)
-                    # robot['vel_lin'].append(dist((msg.ground_truth.twist.twist.linear.x,msg.ground_truth.twist.twist.linear.y),(0.0,0.0)))
-                    # robot['vel_lin'].append(robot['temp_distance'] / dt)
-                    robot['vel_lin'].append(dist((msg.twist.twist.linear.x, msg.twist.twist.linear.y), (0.0, 0.0)))
-                    # robot['vel_lin'].append(robot['temp_distance'] / dt)
+                    # robot['pos_ground_truth'] = [robot['last_pos_ground_truth']]
+                    # robot['twist_ground_truth'] = [twist_to_uv((msg.ground_truth.twist.twist.linear.x, msg.ground_truth.pose.pose))]
+                    robot['time'] = [0]
+                    robot['vel_lin'] = [0]
+                    robot['vel_ang'] = [0]
+                    robot['dt'] = [0]
                     robot['temp_distance'] = 0
-                    robot['temp_last_time'] = msg.header.stamp
-                    robot['vel_ang'].append(msg.twist.twist.angular.z)
-                    # robot['vel_ang'].append(msg.ground_truth.twist.twist.angular.z)
+                    robot['temp_speed_lin'] = 0
+                    robot['temp_last_time'] = robot['start_time']
                 else:
-                    skipped += 1
+                    robot = runs[run][robot_name]
 
-                # update timer
-                robot['last_time'] = msg.header.stamp
+                    # update last position and distance
+                    pos = (msg.pose.pose.position.x,
+                           msg.pose.pose.position.y)
+                    robot['pos_ground_truth'].append(pos)
+                    robot['twist_ground_truth'].append(twist_to_uv((msg.twist.twist.linear.x, msg.pose.pose)))
+                    robot['temp_distance'] += dist(robot['last_pos_ground_truth'], pos)
+                    # pos =  (msg.ground_truth.pose.pose.position.x,
+                    # msg.ground_truth.pose.pose.position.y)
+                    # robot['pos_ground_truth'].append(pos)
+                    # robot['twist_ground_truth'].append(twist_to_uv((msg.ground_truth.twist.twist.linear.x, msg.ground_truth.pose.pose)))
+                    # robot['temp_distance'] += dist(robot['last_pos_ground_truth'], pos)
+                    robot['distance'] += dist(robot['last_pos_ground_truth'], pos)
+                    robot['last_pos_ground_truth'] = pos
 
-    print " done!"
-    print "parsed %d msgs" % count
-    # print runs
-    print "SKIPPED", skipped
-    print "-" * 30
+                    # robot['loc_error'].append(msg.loc_error)
+
+                    # dt = (msg.ground_truth.header.stamp - robot['temp_last_time']).to_sec()
+                    dt = (msg.header.stamp - robot['temp_last_time']).to_sec()
+                    if dt > 0.0:
+                        robot['dt'].append(dt)
+                        # robot['vel_lin'].append(dist((msg.ground_truth.twist.twist.linear.x,msg.ground_truth.twist.twist.linear.y),(0.0,0.0)))
+                        # robot['vel_lin'].append(robot['temp_distance'] / dt)
+                        robot['vel_lin'].append(dist((msg.twist.twist.linear.x, msg.twist.twist.linear.y), (0.0, 0.0)))
+                        # robot['vel_lin'].append(robot['temp_distance'] / dt)
+                        robot['temp_distance'] = 0
+                        robot['temp_last_time'] = msg.header.stamp
+                        robot['vel_ang'].append(msg.twist.twist.angular.z)
+                        # robot['vel_ang'].append(msg.ground_truth.twist.twist.angular.z)
+                    else:
+                        skipped += 1
+
+                    # update timer
+                    robot['last_time'] = msg.header.stamp
+
+        print " done!"
+        print "parsed %d msgs" % count
+        # print runs
+        print "SKIPPED", skipped
+        print("saving pickle")
+        data = {}
+        data['stall'] = stall
+        data['stall_resolved'] = stall_resolved
+        data['exceeded'] = exceeded
+        data['obst'] = obst
+        data['runs'] = runs
+        with open(bagfile[:-4] + '.p', 'w') as f:
+            pickle.dump(data, f)
+        print "-" * 30
 
     num_robots = max(map(lambda x: len(x), runs))
     print "found %d robots" % num_robots
@@ -311,13 +354,21 @@ def evalutate_bagfile(bagfile, create_matlab_runs):
             POS_V = POS_V[0:-2]  # delete last ; and \n
             POS_V += "];\n"
 
+            OBST = ''
+            if len(obst)>0:
+                OBST = 'obstacles = [\n'
+                for o in obst:
+                    OBST += str(o)[1:-1]
+                    OBST += "; \n"
+                OBST += '];\n'
+
             matlab_path = os.path.join(work_dir, 'runs')
             if not os.path.exists(matlab_path):
                 os.makedirs(matlab_path)
 
             # saving trajectories to file
             if "seed" in bag_name:
-                matlab_fname = os.path.join(matlab_path, "%s_run%d.m" % (bag_name.split("seed")[0], run))
+                matlab_fname = os.path.join(matlab_path, "n%d_%s_run%d.m" % (num_robots, bag_name[0:-5].split("seed")[1][10:], run))
             else:
                 matlab_fname = os.path.join(matlab_path, "%s_run%d.m" % (bag_name[0:-4], run))
 
@@ -330,6 +381,7 @@ def evalutate_bagfile(bagfile, create_matlab_runs):
                 f.write(POS_V)
                 f.write("%plot(-X', Y')\n")
                 f.write("%quiver(-X(1,:), Y(1,:), -U(1,:), V(1,:))\n")
+                f.write(OBST)
 
         if len(runs[run]) != num_robots:
             print "!" * 10 + " NOT ALL ROBOTS STARTED " + "!" * 10
@@ -457,54 +509,29 @@ def evalutate_bagfile(bagfile, create_matlab_runs):
         distance_array.append(run_avg_distance)
         run_count += 1
 
-    loc_err_avg = numpy.mean(loc_err_array)
-    jerk_lin_avg = numpy.mean(jerk_lin_array)
-    jerk_ang_avg = numpy.mean(jerk_ang_array)
-    time_max_avg = numpy.mean(time_max_array)
-    distance_avg = numpy.mean(distance_array)
+        # exceeded_count = numpy.sum(exceeded)
 
-    loc_err_std = numpy.std(loc_err_array)
-    jerk_lin_std = numpy.std(jerk_lin_array)
-    jerk_ang_std = numpy.std(jerk_ang_array)
-    time_max_std = numpy.std(time_max_array)
-    distance_std = numpy.std(distance_array)
-
-    # exceeded_count = numpy.sum(exceeded)
-
-    coll_total = numpy.sum(stall)
-    # coll_runs = numpy.sum(not(stall==0))
-    coll_res_total = numpy.sum(stall_resolved)
+        # coll_runs = numpy.sum(not(stall==0))
+    # coll_res_total = #numpy.sum(stall_resolved)
     # coll_res_std = numpy.std(stall_resolved)
 
-    results_dict = {"collisions": coll_total,
-                    "avg_time": time_max_avg,
-                    "avg_time_std": time_max_std,
-                    "avg_distance": distance_avg,
-                    "avg_distance_std": distance_std,
-                    "avg_jerk_lin": jerk_lin_avg,
-                    "avg_jerk_lin_std": jerk_lin_avg,
-                    "avg_jerk_ang": jerk_ang_avg,
-                    "avg_jerk_ang_std": jerk_ang_std}
-
-    localization = fname.find("True")
-    if localization < 0:
-        localization = False
-    else:
-        localization = True
-
-    print "-" * 80
-    print "#robots: %d\nlocalization: %s\n#runs: %d\ncollisions: %d in\t%d runs\ncollisions_res: %d in \t%d\n#runs exceeded time=: %d\n#runs out of box: %d\n#runs not started: %d\n#runs small jerk: %d\navg max time: %f\t%f\navg distance: %f\t%f\navg-jerk-lin-cost: %f\t%f\navg-jerk-ang-cost: %f\t%f\nloc-err: %f\t%f" % (
-        num_robots, str(localization), run_count, coll_total, coll_runs, coll_res_total, coll_resolved_runs, exceeded_count,
-        out_of_box_count, not_started_count, small_jerk_count, time_max_avg, time_max_std, distance_avg, distance_std,
-        jerk_lin_avg, jerk_lin_std, jerk_ang_avg, jerk_ang_std, loc_err_avg, loc_err_std)
+    results_dict = {"collisions": stall,
+                    "collisions_resolved": stall_resolved,
+                    "avg_time": time_max_array,
+                    "avg_distance": distance_array,
+                    "avg_jerk_lin": jerk_lin_array,
+                    "avg_jerk_ang": jerk_ang_array,
+                    "obst": obst,
+                    "exceeded": [exceeded_count]
+                    }
 
     return str(num_robots), results_dict
 
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-       print "usage: evaluate.py <dirname> <opt. no run files>"
-       sys.exit(-1)
+        print "usage: evaluate.py <dirname> <opt. no run files>"
+        sys.exit(-1)
 
     fname = sys.argv[1]
     create_runs = True
@@ -514,8 +541,3 @@ if __name__ == '__main__':
     path = os.path.join(os.getcwd(), fname)
     print "reading %s .." % (path)
     evaluate_dir(path, create_runs)
-
-
-
-
-

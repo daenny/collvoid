@@ -3,12 +3,14 @@ import commands
 import os
 import random
 import sys
+from psutil import TimeoutExpired
 from subprocess import *
 import time
 try:
     from subprocess import DEVNULL  # py3k
 except ImportError:
     DEVNULL = open(os.devnull, 'wb')
+import psutil
 
 
 settings = {"cocalu": "--old_cocalu",
@@ -36,7 +38,14 @@ else:
 
 SETTINGS = ["cocalu_dwa", "cocalu_sampling", "cocalu"]
 
-YAML_TEMPLATE = 'goals_robots_R_obstacles_O_created.yaml'
+YAML_TEMPLATE = 'goals_robots_R_obstacles_O_S_created.yaml'
+
+
+def kill(proc_pid):
+    process = psutil.Process(proc_pid)
+    for proc in process.get_children(recursive=True):
+        proc.kill()
+    process.kill()
 
 
 def start_environment(output_screen=True):
@@ -73,7 +82,7 @@ if __name__ == '__main__':
                     else:
                         bag_fname = "_".join(["random", "robots", str(num_robots), "obstacles", str(num_obstacles),
                                               "seed", str(seed), setting, ".bag"])
-                        yaml_file_name = YAML_TEMPLATE.replace("R", str(num_robots)).replace("O", str(num_obstacles))
+                        yaml_file_name = YAML_TEMPLATE.replace("R", str(num_robots)).replace("O", str(num_obstacles)).replace("S", str(seed))
                         goal_args = ["-n", str(num_robots), "-o", str(num_obstacles), "-s", str(seed)]
                         goal_cmd = [os.path.join(work_dir, "create_random_goals.py")]
                         goal_cmd.extend(goal_args)
@@ -108,6 +117,9 @@ if __name__ == '__main__':
 
                     popen.terminate()
                     print "-" * 80
+                    try:
+                        popen.wait(SHUTDOWN_TIME)
+                    except TimeoutExpired:
+                        kill(popen.pid)
+                    time.sleep(2)
 
-                    time.sleep(SHUTDOWN_TIME)
-                    popen.kill()

@@ -7,13 +7,14 @@ from std_msgs.msg import String
 from std_msgs.msg import Int32, Bool
 from std_srvs.srv import Empty, Trigger
 import re
+from threading import Lock
 
 
 class Watchdog(object):
     STALL = 'stall'
     GROUND_TRUTH_ODOM = 'base_pose_ground_truth'
     CMD_VEL = 'cmd_vel'
-
+    GOAL_TOPIC = 'move_base/current_goal'
     num_rep = 1
 
     WAIT_FOR_INIT = 3  # Wait time before sending start signal
@@ -21,15 +22,13 @@ class Watchdog(object):
 
     AUTO_MODE = True
 
-    resetting = False
-
     robots_in_collision = []
     robots_finished = []
 
     stall_count = 0  # total number of unresolved collisions
     stall_count_resolved = 0  # total number of resolved collisions
     exceeded = False
-
+    reset_lock = Lock()
     wait_for_start = True
 
     INIT = True
@@ -37,7 +36,7 @@ class Watchdog(object):
     def __init__(self):
         rospy.loginfo('init watchdog')
         self.NUM_REPETITIONS = rospy.get_param("~num_repetitions")  # How many repititions in total?
-        rospy.sleep(8)  # wait 8 sec, so everything is started and all topics are there
+        rospy.sleep(12)  # wait 8 sec, so everything is started and all topics are there
 
         # publisher for collisions
         self.stall_pub = rospy.Publisher("/stall", Int32, queue_size=1)
@@ -45,6 +44,7 @@ class Watchdog(object):
         self.exceeded_pub = rospy.Publisher("/exceeded", Bool, queue_size=1)
         self.num_run_pub = rospy.Publisher("/num_run", Int32, queue_size=1, latch=True)
         self.obst_pub = rospy.Publisher("/obstacles", PoseStamped, queue_size=1)
+        self.goals_pub = rospy.Publisher("/goals", PoseArray, queue_size=1)
 
         topics = rospy.get_published_topics()
         # stall topics
@@ -61,8 +61,10 @@ class Watchdog(object):
             self.robots_finished.append(False)
             rospy.Subscriber('robot_%d/' % i + self.GROUND_TRUTH_ODOM, Odometry, self.cb_cmd_vel, i, queue_size=1)
             self.done_srvs.append(rospy.ServiceProxy('robot_%d' % i + '/is_done', Trigger, persistent=True))
+            rospy.Subscriber('robot_%d/' % i + self.GOAL_TOPIC, PoseStamped, self.cb_goals, i, queue_size=1)
         #rospy.Subscriber("/commands_robot", String, self.cb_commands_robots)
 
+        self.goals = [None] * self.num_robots
         self.obst_subs = []
         i = 0
         for (t, _) in topics:
@@ -80,11 +82,11 @@ class Watchdog(object):
         self.INIT = False
 
     def start(self):
+        self.controller.all_init_guess()
+        rospy.sleep(2)
+        self.controller.all_init_guess()
+        rospy.sleep(2)
         self.num_run_pub.publish(Int32(self.num_rep))
-        self.controller.all_init_guess()
-        rospy.sleep(2)
-        self.controller.all_init_guess()
-        rospy.sleep(2)
         for i in range(1):
             self.controller.all_start()
 
@@ -92,31 +94,39 @@ class Watchdog(object):
         if self.INIT:
             return
         if self.obst_published[i]:
-            self.obst_subs[i].unregister()
+            return
         self.obst_published[i] = True
         pose = PoseStamped()
         pose.pose = msg.pose.pose
         pose.header = msg.header
         self.obst_pub.publish(pose)
+        self.obst_subs[i].unregister()
+
+    def cb_goals(self, msg, i):
+        if self.goals[i] is None:
+            self.goals[i] = msg
+
+    def publish_goals(self):
+        msg = PoseArray()
+        for p in self.goals:
+            msg.poses.append(p)
+        self.goals_pub.publish(msg)
 
     def reset(self):
-        if self.resetting:
-            return
-        self.resetting = True
-        self.wait_for_start = True
-
-        self.start_time = rospy.Time.now()
         self.stall_pub.publish(Int32(self.stall_count))
         self.stall_resolved_pub.publish(Int32(self.stall_count_resolved))
         self.exceeded_pub.publish(Bool(self.exceeded))
-        self.reset_vars()
-        self.controller.reset()
+        self.publish_goals()
 
+        self.reset_vars()
+
+        rospy.sleep(0.5)
+        self.controller.reset()
         rospy.sleep(self.WAIT_FOR_INIT)
         self.num_rep += 1
         self.start()
 
-        self.resetting = False
+        self.wait_for_start = True
         self.exceeded = False
 
     def reset_vars(self):
@@ -125,6 +135,8 @@ class Watchdog(object):
             self.robots_finished[i] = False
         self.stall_count = 0
         self.stall_count_resolved = 0
+        self.goals = [None] * self.num_robots
+        self.start_time = rospy.Time.now()
 
     def cb_stall(self, msg):
         if self.INIT:
@@ -140,13 +152,12 @@ class Watchdog(object):
             self.robots_in_collision[robotId] = False
 
     def cb_cmd_vel(self, odom_msg, id):
-        if self.resetting:
+        if self.reset_lock.locked():
             return
         msg = odom_msg.twist.twist
         if self.wait_for_start:
             if not(msg.linear.x == 0.0 and msg.angular.z == 0.0):
                 self.reset_vars()
-                self.start_time = rospy.Time.now()
                 self.wait_for_start = False
                 rospy.loginfo("received first non 0 speed after wait for start")
             else:
@@ -174,17 +185,17 @@ class Watchdog(object):
             self.reset_or_done()
 
     def reset_or_done(self):
-        if self.resetting:
+        if self.reset_lock.locked():
             return
-
-        if self.num_rep < self.NUM_REPETITIONS:
-            self.wait_for_start = True
-            self.reset()
-        else:
-            self.stall_pub.publish(Int32(self.stall_count))
-            self.stall_resolved_pub.publish(Int32(self.stall_count_resolved))
-            self.exceeded_pub.publish(Bool(self.exceeded))
-            rospy.logerr("!" * 20 + "I AM DONE" + "!" * 20)
+        with self.reset_lock:
+            if self.num_rep < self.NUM_REPETITIONS:
+                self.wait_for_start = True
+                self.reset()
+            else:
+                self.stall_pub.publish(Int32(self.stall_count))
+                self.stall_resolved_pub.publish(Int32(self.stall_count_resolved))
+                self.exceeded_pub.publish(Bool(self.exceeded))
+                rospy.logerr("!" * 20 + "I AM DONE" + "!" * 20)
 
 
 class ControllerHeadless(object):
@@ -203,7 +214,9 @@ class ControllerHeadless(object):
 
     def reset(self):
         self.pub.publish("all Stop")
-        # rospy.sleep(0.2)
+        rospy.sleep(0.2)
+        self.pub.publish("all Stop")
+        rospy.sleep(0.2)
         self.reset_srv()
         rospy.sleep(0.2)
         self.pub.publish("all Restart")
