@@ -19,7 +19,7 @@ rand = random.Random()
 rand.seed(0)
 
 circle = False
-verbose = False
+verbose = True
 visualize = False
 
 NUM_OBSTACLES = [10]
@@ -108,5 +108,5 @@ if __name__ == '__main__':
 
                     popen.terminate()
                     print "-" * 80
-
+                    popen.wait(SHUTDOWN_TIME)
                     time.sleep(SHUTDOWN_TIME)

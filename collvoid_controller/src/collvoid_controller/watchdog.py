@@ -43,7 +43,7 @@ class Watchdog(object):
         self.stall_pub = rospy.Publisher("/stall", Int32, queue_size=1)
         self.stall_resolved_pub = rospy.Publisher("/stall_resolved", Int32, queue_size=1)
         self.exceeded_pub = rospy.Publisher("/exceeded", Bool, queue_size=1)
-        self.num_run_pub = rospy.Publisher("/num_run", Int32, queue_size=1)
+        self.num_run_pub = rospy.Publisher("/num_run", Int32, queue_size=1, latch=True)
         self.obst_pub = rospy.Publisher("/obstacles", PoseStamped, queue_size=1)
 
         topics = rospy.get_published_topics()

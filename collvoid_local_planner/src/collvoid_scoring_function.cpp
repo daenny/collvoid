@@ -163,7 +163,7 @@ namespace collvoid_scoring_function
         else {
             test_vel = rotateVectorByAngle(vel_x, vel_y, me_->heading_);
         }*/
-        test_vel = rotateVectorByAngle(vel_x, vel_y, -th_s + me_->heading_ + vel_theta/4.)/time_diff;
+        test_vel = rotateVectorByAngle(vel_x, vel_y, -th_s + me_->heading_ + vel_theta/3.)/time_diff;
         //test_vel = Vector2(vel_x,vel_y);
 
         double cost = calculateVelCosts(test_vel, me_->agent_vos_, me_->use_truncation_);
