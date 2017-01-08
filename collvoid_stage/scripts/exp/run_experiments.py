@@ -33,11 +33,11 @@ NUM_ROBOTS = [6, 5, 4, 3, 2]
 #NUM_ROBOTS = [3, 2]
 
 if not circle:
-    NUM_RUNS = 1  # for random
-    NUM_REPETITIONS = 1
+    NUM_RUNS = 10  # for random
+    NUM_REPETITIONS = 5
 else:
     NUM_RUNS = 1  # all via reset
-    NUM_REPETITIONS = 1
+    NUM_REPETITIONS = 50
 
 SETTINGS = ["cocalu_dwa", "cocalu_sampling", "cocalu"]
 
@@ -68,7 +68,7 @@ def start_environment(output_screen=True):
 
 
 if __name__ == '__main__':
-    SHUTDOWN_TIME = 12
+    SHUTDOWN_TIME = 15
     circ_size = 1.7  # constant
     work_dir = commands.getoutput('rospack find collvoid_stage')
     work_dir = os.path.join(work_dir, 'scripts')
@@ -127,8 +127,13 @@ if __name__ == '__main__':
                         time.sleep(0.1)
                         now = datetime.datetime.now()
                         if (now - start).seconds > SHUTDOWN_TIME:
-                            kill(popen.pid)
-                            os.waitpid(-1, os.WNOHANG)
-                            time.sleep(2)
+                            try:
+                                print "hard killing process"
+                                kill(popen.pid)
+                                os.waitpid(-1, os.WNOHANG)
+                                time.sleep(2)
+                                break
+                            except:
+                                break
                     print "killed process"
-                    time.sleep(2)
+                    time.sleep(1)
