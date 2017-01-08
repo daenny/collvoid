@@ -6,6 +6,9 @@ import sys
 from psutil import TimeoutExpired
 from subprocess import *
 import time
+
+import datetime
+
 try:
     from subprocess import DEVNULL  # py3k
 except ImportError:
@@ -20,21 +23,21 @@ settings = {"cocalu": "--old_cocalu",
 rand = random.Random()
 rand.seed(0)
 
-circle = False
+circle = True
 verbose = True
 visualize = False
 
 NUM_OBSTACLES = [10]
-NUM_ROBOTS = [6, 5, 4, 3, 2]
+#NUM_ROBOTS = [6, 5, 4, 3, 2]
 
-#NUM_ROBOTS = [3, 2]
+NUM_ROBOTS = [3, 2]
 
 if not circle:
-    NUM_RUNS = 10  # for random
-    NUM_REPETITIONS = 5
+    NUM_RUNS = 1  # for random
+    NUM_REPETITIONS = 1
 else:
     NUM_RUNS = 1  # all via reset
-    NUM_REPETITIONS = 50
+    NUM_REPETITIONS = 1
 
 SETTINGS = ["cocalu_dwa", "cocalu_sampling", "cocalu"]
 
@@ -117,9 +120,15 @@ if __name__ == '__main__':
 
                     popen.terminate()
                     print "-" * 80
-                    try:
-                        popen.wait(SHUTDOWN_TIME)
-                    except TimeoutExpired:
-                        kill(popen.pid)
-                    time.sleep(2)
 
+                    start = datetime.datetime.now()
+                    while popen.poll() is None:
+                        print "still running"
+                        time.sleep(0.1)
+                        now = datetime.datetime.now()
+                        if (now - start).seconds > SHUTDOWN_TIME:
+                            kill(popen.pid)
+                            os.waitpid(-1, os.WNOHANG)
+                            time.sleep(2)
+                    print "killed process"
+                    time.sleep(2)

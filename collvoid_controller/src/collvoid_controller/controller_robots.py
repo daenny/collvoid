@@ -36,6 +36,7 @@ class ControllerRobots(object):
         self.circling = False
         # self.init_guess_srv = rospy.ServiceProxy("init_guess_pub", InitGuess)
         self.stalled = False
+        self.goal_reached = True
         self.hostname = rospy.get_namespace()
         self.noise_std = rospy.get_param("/noise_std", 0.0)
         self.covariance = rospy.get_param("/covariance", 0.005)
@@ -77,9 +78,7 @@ class ControllerRobots(object):
         rospy.Service('is_done', Trigger, self.cb_is_done)
 
     def cb_is_done(self, req):
-        if self.stopped:
-            return {'success': False}
-        if self.client.get_state() == actionlib.GoalStatus.SUCCEEDED:
+        if self.goal_reached or self.client.get_state() == actionlib.GoalStatus.SUCCEEDED:
             return {'success': True}
         return {'success': False}
 
@@ -94,7 +93,6 @@ class ControllerRobots(object):
         return goal
 
     def cb_stall(self, msg):
-        assert isinstance(msg, Stall)
         self.stalled = msg.stall
 
     def cb_common_positions(self, msg):
@@ -104,6 +102,7 @@ class ControllerRobots(object):
             if dist(msg.pose.pose, self.cur_goal_msg.target_pose.pose) < THRESHOLD:
                 if self.client.get_state() == actionlib.GoalStatus.SUCCEEDED:
                     rospy.loginfo("Reached last goal")
+                    self.goal_reached = True
                     self.stopped = True
 
                 #if self.cur_goal == self.num_goals-1 and not self.circling:
@@ -192,6 +191,7 @@ class ControllerRobots(object):
             self.cur_goal_msg = self.return_cur_goal()
             rospy.loginfo("sending new goal %d/%d", self.cur_goal, self.num_goals)
             self.stopped = False
+            self.goal_reached = False
             self.client.send_goal(self.cur_goal_msg)
             self.cur_goal_pub.publish(self.cur_goal_msg.target_pose)
 
@@ -232,6 +232,7 @@ class ControllerRobots(object):
                 self.cur_goal = 0
             self.global_reset_srv()
             self.reset_srv()
+            self.goal_reached = False
             rospy.loginfo("sending new goal %d/%d", self.cur_goal, self.num_goals)
             self.cur_goal_msg = self.return_cur_goal()
             self.stopped = False
@@ -242,6 +243,7 @@ class ControllerRobots(object):
         if "send delayed Goal" in msg.data:
             if self.delayed_goal is not None:
                 self.stopped = False
+                self.goal_reached = False
                 self.client.send_goal(self.delayed_goal)
 
 
