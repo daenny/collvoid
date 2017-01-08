@@ -23,14 +23,14 @@ settings = {"cocalu": "--old_cocalu",
 rand = random.Random()
 rand.seed(0)
 
-circle = True
+circle = False
 verbose = True
 visualize = False
 
 NUM_OBSTACLES = [10]
-#NUM_ROBOTS = [6, 5, 4, 3, 2]
+NUM_ROBOTS = [6, 5, 4, 3, 2]
 
-NUM_ROBOTS = [3, 2]
+#NUM_ROBOTS = [3, 2]
 
 if not circle:
     NUM_RUNS = 1  # for random
