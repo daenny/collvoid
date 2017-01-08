@@ -57,6 +57,7 @@ class ControllerRobots(object):
         rospy.loginfo("Name: %s", self.hostname)
         self.pub_init_guess = rospy.Publisher("initialpose", PoseWithCovarianceStamped, queue_size=1)
         self.pub_cmd_vel = rospy.Publisher("cmd_vel", Twist, queue_size=1)
+        self.cur_goal_pub = rospy.Publisher("current_goal", PoseStamped, queue_size=1)
 
         self.pub_commands_robot = rospy.Publisher("/commands_robot", String, queue_size=1)
 
@@ -74,6 +75,8 @@ class ControllerRobots(object):
         rospy.Service('is_done', Trigger, self.cb_is_done)
 
     def cb_is_done(self, req):
+        if self.stopped:
+            return {'success': False}
         if self.client.get_state() == actionlib.GoalStatus.SUCCEEDED:
             return {'success': True}
         return {'success': False}
@@ -188,6 +191,7 @@ class ControllerRobots(object):
             rospy.loginfo("sending new goal %d/%d", self.cur_goal, self.num_goals)
             self.stopped = False
             self.client.send_goal(self.cur_goal_msg)
+            self.cur_goal_pub.publish(self.cur_goal_msg.target_pose)
 
         if "init Guess" in msg.data:
             self.publish_init_guess(self.covariance, self.noise_std)
@@ -230,6 +234,7 @@ class ControllerRobots(object):
             self.cur_goal_msg = self.return_cur_goal()
             self.stopped = False
             self.client.send_goal(self.cur_goal_msg)
+            self.cur_goal_pub.publish(self.cur_goal_msg.target_pose)
             rospy.loginfo("Send new Goal")
 
         if "send delayed Goal" in msg.data:

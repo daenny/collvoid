@@ -14,7 +14,7 @@ class Watchdog(object):
     STALL = 'stall'
     GROUND_TRUTH_ODOM = 'base_pose_ground_truth'
     CMD_VEL = 'cmd_vel'
-    GOAL_TOPIC = 'move_base/current_goal'
+    GOAL_TOPIC = 'current_goal'
     num_rep = 1
 
     WAIT_FOR_INIT = 3  # Wait time before sending start signal
@@ -29,6 +29,7 @@ class Watchdog(object):
     stall_count_resolved = 0  # total number of resolved collisions
     exceeded = False
     reset_lock = Lock()
+    goals_lock = Lock()
     wait_for_start = True
 
     INIT = True
@@ -44,7 +45,7 @@ class Watchdog(object):
         self.exceeded_pub = rospy.Publisher("/exceeded", Bool, queue_size=1)
         self.num_run_pub = rospy.Publisher("/num_run", Int32, queue_size=1, latch=True)
         self.obst_pub = rospy.Publisher("/obstacles", PoseStamped, queue_size=1)
-        self.goals_pub = rospy.Publisher("/goals", PoseArray, queue_size=1)
+        self.goals_pub = rospy.Publisher("/goals", PoseArray, queue_size=1, latch=True)
 
         topics = rospy.get_published_topics()
         # stall topics
@@ -56,15 +57,16 @@ class Watchdog(object):
         self.num_robots = len(stall_subs)
         # twist topics
         self.done_srvs = []
+        self.goals = [PoseStamped()] * self.num_robots
         for i in range(self.num_robots):
             self.robots_in_collision.append(False)
             self.robots_finished.append(False)
             rospy.Subscriber('robot_%d/' % i + self.GROUND_TRUTH_ODOM, Odometry, self.cb_cmd_vel, i, queue_size=1)
             self.done_srvs.append(rospy.ServiceProxy('robot_%d' % i + '/is_done', Trigger, persistent=True))
-            rospy.Subscriber('robot_%d/' % i + self.GOAL_TOPIC, PoseStamped, self.cb_goals, i, queue_size=1)
+            rospy.Subscriber('robot_%d/' % i + self.GOAL_TOPIC, PoseStamped, self.cb_goals, i, queue_size=self.num_robots)
         #rospy.Subscriber("/commands_robot", String, self.cb_commands_robots)
 
-        self.goals = [None] * self.num_robots
+
         self.obst_subs = []
         i = 0
         for (t, _) in topics:
@@ -75,7 +77,7 @@ class Watchdog(object):
 
         self.start_time = rospy.Time.now()
         self.controller = ControllerHeadless()
-
+        self.reset_vars()
         if self.AUTO_MODE:
             rospy.sleep(self.WAIT_FOR_INIT)
             self.start()
@@ -103,21 +105,22 @@ class Watchdog(object):
         self.obst_subs[i].unregister()
 
     def cb_goals(self, msg, i):
-        if self.goals[i] is None:
-            self.goals[i] = msg
+        self.goals[i].pose = msg.pose
 
     def publish_goals(self):
-        msg = PoseArray()
-        for p in self.goals:
-            msg.poses.append(p)
-        self.goals_pub.publish(msg)
+        with self.goals_lock:
+            msg = PoseArray()
+            for p in self.goals:
+                msg.poses.append(p.pose)
+            self.goals_pub.publish(msg)
 
     def reset(self):
+        self.publish_goals()
         self.stall_pub.publish(Int32(self.stall_count))
         self.stall_resolved_pub.publish(Int32(self.stall_count_resolved))
         self.exceeded_pub.publish(Bool(self.exceeded))
-        self.publish_goals()
 
+        rospy.sleep(0.2)
         self.reset_vars()
 
         rospy.sleep(0.5)
@@ -130,13 +133,13 @@ class Watchdog(object):
         self.exceeded = False
 
     def reset_vars(self):
-        for i in range(self.num_robots):
-            self.robots_in_collision[i] = False
-            self.robots_finished[i] = False
-        self.stall_count = 0
-        self.stall_count_resolved = 0
-        self.goals = [None] * self.num_robots
-        self.start_time = rospy.Time.now()
+        with self.goals_lock:
+            for i in range(self.num_robots):
+                self.robots_in_collision[i] = False
+                self.robots_finished[i] = False
+                self.goals[i] = PoseStamped()
+            self.stall_count = 0
+            self.stall_count_resolved = 0
 
     def cb_stall(self, msg):
         if self.INIT:
@@ -157,7 +160,7 @@ class Watchdog(object):
         msg = odom_msg.twist.twist
         if self.wait_for_start:
             if not(msg.linear.x == 0.0 and msg.angular.z == 0.0):
-                self.reset_vars()
+                self.start_time = rospy.Time.now()
                 self.wait_for_start = False
                 rospy.loginfo("received first non 0 speed after wait for start")
             else:

@@ -221,7 +221,7 @@ class CreateRunFiles(object):
 
                 f_launch.write('  </include>\n')
                 f_launch.write(
-                    '  <node pkg="collvoid_controller" type="controller_robots.py" name="controller_robots" ns="robot_{0}" output="screen" />\n'.format(
+                    '  <node pkg="collvoid_controller" type="controller_robots.py" name="controller_robots" ns="robot_{0}"/>\n'.format(
                         x))
                 f_launch.write('\n\n')
 

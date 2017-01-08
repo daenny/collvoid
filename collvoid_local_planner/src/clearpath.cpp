@@ -88,7 +88,7 @@ namespace collvoid {
         }
 
         if (collision) {
-            ROS_ERROR("COLLISION?");
+            ROS_WARN_THROTTLE(1, "Maybe Collision?");
             result.left_leg_dir = -normalize(rel_position_normal);
             result.right_leg_dir = -result.left_leg_dir;
             result.relative_position = rel_position;
