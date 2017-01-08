@@ -1,0 +1,166 @@
+DWAPlannerROS:
+  # Robot Configuration Parameters - Kobuki
+  max_vel_x: 0.5  # 0.55
+  min_vel_x: -0.1
+  
+  max_vel_y: 0.0  # diff drive robot
+  min_vel_y: 0.0  # diff drive robot
+  
+  max_trans_vel: 0.5 # choose slightly less than the base's capability
+  min_trans_vel: 0.05  # this is the min trans velocity when there is negligible rotational velocity
+  trans_stopped_vel: 0.05
+
+  # Warning!
+  #   do not set min_trans_vel to 0.0 otherwise dwa will always think translational velocities
+  #   are non-negligible and small in place rotational velocities will be created.
+
+  max_rot_vel: 1.5  # choose slightly less than the base's capability
+  min_rot_vel: 0.2  # this is the min angular velocity when there is negligible translational velocity
+  rot_stopped_vel: 0.1
+
+  acc_lim_x: 2.0 # maximum is theoretically 2.0, but we
+  acc_lim_theta: 5.0
+  acc_lim_y: 0.0      # diff drive robot
+
+  # Goal Tolerance Parameters
+  yaw_goal_tolerance: 0.3  # 0.05
+  xy_goal_tolerance: 0.15  # 0.10
+  # latch_xy_goal_tolerance: false
+
+  # Forward Simulation Parameters
+  sim_time: 1.2       # 1.7
+  vx_samples: 7       # 3
+  vy_samples: 1       # diff drive robot, there is only one sample
+  vtheta_samples: 20  # 20
+  prune_plan: true
+  # Trajectory Scoring Parameters
+  path_distance_bias: 24.0      # 32.0   - weighting for how much it should stick to the global path plan
+  goal_distance_bias: 32.0      # 24.0   - wighting for how much it should attempt to reach its goal
+  collvoid_scale: 48.0
+  occdist_scale: 0.05           # 0.01   - weighting for how much the controller should avoid obstacles
+  forward_point_distance: 0.1 # 0.325  - how far along to place an additional scoring point
+  stop_time_buffer: 0.2         # 0.2    - amount of time a robot must stop in before colliding for a valid traj.
+  scaling_speed: 0.25           # 0.25   - absolute velocity at which to start scaling the robot's footprint
+  max_scaling_factor: 0.2       # 0.2    - how much to scale the robot's footprint when at speed.
+
+  # Oscillation Prevention Parameters
+  oscillation_reset_dist: 0.15  # 0.05   - how far to travel before resetting oscillation flags
+
+  # Debugging
+  publish_traj_pc : true
+  publish_cost_grid_pc: true
+
+  global_frame_id: map
+                                                                     
+
+
+CollvoidLocalPlanner:
+ # Robot Configuration Parameters - Kobuki
+  max_vel_x: 0.5  # 0.55
+  min_vel_x: -0.2
+
+  max_vel_y: 0.0  # diff drive robot
+  min_vel_y: 0.0  # diff drive robot
+
+  max_trans_vel: 0.5 # choose slightly less than the base's capability
+  min_trans_vel: 0.05  # this is the min trans velocity when there is negligible rotational velocity
+  trans_stopped_vel: 0.1
+
+  max_rot_vel: 1.5  # choose slightly less than the base's capability
+  min_rot_vel: 0.2  # this is the min angular velocity when there is negligible translational velocity
+  rot_stopped_vel: 0.4
+
+  acc_lim_x: 2.0 # maximum is theoretically 2.0, but we
+  acc_lim_theta: 5.0
+  acc_lim_y: 0.0      # diff drive robot
+
+  # Forward Simulation Parameters
+  sim_time: 1.2       # 1.7
+  sim_granularity: 0.04
+  angular_sim_granularity: 0.2
+
+  # Trajectory Scoring Parameters
+  path_distance_bias: 5.0      # 32.0   - weighting for how much it should stick to the global path plan
+  goal_distance_bias: 24.0      # 24.0   - wighting for how much it should attempt to reach its goal
+
+  occdist_scale: 0.05           # 0.01   - weighting for how much the controller should avoid obstacles
+  forward_point_distance: 0. # 0.325  - how far along to place an additional scoring point
+  stop_time_buffer: 0.2         # 0.2    - amount of time a robot must stop in before colliding for a valid traj.
+  scaling_speed: 0.25           # 0.25   - absolute velocity at which to start scaling the robot's footprint
+  max_scaling_factor: 0.2       # 0.2    - how much to scale the robot's footprint when at speed.
+
+  # Goal Tolerance Parameters
+  yaw_goal_tolerance: 0.3  # 0.05
+  xy_goal_tolerance: 0.15  # 0.10
+
+  holo_robot: false
+  wheel_base: 0.25
+  robot_radius: 0.20
+
+max_planning_retries: 5
+controller_frequency: 10
+#global_planner_frequency: 1
+#shutdown_costmaps: true
+
+NavfnROS:
+  default_tolerance: 0.3
+
+recovery_behaviors:
+  - {name: conservative_reset, type: clear_costmap_recovery/ClearCostmapRecovery}
+  - {name: rotate_wiggle, type: collvoid_wiggle_recovery/WiggleRecovery}
+  - {name: aggressive_reset, type: clear_costmap_recovery/ClearCostmapRecovery}
+  - {name: rotate, type: rotate_recovery/RotateRecovery}
+  - {name: really_aggressive_reset, type: clear_costmap_recovery/ClearCostmapRecovery}
+
+conservative_reset:
+  layer_names: ["stationary_robots"]
+  reset_distance: 2.0
+
+aggressive_reset:
+  layer_names: ["stationary_robots"]
+  reset_distance: 0.38
+
+really_aggressive_reset:
+  layer_names: ["obstacle_layer", "stationary_robots"]
+  reset_distance: 0.25
+ 
+local_costmap:
+  global_frame: map
+  robot_base_frame: base_footprint
+  update_frequency: 3.0
+  publish_frequency: 2.0
+  static_map: false
+  rolling_window: true
+  width: 4.0
+  height: 4.0
+  resolution: 0.02
+  plugins:
+  - {name: obstacle_layer,      type: "costmap_2d::VoxelLayer"}
+  - {name: stationary_robots,          type: "costmap_2d::ObstacleLayer"}
+  - {name: inflation_layer,     type: "costmap_2d::InflationLayer"}
+  #cost_scaling_factor and inflation_radius were now moved to the inflation_layer ns
+  inflation_layer:
+    enabled:              true
+    cost_scaling_factor:  5.0  # exponential rate at which the obstacle cost drops off (default: 10)
+    inflation_radius:     0.25  # was 0.26 in previoys configuration
+
+
+
+global_costmap:
+  global_frame: map
+  robot_base_frame: base_footprint
+  update_frequency: 3.0
+  publish_frequency: 1.0
+  static_map: true
+  plugins:
+  - {name: static_layer,            type: "costmap_2d::StaticLayer"}
+  - {name: obstacle_layer,      type: "costmap_2d::VoxelLayer"}
+  - {name: stationary_robots,          type: "costmap_2d::ObstacleLayer"}
+  - {name: inflation_layer,     type: "costmap_2d::InflationLayer"}
+  #cost_scaling_factor and inflation_radius were now moved to the inflation_layer ns
+  inflation_layer:
+    enabled:              true
+    cost_scaling_factor:  10.0  # exponential rate at which the obstacle cost drops off (default: 10)
+    inflation_radius:     0.3  # was 0.26 in previoys configuration
+
+

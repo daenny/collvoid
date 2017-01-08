@@ -1,7 +1,7 @@
 
 <launch>
   <include file="$(find collvoid_turtlebot)/launch/includes/lcm_turtlebot.launch" />
-  <include file="$(find collvoid_turtlebot)/launch/tracking_on_robot.launch" />
+  <!--<include file="$(find collvoid_turtlebot)/launch/tracking_on_robot.launch" />-->
 
   <include file="$(find collvoid_turtlebot)/launch/turtlebot_master.launch" />
 </launch>

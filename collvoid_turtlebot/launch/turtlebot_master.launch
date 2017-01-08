@@ -1,6 +1,6 @@
 <launch>
   <!-- Run the map server -->
-  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_turtlebot)/map/map.yaml" output="screen"/>
+  <node name="map_server" pkg="map_server" type="map_server" args="$(find collvoid_turtlebot)/map/smartlab_arena.yaml" output="screen"/>
 
   <!-- Run the laser -->
   <include file="$(find collvoid_turtlebot)/launch/hokuyo.launch" />
@@ -11,49 +11,13 @@
 
 
   <!--- Run AMCL -->
-  <include file="$(find collvoid_turtlebot)/launch/amcl_turtlebot.launch"/> 
+  <include file="$(find collvoid_turtlebot)/launch/amcl_turtlebot.launch"/>
  
   <!--- Run Controller -->
   <rosparam command="load" file="$(find collvoid_turtlebot)/goals_created.yaml"/>
   <node pkg="collvoid_controller" type="controller_robots.py" name="controller_robots" output="screen" />
 
   <!--- Run collvoid -->
-  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
-    <rosparam file="$(find collvoid_turtlebot)/params/costmap_common_params.yaml" command="load" ns="global_costmap" />
-    <rosparam file="$(find collvoid_turtlebot)/params/costmap_common_params.yaml" command="load" ns="local_costmap" />   
-
-    <!--- configs from turtlebot navigation -->
-    <rosparam file="$(find turtlebot_navigation)/param/local_costmap_params.yaml" command="load" />   
-    <rosparam file="$(find turtlebot_navigation)/param/global_costmap_params.yaml" command="load" />
-    <rosparam file="$(find turtlebot_navigation)/param/dwa_local_planner_params.yaml" command="load" />
-    <rosparam file="$(find turtlebot_navigation)/param/move_base_params.yaml" command="load" />
-    <rosparam file="$(find turtlebot_navigation)/param/global_planner_params.yaml" command="load" />
-    <rosparam file="$(find turtlebot_navigation)/param/navfn_global_planner_params.yaml" command="load" />
-
-    <!--- configs for collvoid -->
-    <rosparam command="load" file="$(find collvoid_turtlebot)/params/collvoid_config.yaml"/>
-
-    <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
-    <param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" />
-   
-    <remap from="/position_share_in" to="/position_share"/>
-    <remap from="/position_share_out" to="/position_share"/>
-    <!-- <remap from="cmd_vel" to="/cmd_vel_mux/input/navi"/> -->
-
-    <remap from="cmd_vel" to="navigation_velocity_smoother/raw_cmd_vel"/>
-
-    <remap from="scan" to="/scan_filtered"/>
-
-  </node>
-  <node pkg="collvoid_controller" type="active_collision_avoidance.py" name="active_collvoid" output="screen">
-    <param name="~base_frame_id" value="/base_link" />
-    <remap from="cmd_vel" to="/cmd_vel_mux/input/navi"/>
-  </node> 
-  <node pkg="collvoid_controller" type="detect_obstacles.py" name="detect_obstacles" output="screen">
-    <param name="~base_frame" value="/base_link" />
-    <remap from="base_scan" to="/scan_filtered"/>
-  </node>
-  
-
+  <include file="$(find collvoid_turtlebot)/launch/move_base_collvoid.launch"/>
 
 </launch>

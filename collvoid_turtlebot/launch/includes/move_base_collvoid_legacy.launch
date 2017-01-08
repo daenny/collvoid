@@ -1,0 +1,38 @@
+<launch>
+    <arg name="type" default="turtle" />
+
+    <node pkg="move_base" type="move_base" respawn="false" name="move_base">
+        <rosparam command="load" file="$(find collvoid_turtlebot)/params/costmap_common_$(arg type).yaml" ns="local_costmap" />
+        <rosparam command="load" file="$(find collvoid_turtlebot)/params/costmap_common_$(arg type).yaml" ns="global_costmap" />
+        <rosparam command="load" file="$(find collvoid_turtlebot)/params/move_base_params_$(arg type).yaml" />
+        <rosparam command="load" file="$(find collvoid_turtlebot)/params/collvoid_config.yaml" />
+        <rosparam command="load" file="$(find collvoid_turtlebot)/params/collvoid_common.yaml" ns="CollvoidLocalPlanner" />
+        <remap from="map" to="/map" />
+        <param name="~/CollvoidLocalPlanner/new_sampling" value="false" />
+        <param name="~/CollvoidLocalPlanner/dwa_scoring" value="false" />
+        <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
+        <!--<param name="base_global_planner" value="global_planner/GlobalPlanner" />-->
+        <param name="base_global_planner" value="navfn/NavfnROS" />-
+        <!--<param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" />-->
+        <remap from="cmd_vel" to="navigation_velocity_smoother/raw_cmd_vel"/>
+        <remap from="scan" to="/scan_filtered"/>
+    </node>
+    <node pkg="collvoid_controller" type="active_collision_avoidance.py" name="active_collvoid">
+        <param name="~base_frame_id" value="base_link" />
+        <remap from="cmd_vel" to="/cmd_vel_mux/input/navi"/>
+    </node>
+
+    <rosparam command="load" file="$(find collvoid_turtlebot)/params/me_publisher_turtle.yaml"/>
+    <rosparam command="load" file="$(find collvoid_turtlebot)/params/collvoid_common.yaml" ns="collvoid" />
+    <param name="collvoid/base_frame" value="base_link" />
+
+    <node pkg="collvoid_local_planner" type="MePublisher" name="me_publisher"  />
+    <node pkg="collvoid_controller" type="position_share_controller.py" name="position_share_controller"  />
+
+    <node pkg="collvoid_controller" type="detect_obstacles.py" name="detect_obstacles" >
+        <param name="~base_frame" value="base_link" />
+        <remap from="base_scan" to="/scan_filtered"/>
+    </node>
+
+</launch>
+
