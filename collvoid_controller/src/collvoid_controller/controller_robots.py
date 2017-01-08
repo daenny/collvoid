@@ -4,7 +4,6 @@ import actionlib
 import math
 import random
 
-from stage_ros.msg import Stall
 from std_msgs.msg import String
 from std_srvs.srv import Empty, Trigger
 from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped, Quaternion, Twist
@@ -67,7 +66,10 @@ class ControllerRobots(object):
         self.sub_goal = rospy.Subscriber("delayed_goal", PoseStamped, self.cb_delayed_goal)
         self.sub_ground_truth = rospy.Subscriber("base_pose_ground_truth", Odometry, self.cb_ground_truth, queue_size=1)
 
-        self.sub_stall = rospy.Subscriber("stall", Stall, self.cb_stall)
+        use_sim = rospy.get_param("/use_sim_time", default=False)
+        if use_sim:
+            from stage_ros.msg import Stall
+            self.sub_stall = rospy.Subscriber("stall", Stall, self.cb_stall)
 
         self.reset_srv = rospy.ServiceProxy('move_base/clear_local_costmap', Empty)
 

@@ -18,6 +18,6 @@
   <node pkg="collvoid_controller" type="controller_robots.py" name="controller_robots" output="screen" />
 
   <!--- Run collvoid -->
-  <include file="$(find collvoid_turtlebot)/launch/move_base_collvoid.launch"/>
+  <include file="$(find collvoid_turtlebot)/launch/includes/move_base_collvoid.launch"/>
 
 </launch>
