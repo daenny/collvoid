@@ -196,7 +196,7 @@ bool MePublisher::createMeMsg(collvoid_msgs::PoseTwistWithCovariance &me_msg, st
     me_msg.holonomic_velocity.y = holo_velocity_.y();
 
     me_msg.holo_robot = holo_robot_;
-    me_msg.radius = uninflated_robot_radius_ + cur_loc_unc_radius_;
+    me_msg.radius = roundf(float(uninflated_robot_radius_ + cur_loc_unc_radius_)* 1000/1000);
     me_msg.robot_id = my_id_;
     me_msg.controlled = controlled_;
 
