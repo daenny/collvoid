@@ -62,7 +62,7 @@ void MePublisher::init(ros::NodeHandle nh, tf::TransformListener *tf) {
 
     publish_me_period_ = getParamDef(private_nh, "publish_me_frequency", 10.0);
     publish_me_period_ = 1.0 / publish_me_period_;
-
+    cur_loc_unc_radius_ = 0.;
     getFootprint(ns_nh);
 
     //Publishers
