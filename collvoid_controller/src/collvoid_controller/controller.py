@@ -1,5 +1,8 @@
 #!/usr/bin/env python
+import math
 import rospy
+import tf.transformations
+from geometry_msgs.msg import PoseArray, Pose, Quaternion
 
 try:
     import wx
@@ -92,7 +95,26 @@ class Controller(wx.Frame):
         self.Fit()
         self.Show(True)
 
+        self.obst_pub = rospy.Publisher('/obstacles', PoseArray, queue_size=1, latch=True)
+        self.goals_pub = rospy.Publisher('/goals', PoseArray, queue_size=1, latch=True)
+
+        self.num_obstacles = rospy.get_param('/num_obstacles', 0)
+
+        self.obst_msg = PoseArray()
+        self.obst_msg.header.frame_id = 'map'
+        for i in range(self.num_obstacles):
+            p = Pose()
+            obst = rospy.get_param('obst_%d'%i, [])
+            if len(obst) == 0:
+                continue
+            p.position.x = obst['x']
+            p.position.y = obst['y']
+            p.orientation = Quaternion(*tf.transformations.quaternion_from_euler(0, 0, obst['ang']))
+            self.obst_msg.poses.append([])
+        self.obst_pub.publish(self.obst_msg)
+
         self.subCommonPositions = rospy.Subscriber("/position_share", PoseTwistWithCovariance, self.cbCommonPositions)
+
         self.initialized = True
         self.services = []
 
@@ -125,6 +147,16 @@ class Controller(wx.Frame):
         goalNum = int(self.delayTime.GetValue())
         string = "%s send Goal num %d" % (self.choiceBox.GetStringSelection(), goalNum)
         self.pub.publish(str(string))
+        for r in range(self.robotList):
+            p = Pose()
+            robot_goals = rospy.get_param(r, [])
+            if len(robot_goals) < goalNum:
+                continue
+            p.position.x = robot_goals[goalNum]['x']
+            p.position.y = robot_goals[goalNum]['y']
+            p.orientation = Quaternion(*tf.transformations.quaternion_from_euler(0, 0, robot_goals[goalNum]['ang']))
+            self.obst_msg.poses.append([])
+        self.obst_pub.publish(self.obst_msg)
 
     def setCircling(self, event):
         string = "%s circle" % self.choiceBox.GetStringSelection()

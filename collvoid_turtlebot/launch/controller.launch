@@ -1,5 +1,8 @@
 <launch>
+  <rosparam command="load" file="$(find collvoid_turtlebot)/goals_tb_lab.yaml"/>
+
   <node pkg="collvoid_controller" type="controller.py" name="controller_robots" output="screen" />
+
   <node pkg="collvoid_controller" type="collvoid_visualizer.py" name="collvoid_viz" output="screen" />
   <include file="$(find collvoid_turtlebot)/launch/includes/lcm_controller.launch" />
   <!-- <node pkg="rviz" type="rviz" name="rviz" args="-d $(find collvoid_stage)/single_view.rviz" output="screen" /> -->
