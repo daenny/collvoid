@@ -65,7 +65,7 @@ class Controller(wx.Frame):
         grid_sizer.Add(sendDelayedGoal, (4, 0))
         self.Bind(wx.EVT_BUTTON, self.sendDelayedGoal, sendDelayedGoal)
 
-        self.delayTime = wx.TextCtrl(self, wx.ID_ANY, value=u"0.0")
+        self.delayTime = wx.TextCtrl(self, wx.ID_ANY, value=u"0")
         grid_sizer.Add(self.delayTime, (4, 1))
 
         sendInitGuess = wx.Button(self, wx.ID_ANY, label="Send init Guess")
@@ -76,8 +76,13 @@ class Controller(wx.Frame):
         grid_sizer.Add(sendNextGoal, (5, 1))
         self.Bind(wx.EVT_BUTTON, self.sendNextGoal, sendNextGoal)
 
+        sendSetGoal = wx.Button(self, wx.ID_ANY, label="Send set Goal")
+        grid_sizer.Add(sendSetGoal, (6, 0))
+        self.Bind(wx.EVT_BUTTON, self.sendSetGoal, sendSetGoal)
+
+
         toggleActiveCollvoid = wx.Button(self, wx.ID_ANY, label="Toggle Active collvoid")
-        grid_sizer.Add(toggleActiveCollvoid, (5, 2))
+        grid_sizer.Add(toggleActiveCollvoid, (6, 1))
         self.Bind(wx.EVT_BUTTON, self.toggleServices, toggleActiveCollvoid)
 
         grid_sizer.AddGrowableCol(0)
@@ -114,6 +119,11 @@ class Controller(wx.Frame):
         sleepTime = float(self.delayTime.GetValue())
         rospy.sleep(sleepTime)
         string = "%s send delayed Goal" % self.choiceBox.GetStringSelection()
+        self.pub.publish(str(string))
+
+    def sendSetGoal(self, event):
+        goalNum = int(self.delayTime.GetValue())
+        string = "%s send Goal num %d" % (self.choiceBox.GetStringSelection(), goalNum)
         self.pub.publish(str(string))
 
     def setCircling(self, event):

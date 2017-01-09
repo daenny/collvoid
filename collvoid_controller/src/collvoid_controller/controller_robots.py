@@ -100,7 +100,7 @@ class ControllerRobots(object):
             return  # rospy.loginfo("%s"%rospy.get_master())
         if msg.robot_id == self.hostname:
             if dist(msg.pose.pose, self.cur_goal_msg.target_pose.pose) < THRESHOLD:
-                if self.client.get_state() == actionlib.GoalStatus.SUCCEEDED:
+                if self.client.get_state() == actionlib.GoalStatus.SUCCEEDED and not self.circling:
                     rospy.loginfo("Reached last goal")
                     self.goal_reached = True
                     self.stopped = True
@@ -225,6 +225,18 @@ class ControllerRobots(object):
         if "circle" in msg.data:
             self.circling = not self.circling
             rospy.loginfo("Set circling to %s", str(self.circling))
+
+        if "send Goal num" in msg.data:
+            self.cur_goal = int(msg.data.split(" ")[-1])
+            self.global_reset_srv()
+            self.reset_srv()
+            self.goal_reached = False
+            rospy.loginfo("sending new goal %d/%d", self.cur_goal, self.num_goals)
+            self.cur_goal_msg = self.return_cur_goal()
+            self.stopped = False
+            self.client.send_goal(self.cur_goal_msg)
+            self.cur_goal_pub.publish(self.cur_goal_msg.target_pose)
+            rospy.loginfo("Send new Goal")
 
         if "next Goal" in msg.data:
             self.cur_goal += 1
