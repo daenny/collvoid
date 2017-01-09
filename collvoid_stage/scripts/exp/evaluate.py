@@ -3,31 +3,34 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
-
-import commands
 import glob
 import os
-
+import yaml
 import rosbag
 import sys
 import math
 import numpy as np
 import tf
 
-algorithms = {'cocalu_dwa_.bag': {'name': 'dwa'},
-              'cocalu_sampling_.bag': {'name': 'sampling'},
-              'cocalu_.bag': {'name': 'legacy'}
-              }
+algorithms = [{'bag': 'cocalu_.bag', 'name': 'legacy', 'pos': 1},
+              {'bag': 'cocalu_sampling_.bag','name': 'sampling', 'pos': 2},
+              {'bag': 'cocalu_dwa_.bag','name': 'dwa', 'pos': 3}
+              ]
 
 results_keys = [("collisions", {'sum': np.sum}),
+                ("collision_runs", {'sum': np.sum}),
+                ("not_started_runs", {'sum': np.sum}),
                 ("exceeded", {'sum': np.sum}),
                 ("collisions_resolved", {'sum': np.sum}),
+                ("collisions_resolved_runs", {'sum': np.sum}),
                 ("avg_time", {'avg': np.mean, 'std': np.std}),
                 ("avg_distance", {'avg': np.mean, 'std': np.std}),
                 ("avg_jerk_lin", {'avg': np.mean, 'std': np.std}),
                 ("avg_jerk_ang", {'avg': np.mean, 'std': np.std})
                 ]
-results_file_name = "0-summary.m"
+results_file_name = "a_summary.m"
+
+yaml_template = 'goals_robots_N_obstacles_O_S_created.yaml'
 
 
 def dist(a, b):
@@ -72,44 +75,71 @@ def print_dict_key_with_functions(key, results_dict, algo, num_robots):
     return line
 
 
+def load_yaml_data(work_dir, bag_name):
+    num_robots = 0
+    num_obst = 0
+    seed = 0
+    parts = bag_name.split("_")
+    for idx, part in enumerate(parts):
+        if "robots" in part:
+            num_robots = parts[idx+1]
+            continue
+        if "obstacles" in part:
+            num_obst = parts[idx+1]
+            continue
+        if "seed" in part:
+            seed = parts[idx + 1]
+            continue
+    yaml_file_name = yaml_template.replace("N", str(num_robots)).replace("O", str(num_obst)).replace("S", str(seed))
+    try:
+        with open(os.path.join(work_dir, 'yaml', yaml_file_name), 'r') as f:
+            data = yaml.load(f)
+    except:
+        print "could not load yaml. did you copy?", yaml_file_name
+        sys.exit(2)
+
+    return data
+
+
 def print_dict(results_dict, res_file):
     num_robots = list(results_dict['num_robots'])
     num_robots.sort()
     num_robots = [str(x) for x in num_robots]
     with open(res_file, 'w') as f:
         for algo in algorithms:
-            f.write("%% " + algo[:-5] + " results\n\n")
+            f.write("%% " + algo['bag'][:-5] + " results\n\n")
             for result_key in results_keys:
                 f.write(
-                    print_dict_key_with_functions(result_key, results_dict[algo], algorithms[algo]['name'], num_robots))
+                    print_dict_key_with_functions(result_key, results_dict[algo['name']], algo['name'], num_robots))
             f.write("%% end results\n\n")
+        # print summary
         for result_key, funcs in results_keys:
             for func_key in funcs:
                 line = result_key + '_' + func_key + '= ['
                 for algo in algorithms:
-                    line += algorithms[algo]['name'] + "_" + result_key + "_" + func_key
+                    line += algo['name'] + "_" + result_key + "_" + func_key
                     line += '; '
                 line = line[:-2]
                 line += "];\n"
                 f.write(line)
 
 
-def evaluate_dir(dirname, create_matlab_runs):
+def evaluate_dir(dirname, create_matlab_runs, force_new):
     bag_files = glob.glob(os.path.join(dirname, "*.bag"))
 
     results = {'num_robots': set()}
     for algo in algorithms:
-        results[algo] = {}
+        results[algo['name']] = {}
     for bag in bag_files:
-        num, res_dict = evalutate_bagfile(bag, create_matlab_runs)
+        num, res_dict = evalutate_bagfile(bag, create_matlab_runs, force_new)
         results['num_robots'].add(int(num))
         for algo in algorithms:
-            if algo in bag:
-                if num not in results[algo]:
-                    results[algo][num] = res_dict
+            if algo['bag'] in bag:
+                if num not in results[algo['name']]:
+                    results[algo['name']][num] = res_dict
                 else:
-                    for key in results[algo][num]:
-                        results[algo][num][key].extend(res_dict[key])
+                    for key in results[algo['name']][num]:
+                        results[algo['name']][num][key].extend(res_dict[key])
 
     res_file = os.path.join(dirname, results_file_name)
     print_dict(results, res_file)
@@ -122,6 +152,9 @@ def evalutate_bagfile(bagfile, create_matlab_runs, force_new=False):
     bag_name = os.path.basename(bagfile)
     work_dir = os.path.dirname(bagfile)
     # work_dir = os.path.join(work_dir, bag_name.split("_")[0])
+    use_yaml = True
+    if "circle" in bag_name:
+        use_yaml = False
 
     if os.path.exists(bagfile[:-4] + '.p') and not force_new:
         print("Pickle file exists, reloading from saved path")
@@ -131,11 +164,12 @@ def evalutate_bagfile(bagfile, create_matlab_runs, force_new=False):
         stall = data['stall']
         stall_resolved = data['stall_resolved']
         exceeded = data['exceeded']
-        obst = data['obst']
+        if use_yaml:
+            yaml_data = data['yaml']
         runs = data['runs']
 
     else:
-        print("Pickle file does not exist, rescanning, force new was", force_new)
+        print("Pickle file does not exist, or force new was true, force_new was:", force_new)
 
         count = 0
         runs = []
@@ -143,7 +177,6 @@ def evalutate_bagfile(bagfile, create_matlab_runs, force_new=False):
         stall = []
         stall_resolved = []
         exceeded = []
-        obst = []
         sys.stdout.write("evaluating run ...")
 
         skipped = 0
@@ -164,14 +197,14 @@ def evalutate_bagfile(bagfile, create_matlab_runs, force_new=False):
                 exceeded.append(int(msg.data))
                 stopped = True
                 continue
-            if topic == "/obstacles":
-                obstacle = [msg.pose.position.x, msg.pose.position.y, math.degrees(get_yaw(msg.pose))]
-                obst.append(obstacle)
-                stopped = True
-                continue
+            # if topic == "/obstacles":
+            #     obstacle = [msg.pose.position.x, msg.pose.position.y, math.degrees(get_yaw(msg.pose))]
+            #     obst.append(obstacle)
+            #     stopped = True
+            #     continue
 
             if topic == "/num_run":
-                run += 1
+                run = msg.data - 1
                 stopped = False
                 continue
             if stopped:
@@ -180,15 +213,15 @@ def evalutate_bagfile(bagfile, create_matlab_runs, force_new=False):
                 robot_name = topic[1:8]
                 #    continue
                 # which run
+                while len(runs) < run + 1:
+                    sys.stdout.write(" %d" % run)
+                    sys.stdout.flush()
+                    runs.append({})
+
                 # run = msg.run
                 # if topic == "/position_share":
                 #   robot_name = msg.robot_id
                 count += 1
-                # create new run
-                if len(runs) < run + 1:
-                    sys.stdout.write(" %d" % run)
-                    sys.stdout.flush()
-                    runs.append({})
 
                 # create new robot
                 if robot_name not in runs[run]:
@@ -263,7 +296,9 @@ def evalutate_bagfile(bagfile, create_matlab_runs, force_new=False):
         data['stall'] = stall
         data['stall_resolved'] = stall_resolved
         data['exceeded'] = exceeded
-        data['obst'] = obst
+        if use_yaml:
+            yaml_data = load_yaml_data(work_dir, bag_name)
+            data['yaml'] = yaml_data
         data['runs'] = runs
         with open(bagfile[:-4] + '.p', 'w') as f:
             pickle.dump(data, f)
@@ -274,8 +309,6 @@ def evalutate_bagfile(bagfile, create_matlab_runs, force_new=False):
 
     run_count = 0
     collision_count = 0
-    deadlock_count = 0
-    out_of_box_count = 0
     not_started_count = 0
     small_jerk_count = 0
     coll_runs = 0
@@ -286,10 +319,23 @@ def evalutate_bagfile(bagfile, create_matlab_runs, force_new=False):
     time_max_array = []
     distance_array = []
     loc_err_array = []
+    obst = []
+    if use_yaml:
+        for o in range(yaml_data['num_obstacles']):
+            obst.append([yaml_data["obst_%d" % o]['x'], yaml_data["obst_%d" % o]['y'], math.degrees(yaml_data["obst_%d" % o]['ang'])])
 
     # run loop
     for run in range(len(runs)):
         print "run %d (%d robots):" % (run, num_robots)
+        goals = dict()
+        if use_yaml:
+            for name in runs[run]:
+                goals[name] = [yaml_data[name]['goals'][run]['x'], yaml_data[name]['goals'][run]['y'],
+                               math.degrees(yaml_data[name]['goals'][run]['ang'])]
+
+        if len(runs[run]) == 0:
+            print "Empty run!!!"
+            continue
         if create_matlab_runs:
             # generating trajectories for matlab
 
@@ -302,6 +348,10 @@ def evalutate_bagfile(bagfile, create_matlab_runs, force_new=False):
             for robot_name in runs[run]:
                 robot = runs[run][robot_name]
                 max_length = max(max_length, len(robot['pos_ground_truth']))
+            if use_yaml:
+                GOALS = 'goals = ['
+            else:
+                GOALS = ''
 
             for robot_name in runs[run]:
                 robot = runs[run][robot_name]
@@ -342,6 +392,10 @@ def evalutate_bagfile(bagfile, create_matlab_runs, force_new=False):
                 POS_V = POS_V[0:-2]  # delete last ,
                 POS_V += ";\n"
 
+                if use_yaml:
+                    GOALS += str(goals[robot_name])[1:-1]
+                    GOALS += "; \n"
+
             POS_X = POS_X[0:-2]  # delete last ; and \n
             POS_X += "];\n"
 
@@ -353,6 +407,9 @@ def evalutate_bagfile(bagfile, create_matlab_runs, force_new=False):
 
             POS_V = POS_V[0:-2]  # delete last ; and \n
             POS_V += "];\n"
+
+            if use_yaml:
+                GOALS += '];\n'
 
             OBST = ''
             if len(obst)>0:
@@ -382,9 +439,11 @@ def evalutate_bagfile(bagfile, create_matlab_runs, force_new=False):
                 f.write("%plot(-X', Y')\n")
                 f.write("%quiver(-X(1,:), Y(1,:), -U(1,:), V(1,:))\n")
                 f.write(OBST)
+                f.write(GOALS)
 
         if len(runs[run]) != num_robots:
             print "!" * 10 + " NOT ALL ROBOTS STARTED " + "!" * 10
+            stall_resolved[run] = 0
             not_started_count += 1
             continue
 
@@ -402,16 +461,23 @@ def evalutate_bagfile(bagfile, create_matlab_runs, force_new=False):
         run_max_jerk_ang_cost = 0
         run_avg_jerk_ang_cost = 0
         run_avg_loc_err = 0
+        if len(runs[run]) == 0:
+            not_started_count += 1
+            stall_resolved[run] = 0
+            print "Empty run!!!"
+            continue
 
-        if not stall[run] == 0:
+        if run < len(stall) and not stall[run] == 0:
             coll_runs += 1
+            stall_resolved[run] = 0
             continue
-        if not stall_resolved[run] == 0:
-            coll_resolved_runs += 1
-            continue
-        if exceeded[run]:
+        if run < len(exceeded) and exceeded[run]:
             exceeded_count += 1
+            stall_resolved[run] = 0
             continue
+        if run < len(stall_resolved) and not stall_resolved[run] == 0:
+            coll_resolved_runs += 1
+            # continue
         # robot loop
         # if run in [6,7,8,9,15,25]:
         #     continue
@@ -451,7 +517,7 @@ def evalutate_bagfile(bagfile, create_matlab_runs, force_new=False):
             cost_jerk_lin = 0.5 * sum(map(lambda (x, dt): math.pow(x, 2) * dt, zip(jerk_lin, dts)))
 
             if cost_jerk_lin < 250:
-                print "!" * 10 + " SMALL JERK " + "!" * 10
+                # print "!" * 10 + " SMALL JERK " + "!" * 10
                 # skip = True
                 small_jerk_count += 1
                 # break
@@ -486,11 +552,16 @@ def evalutate_bagfile(bagfile, create_matlab_runs, force_new=False):
             run_avg_jerk_ang_cost += cost_jerk_ang / num_robots
             # run_avg_loc_err += avg_loc_error / num_robots
             avg_loc_error = 0
-            print "%s\ttime:\t%f\tdist:\t%f\tavg_loc_error:\t %f\tcost_jerk_ang: %f" % (
-                robot_name, time, distance, avg_loc_error, cost_jerk_ang)
+
+            #print "%s\ttime:\t%f\tdist:\t%f\tavg_loc_error:\t %f\tcost_jerk_ang: %f" % (
+            #    robot_name, time, distance, avg_loc_error, cost_jerk_ang)
 
         if skip:
+            not_started_count += 1
+            print ("Run skipped")
             continue
+
+
 
         # print "run avg-time: %f"%run_avg_time
         # print "run max-time: %f"%run_max_time
@@ -515,13 +586,15 @@ def evalutate_bagfile(bagfile, create_matlab_runs, force_new=False):
     # coll_res_total = #numpy.sum(stall_resolved)
     # coll_res_std = numpy.std(stall_resolved)
 
-    results_dict = {"collisions": stall,
+    results_dict = {"collision_runs": [coll_runs],
+                    "collisions": stall,
+                    "collisions_resolved_runs": [coll_resolved_runs],
                     "collisions_resolved": stall_resolved,
+                    "not_started_runs": [not_started_count],
                     "avg_time": time_max_array,
                     "avg_distance": distance_array,
                     "avg_jerk_lin": jerk_lin_array,
                     "avg_jerk_ang": jerk_ang_array,
-                    "obst": obst,
                     "exceeded": [exceeded_count]
                     }
 
@@ -534,10 +607,10 @@ if __name__ == '__main__':
         sys.exit(-1)
 
     fname = sys.argv[1]
-    create_runs = True
+    create_runs = False
     if len(sys.argv) == 3:
-        create_runs = False
+        create_runs = True
 
     path = os.path.join(os.getcwd(), fname)
     print "reading %s .." % (path)
-    evaluate_dir(path, create_runs)
+    evaluate_dir(path, create_runs, create_runs)

@@ -66,7 +66,6 @@ class Watchdog(object):
             rospy.Subscriber('robot_%d/' % i + self.GOAL_TOPIC, PoseStamped, self.cb_goals, i, queue_size=self.num_robots)
         #rospy.Subscriber("/commands_robot", String, self.cb_commands_robots)
 
-
         self.obst_subs = []
         i = 0
         for (t, _) in topics:
@@ -102,7 +101,7 @@ class Watchdog(object):
         pose.pose = msg.pose.pose
         pose.header = msg.header
         self.obst_pub.publish(pose)
-        self.obst_subs[i].unregister()
+        #self.obst_subs[i].unregister()
 
     def cb_goals(self, msg, i):
         self.goals[i].pose = msg.pose
