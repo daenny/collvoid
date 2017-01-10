@@ -12,6 +12,8 @@
         <param name="base_local_planner" value="collvoid_local_planner/CollvoidLocalPlanner" />
         <!--<param name="base_global_planner" value="global_planner/GlobalPlanner" />-->
         <param name="base_global_planner" value="navfn/NavfnROS" />-
+        <remap from="cmd_vel" to="navigation_velocity_smoother/raw_cmd_vel"/>
+        <remap from="scan" to="/scan_filtered"/>
         <!--<param name="base_global_planner" value="collvoid_simple_global_planner/CollvoidSimpleGlobalPlanner" />-->
     </node>
 
