@@ -110,7 +110,7 @@ class Controller(wx.Frame):
             p.position.x = obst['x']
             p.position.y = obst['y']
             p.orientation = Quaternion(*tf.transformations.quaternion_from_euler(0, 0, obst['ang']))
-            self.obst_msg.poses.append([])
+            self.obst_msg.poses.append(p)
         self.obst_pub.publish(self.obst_msg)
 
         self.subCommonPositions = rospy.Subscriber("/position_share", PoseTwistWithCovariance, self.cbCommonPositions)
@@ -147,16 +147,18 @@ class Controller(wx.Frame):
         goalNum = int(self.delayTime.GetValue())
         string = "%s send Goal num %d" % (self.choiceBox.GetStringSelection(), goalNum)
         self.pub.publish(str(string))
-        for r in range(self.robotList):
+        msg = PoseArray()
+        msg.header.frame_id = 'map'
+        for r in self.robotList:
             p = Pose()
-            robot_goals = rospy.get_param(r, [])
-            if len(robot_goals) < goalNum:
+            robot_goals = rospy.get_param(r + '/goals', [])
+            if len(robot_goals) < goalNum + 1:
                 continue
             p.position.x = robot_goals[goalNum]['x']
             p.position.y = robot_goals[goalNum]['y']
             p.orientation = Quaternion(*tf.transformations.quaternion_from_euler(0, 0, robot_goals[goalNum]['ang']))
-            self.obst_msg.poses.append([])
-        self.obst_pub.publish(self.obst_msg)
+            msg.poses.append(p)
+        self.goals_pub.publish(msg)
 
     def setCircling(self, event):
         string = "%s circle" % self.choiceBox.GetStringSelection()
