@@ -185,8 +185,8 @@ DWAPlanner::DWAPlanner(std::string name, base_local_planner::LocalPlannerUtil *p
     critics.push_back(&collvoid_costs_); // tries to adapt collvoid settings
 
     critics.push_back(&alignment_costs_); // prefers trajectories that keep the robot nose on nose path
-    //critics.push_back(&path_alignment_cost_);
-    //critics.push_back(&goal_alignment_cost_);
+    critics.push_back(&path_alignment_cost_);
+    critics.push_back(&goal_alignment_cost_);
     critics.push_back(&path_costs_); // prefers trajectories on global path
     critics.push_back(&goal_costs_); // prefers trajectories that go towards (local) goal, based on wave propagation
 
@@ -311,6 +311,13 @@ void DWAPlanner::updatePlanAndLocalCosts(tf::Stamped<tf::Pose> global_pose,
             // once we are close to goal, trying to keep the nose close to anything destabilizes behavior.
             alignment_costs_.setScale(0.0);
         }
+    if (sq_dist > goal_heading_sq_dist_) {
+        goal_alignment_cost_.setScale(0);
+
+    }
+    else {
+        goal_alignment_cost_.setScale(heading_bias_);
+    }
 
     }
 
