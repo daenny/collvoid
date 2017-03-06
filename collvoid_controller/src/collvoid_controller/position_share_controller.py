@@ -15,13 +15,6 @@ from threading import Lock
 
 __author__ = 'danielclaes'
 
-RATE = rospy.get_param('~rate', 10)
-global_frame = rospy.get_param('~global_frame', '/map')
-last_seen_threshold = rospy.get_param('~last_seen_threshold', 2.)
-
-Z_HEIGHT = 0.
-STATIC_SCALE = 0.95
-
 
 def quat_array_from_msg(o):
     return np.array([o.x, o.y, o.z, o.w])
@@ -133,7 +126,7 @@ class PositionShareController(object):
         msg.radius = robot['radius']
         return msg
 
-    def publish_static_robots(self):
+    def publish_static_robots(self, force_clear):
         with self.neighbors_lock:
             time = rospy.Time.now()
 
@@ -176,7 +169,7 @@ class PositionShareController(object):
                         self.neighbors[name]['stationary'] = False
                         change = True
 
-            if change or True:
+            if change or force_clear:
                 self.clearing_laser_scan.header.stamp = self.me.header.stamp
                 self.clearing_laser_pub.publish(self.clearing_laser_scan)
 
@@ -214,8 +207,17 @@ class PositionShareController(object):
 
 if __name__ == '__main__':
     rospy.init_node("position_share_controller")
+
+    RATE = rospy.get_param('~rate', 10)
+    global_frame = rospy.get_param('~global_frame', '/map')
+    last_seen_threshold = rospy.get_param('~last_seen_threshold', 2.)
+    Z_HEIGHT = 0.
+    STATIC_SCALE = rospy.get_param("~static_scale", 0.95)
+
     controller = PositionShareController()
     rate = rospy.Rate(10)
+    force_clear = False
     while not rospy.is_shutdown():
-        controller.publish_static_robots()
+        controller.publish_static_robots(force_clear=force_clear)
+        force_clear = not force_clear
         rate.sleep()
