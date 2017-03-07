@@ -1,6 +1,6 @@
 <launch>
 
-  <node pkg="amcl" type="amcl" name="amcl" output="screen">
+  <node pkg="collvoid_amcl" type="collvoid_amcl" name="amcl">
     <!-- Publish scans from best pose at a max of 10 Hz -->
     <param name="odom_model_type" value="diff"/>
     <param name="gui_publish_rate" value="10.0"/>

@@ -16,23 +16,26 @@ TYPE = None
 name = None
 lcm_sub = None
 pub = None
-module_type=None
+id = None
+module_type = None
+
 
 def init_globals():
-    global lc, name, pub, lcm_sub,lcm_channel, TYPE, module_type
+    global lc, name, pub, lcm_sub, lcm_channel, TYPE, module_type, id
     lc = lcm.LCM("udpm://224.1.1.1:5007?ttl=2")
     name = gethostname()
-    #lcm_sub = lc.subscribe(name, udp_callback)
-    #if 'tb' in name:
+    # lcm_sub = lc.subscribe(name, udp_callback)
+    # if 'tb' in name:
+    topic = rospy.get_param('~topic')
+    lcm_channel = rospy.get_param('~lcm_channel', topic)
 
-    lcm_channel=rospy.get_param('~lcm_channel')
-    topic=rospy.get_param('~topic')
-    msg_package=rospy.get_param('~msg_package')
-    msg_name=rospy.get_param('~msg_name')
-    module_type=rospy.get_param('~module_type')
-    
+    msg_package = rospy.get_param('~msg_package')
+    msg_name = rospy.get_param('~msg_name')
+    module_type = rospy.get_param('~module_type')
+
     module = importlib.import_module(msg_package)
     TYPE = getattr(module, msg_name)
+    id = rospy.get_param('~id', 'robot_id')
 
     if module_type in ['receiver', 'transceiver']:
         lcm_sub = lc.subscribe(lcm_channel, udp_callback)
@@ -45,13 +48,13 @@ def init_globals():
 def udp_callback(channel, data):
     msg = TYPE()
     msg.deserialize(data)
-    if module_type == 'transceiver' and msg.robot_id == name:
+    if module_type == 'transceiver' and getattr(msg, id) == name:
         return
     pub.publish(msg)
 
 
 def handle_msg(msg):
-    if module_type == 'transceiver' and msg.robot_id != name:
+    if module_type == 'transceiver' and getatts(msg, id) != name:
         return
     send(msg)
 
