@@ -54,7 +54,7 @@ def udp_callback(channel, data):
 
 
 def handle_msg(msg):
-    if module_type == 'transceiver' and getatts(msg, id) != name:
+    if module_type == 'transceiver' and getattr(msg, id) != name:
         return
     send(msg)
 
