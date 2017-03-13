@@ -19,7 +19,9 @@
 
 
   <!-- Dependencies needed after this package is compiled. -->
+  <run_depend>collvoid_amcl</run_depend>
   <run_depend>collvoid_controller</run_depend>
+  <run_depend>collvoid_dwa_local_planner</run_depend>
   <run_depend>pacman_turtles</run_depend>
   <run_depend>pacman_controller</run_depend>
   <run_depend>collvoid_pr2</run_depend>
@@ -28,6 +30,7 @@
   <run_depend>collvoid_local_planner</run_depend>
   <run_depend>collvoid_simple_global_planner</run_depend>
   <run_depend>collvoid_msgs</run_depend>
+  <run_depend>collvoid_wiggle_recovery</run_depend>
 
   <!-- Dependencies needed only for running tests. -->
 
