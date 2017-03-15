@@ -316,7 +316,7 @@ void DWAPlanner::updatePlanAndLocalCosts(tf::Stamped<tf::Pose> global_pose,
 
     }
     else {
-        goal_alignment_cost_.setScale(heading_bias_);
+        goal_alignment_cost_.setScale(std::max( 2 * (goal_heading_sq_dist_ - sq_dist)/goal_heading_sq_dist_, 1) * heading_bias_);
     }
 
     }
