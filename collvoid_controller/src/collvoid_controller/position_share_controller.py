@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import random
+
 from sensor_msgs.msg import PointCloud2, LaserScan
 import sensor_msgs.point_cloud2 as pcl2
 from std_msgs.msg import Header
@@ -164,6 +166,9 @@ class PositionShareController(object):
                         p_x = STATIC_SCALE * p_rotated[0] + pos_rel[0]
                         p_y = STATIC_SCALE * p_rotated[1] + pos_rel[1]
                         cloud_points.append((p_x, p_y, Z_HEIGHT))
+                        for _ in range(5):
+                            scale = random.uniform(0.98, 1.02)
+                            cloud_points.append((scale*p_x, scale*p_y, Z_HEIGHT))
                 else:
                     if self.neighbors[name]['stationary']:
                         self.neighbors[name]['stationary'] = False
