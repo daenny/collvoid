@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 2.8.3)
 project(collvoid_amcl)
 
 find_package(catkin REQUIRED
-        COMPONENTS
+  COMPONENTS
+  collvoid_msgs
             rosbag
             roscpp
             tf
@@ -18,7 +19,8 @@ generate_dynamic_reconfigure_options(
 )
 
 catkin_package(
-    CATKIN_DEPENDS
+  CATKIN_DEPENDS
+  collvoid_msgs
         rosbag
         roscpp
         dynamic_reconfigure
@@ -55,6 +57,7 @@ target_link_libraries(collvoid_amcl_sensors collvoid_amcl_map collvoid_amcl_pf)
 add_executable(collvoid_amcl
                        src/amcl_node.cpp)
 add_dependencies(collvoid_amcl collvoid_amcl_gencfg)
+add_dependencies(collvoid_amcl collvoid_msgs_generate_messages_cpp)
 
 target_link_libraries(collvoid_amcl
     collvoid_amcl_sensors collvoid_amcl_map collvoid_amcl_pf
