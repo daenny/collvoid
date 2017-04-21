@@ -1215,7 +1215,7 @@ namespace collvoid {
             }
             else {
                 new_vel = planner_util_->getCurrentLimits().min_trans_vel * normalize(new_vel);
-                if (isnan(new_vel.x()) || isnan(new_vel.y())) {
+                if (std::isnan(new_vel.x()) || std::isnan(new_vel.y())) {
                     ROS_WARN("Did not find safe velocity, chosing 0");
                     new_velocity_ = Vector2();
                     return;

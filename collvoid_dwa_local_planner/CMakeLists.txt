@@ -6,6 +6,7 @@ find_package(catkin REQUIRED
         COMPONENTS
         base_local_planner
         collvoid_local_planner
+        collvoid_srvs
         cmake_modules
         costmap_2d
         dynamic_reconfigure
@@ -54,6 +55,7 @@ target_link_libraries(collvoid_dwa_local_planner base_local_planner ${catkin_LIB
 add_dependencies(collvoid_dwa_local_planner ${catkin_EXPORTED_TARGETS})
 add_dependencies(collvoid_dwa_local_planner collvoid_local_planner)
 add_dependencies(collvoid_dwa_local_planner collvoid_scoring_function)
+
 
 install(TARGETS collvoid_dwa_local_planner
         LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
