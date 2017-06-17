@@ -11,7 +11,7 @@ NUM_GOALS = 10
 MIN_DIST = 0.9
 
 MIN_DIST_INIT_OTHER = 0.5
-real = True
+real = False
 if real:
     MIN_DIST_INIT_OWN = 1.5  # was 2 for exps
     X_RANGE = [-1.2, 1.2]
