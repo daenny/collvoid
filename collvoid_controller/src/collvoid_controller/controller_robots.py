@@ -184,8 +184,11 @@ class ControllerRobots(object):
             self.stopped = not self.stopped
 
         if "Start" in msg.data:
-            self.global_reset_srv()
-            self.reset_srv()
+            try:
+                self.global_reset_srv()
+                self.reset_srv()
+            except:
+                pass
             if self.cur_goal == -1:
                 self.cur_goal = 0
             self.cur_goal_msg = self.return_cur_goal()
@@ -228,8 +231,11 @@ class ControllerRobots(object):
 
         if "send Goal num" in msg.data:
             self.cur_goal = int(msg.data.split(" ")[-1])
-            self.global_reset_srv()
-            self.reset_srv()
+            try:
+                self.global_reset_srv()
+                self.reset_srv()
+            except:
+                pass
             self.goal_reached = False
             rospy.loginfo("sending new goal %d/%d", self.cur_goal, self.num_goals)
             self.cur_goal_msg = self.return_cur_goal()
@@ -242,8 +248,11 @@ class ControllerRobots(object):
             self.cur_goal += 1
             if self.cur_goal == self.num_goals:
                 self.cur_goal = 0
-            self.global_reset_srv()
-            self.reset_srv()
+            try:
+                self.global_reset_srv()
+                self.reset_srv()
+            except:
+                pass
             self.goal_reached = False
             rospy.loginfo("sending new goal %d/%d", self.cur_goal, self.num_goals)
             self.cur_goal_msg = self.return_cur_goal()

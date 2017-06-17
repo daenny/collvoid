@@ -23,6 +23,7 @@ class CreateRunFiles(object):
     bag_file_name = "collvoid.bag"
     use_sticks = False
     dwa = False
+    real_dwa = False
     extra_sampling = True
     world_name = "swarmlab"
     settings = None
@@ -31,8 +32,8 @@ class CreateRunFiles(object):
 
     def __init__(self, argv):
         try:
-            opts, args = getopt.getopt(argv, "hn:s:oldtxf:Sw:y:vr:",
-                                       ["help", "numRobots=", "circleSize=", "omni", "localization", "dwa",
+            opts, args = getopt.getopt(argv, "hn:s:oldDtxf:Sw:y:vr:",
+                                       ["help", "numRobots=", "circleSize=", "omni", "localization", "dwa","real_dwa",
                                         "old_cocalu", "experiments", "bagFileName=", "Sticks", "world",
                                         "yaml_file=", "visualize", "num_repetitions"])
         except getopt.GetoptError:
@@ -50,6 +51,9 @@ class CreateRunFiles(object):
                 self.omni = True
             elif opt in ("-d", "--dwa"):
                 self.dwa = True
+            elif opt in ("-D", "--real_dwa"):
+                self.real_dwa = True
+
             elif opt in ("-t", "--old_cocalu"):
                 self.extra_sampling = False
             elif opt in ("-l", "--localization"):
@@ -211,6 +215,8 @@ class CreateRunFiles(object):
 
                 if self.dwa:
                     f_launch.write('  <include file="$(find collvoid_stage)/launch/move_base_dwa.launch">\n')
+                elif self.real_dwa:
+                    f_launch.write('  <include file="$(find collvoid_stage)/launch/move_base_dwa_simple.launch">\n')
                 elif self.extra_sampling:
                     f_launch.write('  <include file="$(find collvoid_stage)/launch/move_base_collvoid.launch">\n')
                 else:

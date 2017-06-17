@@ -18,7 +18,9 @@ import psutil
 
 settings = {"cocalu": "--old_cocalu",
             "cocalu_sampling": "",
-            "cocalu_dwa": "--dwa"}
+            "cocalu_dwa": "--dwa",
+            "dwa": "--real_dwa"
+            }
 
 rand = random.Random()
 rand.seed(0)
@@ -39,7 +41,7 @@ else:
     NUM_RUNS = 1  # all via reset
     NUM_REPETITIONS = 50
 
-SETTINGS = ["cocalu_dwa", "cocalu_sampling", "cocalu"]
+SETTINGS = ["dwa"]
 
 YAML_TEMPLATE = 'goals_robots_R_obstacles_O_S_created.yaml'
 
