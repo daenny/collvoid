@@ -14,7 +14,8 @@ import tf
 
 algorithms = [{'bag': 'cocalu_.bag', 'name': 'legacy', 'pos': 1},
               {'bag': 'cocalu_sampling_.bag','name': 'sampling', 'pos': 2},
-              {'bag': 'cocalu_dwa_.bag','name': 'dwa', 'pos': 3}
+              {'bag': 'cocalu_dwa_.bag','name': 'dwa', 'pos': 3},
+              {'bag': 'dwa_legacy_.bag','name': 'normaldwa', 'pos': 4}
               ]
 
 results_keys = [("collisions", {'sum': np.sum}),
@@ -95,7 +96,7 @@ def load_yaml_data(work_dir, bag_name):
         with open(os.path.join(work_dir, 'yaml', yaml_file_name), 'r') as f:
             data = yaml.load(f)
     except:
-        print "could not load yaml. did you copy?", yaml_file_name
+        print "could not load yaml. did you copy to the yaml folder?", yaml_file_name
         sys.exit(2)
 
     return data
