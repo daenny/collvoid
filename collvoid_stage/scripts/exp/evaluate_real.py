@@ -4,6 +4,8 @@ import os
 import rosbag
 import sys
 import math
+
+import rospy
 import tf.transformations
 
 
@@ -27,7 +29,7 @@ def twist_to_uv((x, pose)):
 def evaluate_dir(dirname):
     bag_files = glob.glob(os.path.join(dirname, "*.bag"))
     for bag in bag_files:
-       evalutate_bagfile(bag)
+        evalutate_bagfile(bag)
 
 
 def evalutate_bagfile(bagfile):
@@ -40,11 +42,12 @@ def evalutate_bagfile(bagfile):
     obst = []
     goals = []
     sys.stdout.write("evaluating run ...")
-
+    start_time = rospy.Time(0)
     skipped = 0
     run = {}
+    started = False
     # read all messages
-    for topic, msg, t in bag.read_messages():
+    for topic, msg, t in bag.read_messages(topics=['/position_share']):
         if topic == "/obstacles":
             for p in msg.poses:
                 obstacle = [p.position.x, p.position.y, math.degrees(get_yaw(p))]
@@ -76,6 +79,9 @@ def evalutate_bagfile(bagfile):
                 robot['last_pos_ground_truth'] = (msg.pose.pose.position.x,
                                                   msg.pose.pose.position.y)
 
+                alpha = get_yaw(msg.pose.pose)
+
+                robot['ang'] = [math.degrees(alpha)]
                 robot['pos_ground_truth'] = [robot['last_pos_ground_truth']]
                 robot['twist_ground_truth'] = [twist_to_uv((msg.twist.twist.linear.x, msg.pose.pose))]
 
@@ -98,6 +104,35 @@ def evalutate_bagfile(bagfile):
                 # update last position and distance
                 pos = (msg.pose.pose.position.x,
                        msg.pose.pose.position.y)
+
+                if not started:
+                    if dist(robot['last_pos_ground_truth'], pos) < 0.02:
+                        skipped += 1
+                        start_time = msg.header.stamp
+                        continue
+                    else:
+                        started = True
+                        print "moved for more than 2 cm, assuming start"
+                        print "skipped initial", skipped
+                        for r in run:
+                            run[r]['start_time'] = start_time
+                            run[r]['temp_last_time'] = start_time
+
+                #if dist(robot['last_pos_ground_truth'], pos) < 0.005:
+                #    skipped += 1
+                #    continue
+
+                if stop:
+                    #print (msg.header.stamp - start_time).to_sec(), int(stop_time)
+                    if (msg.header.stamp - start_time).to_sec() > int(stop_time):
+                        skipped += 1
+                        #print "STOP"
+                        continue
+
+                alpha = get_yaw(msg.pose.pose)
+
+                robot['ang'].append(math.degrees(alpha))
+
                 robot['pos_ground_truth'].append(pos)
                 robot['twist_ground_truth'].append(twist_to_uv((msg.twist.twist.linear.x, msg.pose.pose)))
                 robot['temp_distance'] += dist(robot['last_pos_ground_truth'], pos)
@@ -144,6 +179,7 @@ def evalutate_bagfile(bagfile):
     POS_Y = "Y = ["
     POS_U = "U = ["
     POS_V = "V = ["
+    ANG = "ang = ["
 
     max_length = 0
     for robot_name in run:
@@ -152,8 +188,13 @@ def evalutate_bagfile(bagfile):
 
     GOALS = 'goals = ['
 
-    for robot_name in run:
+    for robot_name in sorted(run.keys()):
         robot = run[robot_name]
+        # unpack x and y
+        ang = robot['ang']
+        while len(ang) < max_length:
+            ang.append(ang[-1])
+
         # unpack x and y
         pos_x = map(lambda x: x[0], robot['pos_ground_truth'])
         while len(pos_x) < max_length:
@@ -170,6 +211,11 @@ def evalutate_bagfile(bagfile):
         pos_v = map(lambda x: x[1], robot['twist_ground_truth'])
         while len(pos_v) < max_length:
             pos_v.append(0)
+
+        for x in ang:
+            ANG += str(x) + ", "
+        ANG = ANG[0:-2]  # delete last ,
+        ANG += ";\n"
 
         for x in pos_x:
             POS_X += str(x) + ", "
@@ -203,6 +249,9 @@ def evalutate_bagfile(bagfile):
         GOALS += str(goal)[1:-1]
         GOALS += "; \n"
 
+    ANG = ANG[0:-2]  # delete last ; and \n
+    ANG += "];\n"
+
     POS_X = POS_X[0:-2]  # delete last ; and \n
     POS_X += "];\n"
 
@@ -218,7 +267,7 @@ def evalutate_bagfile(bagfile):
     GOALS += '];\n'
 
     OBST = ''
-    if len(obst)>0:
+    if len(obst) > 0:
         OBST = 'obstacles = [\n'
         for o in obst:
             OBST += str(o)[1:-1]
@@ -230,7 +279,10 @@ def evalutate_bagfile(bagfile):
         os.makedirs(matlab_path)
 
     # saving trajectories to file
-    matlab_fname = os.path.join(matlab_path, "%s.m" % (bag_name[0:-4]))
+    mfname = "_".join(bag_name[:-4].split("_")[0:2])
+    if stop:
+        mfname += str(stop_time)
+    matlab_fname = os.path.join(matlab_path, "%s.m" % mfname)
 
     print "saving trajectories to %s ..." % matlab_fname
 
@@ -239,19 +291,96 @@ def evalutate_bagfile(bagfile):
         f.write(POS_Y)
         f.write(POS_U)
         f.write(POS_V)
+        f.write(ANG)
         f.write("%plot(-X', Y')\n")
         f.write("%quiver(-X(1,:), Y(1,:), -U(1,:), V(1,:))\n")
         f.write(OBST)
         f.write(GOALS)
 
+    run_max_time = 0
+    run_avg_time = 0
+    run_avg_distance = 0
+
+    run_min_jerk_lin_cost = 10000000000000
+    run_max_jerk_lin_cost = 0
+    run_avg_jerk_lin_cost = 0
+
+    run_min_jerk_ang_cost = 10000000000000
+    run_max_jerk_ang_cost = 0
+    run_avg_jerk_ang_cost = 0
+
+    for robot_name in run:
+        robot = run[robot_name]
+        time = (robot['last_time'] - robot['start_time']).to_sec()
+        distance = robot['distance']
+
+        if run_max_time < time:
+            run_max_time = time
+
+        # compute linear jerk cost
+        dts = robot['dt']
+        vel_lin = robot['vel_lin']
+
+        acc_lin = [0]
+        for i in range(len(vel_lin) - 1):
+            acc_lin.append((vel_lin[i + 1] - vel_lin[i]) / dts[i + 1])
+
+        jerk_lin = [0]
+        for i in range(len(acc_lin) - 1):
+            jerk_lin.append((acc_lin[i + 1] - acc_lin[i]) / dts[i + 1])
+        # print jerk_lin,acc_lin, dts,"robot ", robot_name
+        cost_jerk_lin = 0.5 * sum(map(lambda (x, dt): math.pow(x, 2) * dt, zip(jerk_lin, dts)))
+
+        if distance < 0.1:
+            print "!" * 10 + " 0 DIST " + "!" * 10
+            break
+        # compute angular jerk cost
+
+        vel_ang = robot['vel_ang']
+
+        acc_ang = [0]
+        for i in range(len(vel_ang) - 1):
+            acc_ang.append((vel_ang[i + 1] - vel_ang[i]) / dts[i + 1])
+
+        jerk_ang = [0]
+        for i in range(len(acc_lin) - 1):
+            jerk_ang.append((acc_ang[i + 1] - acc_ang[i]) / dts[i + 1])
+
+        cost_jerk_ang = 0.5 * sum(map(lambda (x, dt): math.pow(x, 2) * dt, zip(jerk_ang, dts)))
+
+        run_min_jerk_lin_cost = min(cost_jerk_lin, run_min_jerk_lin_cost)
+        run_max_jerk_lin_cost = max(cost_jerk_lin, run_max_jerk_lin_cost)
+
+        run_min_jerk_ang_cost = min(cost_jerk_ang, run_min_jerk_ang_cost)
+        run_max_jerk_ang_cost = max(cost_jerk_ang, run_max_jerk_ang_cost)
+
+        run_avg_time += time / num_robots
+        run_avg_distance += distance / num_robots
+        # run_avg_loc_error += avg_loc_error / num_robots
+        run_avg_jerk_lin_cost += cost_jerk_lin / num_robots
+        run_avg_jerk_ang_cost += cost_jerk_ang / num_robots
+
+    print "run avg-time: %f" % run_avg_time
+    print "run max-time: %f" % run_max_time
+    print "run avg-distance: %f" % run_avg_distance
+    print "run avg-jerk-lin-cost: %f" % run_avg_jerk_lin_cost
+    print "run min-jerk-lin-cost: %f" % run_min_jerk_lin_cost
+    print "run max-jerk-lin-cost: %f" % run_max_jerk_lin_cost
+    print "run avg-jerk-ang-cost: %f" % run_avg_jerk_ang_cost
+    print "run min-jerk-ang-cost: %f" % run_min_jerk_ang_cost
+    print "run max-jerk-ang-cost: %f" % run_max_jerk_ang_cost
+
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print "usage: evaluate.py <dirname> <opt. no run files>"
+        print "usage: evaluate.py <dirname> <stop_time>"
         sys.exit(-1)
 
     fname = sys.argv[1]
-
+    stop = False
+    if len(sys.argv) > 2:
+        stop = True
+        stop_time = sys.argv[2]
     path = os.path.join(os.getcwd(), fname)
     print "reading %s .." % (path)
     evaluate_dir(path)
