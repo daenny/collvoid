@@ -30,19 +30,30 @@ def twist_to_uv((x, pose)):
 
 def evaluate_dir(dirname):
     bag_files = sorted(glob.glob(os.path.join(dirname, "*.bag")))
-    avgs = []
+    run_avgs = []
     w_avgs = []
     ts = []
+    lts = []
     for idx, bag in enumerate(bag_files):
         print("evaluating run", bag)
-        avg, w_avg, t = evalutate_bagfile(bag)
-        avgs.append(avg)
-        w_avgs.append(w_avg)
+        avg, w_avg, t, lt = evalutate_bagfile(bag)
+        run_avgs.append(np.sum(np.array(w_avg)))
+        w_avgs.extend(w_avg)
         ts.append(t)
+        lts.append(lt)
 
-    print "means", np.mean(np.array(avgs))
-    print "w_means", np.mean(np.array(w_avgs))
-    print "times", np.mean(np.array(ts))
+    settings_string = "res_" + "_".join(dirname.strip('.').strip('/').split('/')[-2:])
+    if not stop:
+        results_file_name = settings_string + "_summary.m"
+    else:
+        results_file_name = settings_string + "_summary_" + stop_time + ".m"
+    res_file = os.path.join(dirname, results_file_name)
+    print res_file
+    with open(res_file, 'w') as f:
+        f.write(settings_string + "_run_sums=[" + ','.join([str(x) for x in run_avgs]) + '];\n')
+        f.write(settings_string + "_w_means=[" + ','.join([str(x) for x in w_avgs]) + '];\n')
+        f.write(settings_string + "_times=[" + ','.join([str(x) for x in ts]) + '];\n')
+        f.write(settings_string + "_ltimes=[" + ','.join([str(x) for x in lts]) + '];\n')
 
 
 def make_agent_tasks_state(msg):
@@ -98,8 +109,8 @@ def evalutate_bagfile(bagfile):
 
                 finished_tasks = copy.deepcopy(finished_tasks)
             time += 0.2
-            #if time > 210:
-            #    break
+            if stop and time > int(stop_time):
+                break
 
     print "task_times:"
     weighted_avg = []
@@ -117,11 +128,13 @@ def evalutate_bagfile(bagfile):
         avg.append(time - started_task_times[t])
 
     print "avg.time", np.mean(np.array(avg))
-    print "weighed_avg.time", np.mean(np.array(weighted_avg))
-    print "Runtime", last_time
+    print "weighed_avg.time", np.sum(np.array(weighted_avg))
+    print "Last-pick-time", last_time
+    print "Last-event", events[-1][0]
+    #print_event(events[-1])
     for e in events:
         print_event(e)
-    return np.sum(np.array(avg)), np.sum(np.array(weighted_avg)), last_time
+    return avg, weighted_avg, last_time, events[-1][0]
 
 
 def print_event(e):
@@ -147,6 +160,10 @@ if __name__ == '__main__':
         sys.exit(-1)
 
     fname = sys.argv[1]
+    stop = False
+    if len(sys.argv) > 2:
+        stop = True
+        stop_time = sys.argv[2]
 
     path = os.path.join(os.getcwd(), fname)
     print "reading %s .." % (path)
